@@ -14,14 +14,11 @@ A tool is provided to automatically crawl the zoneinfo files on such a system to
 This data typically adds ~200kiB to the size of executables that use timezones.
 On Windows hosts, Tempora will attempt to map the current timezone to an appropriate entry from the IANA database.
 
-Timezones are not stored in `Date_Time`/`Date`/`Time` structs.  It's up to the programmer to decide whether these values represent local time or UTC.
-When initializing a `Date_Time` from a unix timestamp, a timezone can be specified, which will automatically apply the appropriate offset to create a local `Date_Time`.
-When converting a local `Date_Time` back to a unix timestamp, the local timezone must be provided to undo the offset.  Note that timezones with an annual DST cycle pose a problem here,
-e.g. 2023-11-05 01:30 central time could refer to either 2023-11-05 06:30 +00:00 or 2023-11-05 07:30 +00:00, so converting local times back to UTC is best avoided if possible.
-
-When formatting `Date_Time` or `Time` values, a timezone may be provided by using the `fmt_utc` or `fmt_local` functions.  The former assumes that the date/time is in UTC, and applies
-the timezone offset before formatting.  The latter assumes that the timezone offset has already been applied, and only provides the timezone in case the format includes the offset or time designation (CST, CDT, etc.)
-When parsing `Date_Time` or `Time` values from strings, if the format includes an offset, it will always be subtracted from the raw parsed time, but will be provided along with the result in a `Date_Time_With_Offset` or `Time_With_Offset` struct.
+Timezones are not stored in `Date_Time`/`Date`/`Time` structs; these can represent either local or UTC times/dates.
+`Date_Time.With_Offset` and `Time.With_Offset` augment these structs with a timezone and/or UTC offset.  The `with_offset` and `with_timezone` functions will produce these, as will `from_string`.
+Formatting `Date_Time` and `Time` structs, and is only possible using the full `With_Offset` version.
+Converting to/from unix timestamps is only possible with `Date_Time.With_Offset`.
+The timezone can be changed (without changing the instant in time being represented) using `With_Offset.in_timezone`.
 
 ## Limitations
 * It's not possible to store most "out of bounds" dates/times (e.g. Jan 32).

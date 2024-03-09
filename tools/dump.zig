@@ -26,33 +26,37 @@ pub fn main() !u8 {
         const now = std.time.timestamp();
         const zi = tz.zone_info(now);
         try writer.print("Current Time: {YYYY-MM-DD HH;mm;ss z}  offset={}s  dst={}  source={s}\n", .{
-            tempora.Date_Time.from_timestamp_s(now, null).fmt_utc(tz),
+            tempora.Date_Time.With_Offset.from_timestamp_s(now, null).in_timezone(tz),
             zi.offset,
             zi.is_dst,
             @tagName(zi.source),
         });
 
         if (zi.end_ts) |end_ts| {
+            const end_dt = tempora.Date_Time.With_Offset.from_timestamp_s(end_ts, null).in_timezone(tz);
             if (zi.begin_ts) |begin_ts| {
+                const begin_dt = tempora.Date_Time.With_Offset.from_timestamp_s(begin_ts, null).in_timezone(tz);
+
                 if (zi.is_dst) {
-                    try writer.print("    DST began: {YYYY-MM-DD HH;mm;ss z}\n", .{ tempora.Date_Time.from_timestamp_s(begin_ts, null).fmt_utc(tz) });
-                    try writer.print("    DST ends:  {YYYY-MM-DD HH;mm;ss z}\n", .{ tempora.Date_Time.from_timestamp_s(end_ts, null).fmt_utc(tz) });
+                    try writer.print("    DST began: {YYYY-MM-DD HH;mm;ss z}\n", .{ begin_dt });
+                    try writer.print("    DST ends:  {YYYY-MM-DD HH;mm;ss z}\n", .{ end_dt });
                 } else {
-                    try writer.print("    DST ended:  {YYYY-MM-DD HH;mm;ss z}\n", .{ tempora.Date_Time.from_timestamp_s(begin_ts, null).fmt_utc(tz) });
-                    try writer.print("    DST begins: {YYYY-MM-DD HH;mm;ss z}\n", .{ tempora.Date_Time.from_timestamp_s(end_ts, null).fmt_utc(tz) });
+                    try writer.print("    DST ended:  {YYYY-MM-DD HH;mm;ss z}\n", .{ begin_dt });
+                    try writer.print("    DST begins: {YYYY-MM-DD HH;mm;ss z}\n", .{ end_dt });
                 }
             } else if (zi.is_dst) {
-                try writer.print("    DST ends:  {YYYY-MM-DD HH;mm;ss z}\n", .{ tempora.Date_Time.from_timestamp_s(end_ts, null).fmt_utc(tz) });
+                try writer.print("    DST ends:  {YYYY-MM-DD HH;mm;ss z}\n", .{ end_dt });
             } else {
-                try writer.print("    DST begins: {YYYY-MM-DD HH;mm;ss z}\n", .{ tempora.Date_Time.from_timestamp_s(end_ts, null).fmt_utc(tz) });
+                try writer.print("    DST begins: {YYYY-MM-DD HH;mm;ss z}\n", .{ end_dt });
             }
         } else if (zi.begin_ts) |begin_ts| {
+            const begin_dt = tempora.Date_Time.With_Offset.from_timestamp_s(begin_ts, null).in_timezone(tz);
             if (zi.is_dst) {
                 try writer.print("    This timezone has permanent daylight time\n", .{});
             } else {
                 try writer.print("    This timezone has permanent standard time\n", .{});
             }
-            try writer.print("    The current time rules for this zone began on {YYYY-MM-DD HH;mm;ss z}\n", .{ tempora.Date_Time.from_timestamp_s(begin_ts, null).fmt_utc(tz) });
+            try writer.print("    The current time rules for this zone began on {YYYY-MM-DD HH;mm;ss z}\n", .{ begin_dt });
         } else {
             if (zi.is_dst) {
                 try writer.print("    This timezone has permanent daylight time\n", .{});

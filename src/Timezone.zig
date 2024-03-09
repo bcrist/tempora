@@ -177,18 +177,12 @@ pub const POSIX_TZ = struct {
                 .julian_day => |j| {
                     var x: i32 = j.day;
                     if (x < 60 or !yi.is_leap) x -= 1;
-                    const dt: Date_Time = .{
-                        .date = yi.starting_date.plus_days(x),
-                        .time = .midnight,
-                    };
-                    return dt.timestamp_s(null) + j.time;
+                    const dt = yi.starting_date.plus_days(x).with_time(.midnight).with_offset(0);
+                    return dt.timestamp_s() + j.time;
                 },
                 .julian_day_zero => |j| {
-                    const dt: Date_Time = .{
-                        .date = yi.starting_date.plus_days(j.day),
-                        .time = .midnight,
-                    };
-                    return dt.timestamp_s(null) + j.time;
+                    const dt = yi.starting_date.plus_days(j.day).with_time(.midnight).with_offset(0);
+                    return dt.timestamp_s() + j.time;
                 },
                 .month_nth_week_day => |mwd| {
                     const month = Month.from_number(mwd.month);
@@ -205,11 +199,8 @@ pub const POSIX_TZ = struct {
                         day = day.plus_days(-7);
                     }
 
-                    const dt: Date_Time = .{
-                        .date = day,
-                        .time = @enumFromInt(mwd.time * 1000),
-                    };
-                    return dt.timestamp_s(null);
+                    const dt = day.with_time(@enumFromInt(mwd.time * 1000)).with_offset(0);
+                    return dt.timestamp_s();
                 },
             }
         }
@@ -269,7 +260,7 @@ pub const POSIX_TZ = struct {
         };
 
         if (self.dst_range) |range| {
-            const dt = Date_Time.from_timestamp_s(utc, null);
+            const dt = Date_Time.With_Offset.from_timestamp_s(utc, null).dt;
             const yi = dt.date.year_info();
             const start_dst = range.start.to_secs(yi) - self.std_offset;
             const end_dst = range.end.to_secs(yi) - self.dst_offset;

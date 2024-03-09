@@ -1,6 +1,6 @@
 pub const default_from_string_trim = std.ascii.whitespace ++ "-/,._'";
 
-pub fn format(dt: Date_Time, timezone: ?*const Timezone, utc_offset: i32, comptime fmt: []const u8, writer: anytype) !void {
+pub fn format(dto: Date_Time.With_Offset, comptime fmt: []const u8, writer: anytype) !void {
     @setEvalBranchQuota(100000);
 
     comptime var iter = Token.iterator(fmt);
@@ -16,7 +16,7 @@ pub fn format(dt: Date_Time, timezone: ?*const Timezone, utc_offset: i32, compti
         }
     } else false;
 
-    var di: Date.Info = if (need_date_info) dt.date.info() else .{
+    var di: Date.Info = if (need_date_info) dto.dt.date.info() else .{
         .raw = 0,
         .start_of_year = .epoch,
         .start_of_month = .epoch,
@@ -101,39 +101,39 @@ pub fn format(dt: Date_Time, timezone: ?*const Timezone, utc_offset: i32, compti
             try writer.writeAll(text);
         },
 
-        .A => try writer.writeAll(if (dt.time.hours() < 12) "AM" else "PM"),
-        .a => try writer.writeAll(if (dt.time.hours() < 12) "am" else "pm"),
-        .H => try writer.print("{}", .{ @as(u32, @intCast(dt.time.hours())) }),
-        .HH => try writer.print("{:0>2}", .{ @as(u32, @intCast(dt.time.hours())) }),
-        .h => try writer.print("{}", .{ @as(u32, switch (dt.time.hours()) {
+        .A => try writer.writeAll(if (dto.dt.time.hours() < 12) "AM" else "PM"),
+        .a => try writer.writeAll(if (dto.dt.time.hours() < 12) "am" else "pm"),
+        .H => try writer.print("{}", .{ @as(u32, @intCast(dto.dt.time.hours())) }),
+        .HH => try writer.print("{:0>2}", .{ @as(u32, @intCast(dto.dt.time.hours())) }),
+        .h => try writer.print("{}", .{ @as(u32, switch (dto.dt.time.hours()) {
             0 => 12,
             1...12 => |h| h,
             else => |h| h - 12,
         }) }),
-        .hh => try writer.print("{:0>2}", .{ @as(u32, switch (dt.time.hours()) {
+        .hh => try writer.print("{:0>2}", .{ @as(u32, switch (dto.dt.time.hours()) {
             0 => 12,
             1...12 => |h| h,
             else => |h| h - 12,
         }) }),
-        .k => try writer.print("{}", .{ @as(u32, switch (dt.time.hours()) {
+        .k => try writer.print("{}", .{ @as(u32, switch (dto.dt.time.hours()) {
             0 => 24,
             else => |h| h,
         }) }),
-        .kk => try writer.print("{:0>2}", .{ @as(u32, switch (dt.time.hours()) {
+        .kk => try writer.print("{:0>2}", .{ @as(u32, switch (dto.dt.time.hours()) {
             0 => 24,
             else => |h| h,
         }) }),
-        .m => try writer.print("{}", .{ @as(u32, @intCast(dt.time.minutes())) }),
-        .mm => try writer.print("{:0>2}", .{ @as(u32, @intCast(dt.time.minutes())) }),
-        .s => try writer.print("{}", .{ @as(u32, @intCast(dt.time.seconds())) }),
-        .ss => try writer.print("{:0>2}", .{ @as(u32, @intCast(dt.time.seconds())) }),
-        .S => try writer.print("{}", .{ @as(u32, @intCast(@divFloor(dt.time.ms(), 100))) }),
-        .SS => try writer.print("{:0>2}", .{ @as(u32, @intCast(@divFloor(dt.time.ms(), 10))) }),
-        .SSS => try writer.print("{:0>3}", .{ @as(u32, @intCast(dt.time.ms())) }),
+        .m => try writer.print("{}", .{ @as(u32, @intCast(dto.dt.time.minutes())) }),
+        .mm => try writer.print("{:0>2}", .{ @as(u32, @intCast(dto.dt.time.minutes())) }),
+        .s => try writer.print("{}", .{ @as(u32, @intCast(dto.dt.time.seconds())) }),
+        .ss => try writer.print("{:0>2}", .{ @as(u32, @intCast(dto.dt.time.seconds())) }),
+        .S => try writer.print("{}", .{ @as(u32, @intCast(@divFloor(dto.dt.time.ms(), 100))) }),
+        .SS => try writer.print("{:0>2}", .{ @as(u32, @intCast(@divFloor(dto.dt.time.ms(), 10))) }),
+        .SSS => try writer.print("{:0>3}", .{ @as(u32, @intCast(dto.dt.time.ms())) }),
         .z, .zz, .Z, .ZZ => done: {
             if (token == .z or token == .zz) {
-                if (timezone) |tz| {
-                    const utc = dt.timestamp_ms(null) - utc_offset;
+                if (dto.timezone) |tz| {
+                    const utc = dto.timestamp_ms();
                     const zi = tz.zone_info(@divFloor(utc, 1000));
                     if (zi.designation.len > 0) {
                         try writer.writeAll(zi.designation);
@@ -142,24 +142,24 @@ pub fn format(dt: Date_Time, timezone: ?*const Timezone, utc_offset: i32, compti
                 }
             }
 
-            const minutes: u32 = @intCast(@divFloor(@abs(utc_offset), 60 * 1000));
+            const minutes: u32 = @intCast(@divFloor(@abs(dto.utc_offset_ms), 60 * 1000));
 
             if (token == .zz or token == .ZZ) {
-                if (utc_offset < 0) {
+                if (dto.utc_offset_ms < 0) {
                     try writer.print("-{:0>4}", .{ minutes });
                 } else {
                     try writer.print("+{:0>4}", .{ minutes });
                 }
             } else {
-                if (utc_offset < 0) {
+                if (dto.utc_offset_ms < 0) {
                     try writer.print("-{:0>2}:{:0>2}", .{ @divFloor(minutes, 60), @mod(minutes, 60) });
                 } else {
                     try writer.print("+{:0>2}:{:0>2}", .{ @divFloor(minutes, 60), @mod(minutes, 60) });
                 }
             }
         },
-        .x => try writer.print("{}", .{ dt.timestamp_ms() }),
-        .X => try writer.print("{}", .{ dt.timestamp_s() }),
+        .x => try writer.print("{}", .{ dto.timestamp_ms() }),
+        .X => try writer.print("{}", .{ dto.timestamp_s() }),
     };
 }
 

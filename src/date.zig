@@ -271,6 +271,13 @@ pub const Date = enum (i32) {
         }
     }
 
+    pub fn with_time(self: Date, time: Time) Date_Time {
+        return .{
+            .date = self,
+            .time = time,
+        };
+    }
+
     pub const fmt_iso8601 = "YYYY-MM-DD";
     pub const fmt_rfc2822 = "ddd, DD MMM YYYY"; 
     pub const fmt_us = "MMMM D, Y";
@@ -278,7 +285,7 @@ pub const Date = enum (i32) {
 
     pub fn format(self: Date, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
         _ = options;
-        try formatting.format(.{ .date = self, .time = .midnight }, null, 0, if (fmt.len == 0) fmt_iso8601 else fmt, writer);
+        try formatting.format(self.with_time(.midnight).with_offset(0), if (fmt.len == 0) fmt_iso8601 else fmt, writer);
     }
 
     pub fn from_string(comptime fmt: []const u8, str: []const u8) !Date {
@@ -287,7 +294,7 @@ pub const Date = enum (i32) {
         const pi = formatting.parse(if (fmt.len == 0) fmt_iso8601 else fmt, &peek_stream) catch return error.InvalidFormat;
         
         if (pi.timestamp) |ts| {
-            return Date_Time.from_timestamp_ms(ts, null).date;
+            return Date_Time.With_Offset.from_timestamp_ms(ts, null).dt.date;
         }
         
         if (pi.year) |pi_y| {
@@ -420,5 +427,6 @@ const Week_Day = @import("week_day.zig").Week_Day;
 const Ordinal_Day = @import("ordinal_day.zig").Ordinal_Day;
 const Ordinal_Week = @import("ordinal_week.zig").Ordinal_Week;
 const Date_Time = @import("Date_Time.zig");
+const Time = @import("time.zig").Time;
 const formatting = @import("formatting.zig");
 const std = @import("std");
