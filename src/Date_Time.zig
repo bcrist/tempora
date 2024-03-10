@@ -17,7 +17,7 @@ pub fn with_offset(self: Date_Time, utc_offset_ms: i32) With_Offset {
 /// e.g. 2023-11-05 01:30 central time could refer to either 2023-11-05 06:30 +00:00 or 2023-11-05 07:30 +00:00
 /// This function will always pick the earlier option in these cases.
 pub fn with_timezone(self: Date_Time, timezone: *const Timezone) With_Offset {
-    const offset_ts = self.timestamp_ms();
+    const offset_ts = self.with_offset(0).timestamp_ms();
     var zi = timezone.zone_info(@divFloor(offset_ts, 1000));
     var offset = zi.offset * 1000; 
     var ts = offset_ts - offset;
@@ -73,6 +73,7 @@ pub fn with_timezone(self: Date_Time, timezone: *const Timezone) With_Offset {
     return .{
         .dt = self,
         .utc_offset_ms = offset,
+        .timezone = timezone,
     };
 }
 
