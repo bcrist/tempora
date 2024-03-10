@@ -83,6 +83,18 @@ pub fn ms_since(self: Date_Time, past: Date_Time) i64 {
     return date_diff * std.time.ms_per_day + time_diff;
 }
 
+pub fn is_before(self: Date_Time, other: Date_Time) bool {
+    if (self.date.is_before(other.date)) return true;
+    if (self.date.is_after(other.date)) return false;
+    return self.time.is_before(other.time);
+}
+
+pub fn is_after(self: Date_Time, other: Date_Time) bool {
+    if (self.date.is_after(other.date)) return true;
+    if (self.date.is_before(other.date)) return false;
+    return self.time.is_after(other.time);
+}
+
 pub fn plus_days_and_ms(self: Date_Time, days: i32, ms: i64) Date_Time {
     var new_date: i64 = @intFromEnum(self.date) + days;
     var new_time: i64 = self.time.ms_since_midnight() + ms;
@@ -162,7 +174,7 @@ pub const With_Offset = struct {
         try formatting.format(self, if (fmt.len == 0) fmt_iso8601 else fmt, writer);
     }
     
-    fn from_string(comptime fmt: []const u8, str: []const u8) !With_Offset {
+    pub fn from_string(comptime fmt: []const u8, str: []const u8) !With_Offset {
         var stream = std.io.fixedBufferStream(str);
         var peek_stream = std.io.peekStream(1, stream.reader());
         const pi = formatting.parse(if (fmt.len == 0) fmt_iso8601 else fmt, &peek_stream) catch return error.InvalidFormat;
