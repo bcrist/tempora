@@ -4,6 +4,11 @@ time: Time,
 
 const Date_Time = @This();
 
+pub const epoch = .{
+    .date = .epoch,
+    .time = .midnight,
+};
+
 pub fn with_offset(self: Date_Time, utc_offset_ms: i32) With_Offset {
     return .{
         .dt = self,
