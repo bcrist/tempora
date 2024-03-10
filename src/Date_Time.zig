@@ -4,7 +4,7 @@ time: Time,
 
 const Date_Time = @This();
 
-pub const epoch = .{
+pub const epoch = Date_Time{
     .date = .epoch,
     .time = .midnight,
 };
