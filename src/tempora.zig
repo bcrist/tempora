@@ -10,6 +10,20 @@ pub const Ordinal_Day = @import("ordinal_day.zig").Ordinal_Day;
 pub const Timezone = @import("Timezone.zig");
 pub const tzdb = @import("tzdb.zig");
 
+pub fn now() Date_Time.With_Offset {
+    return now_tz(null);
+}
+
+pub fn now_local() !Date_Time.With_Offset {
+    return now_tz(try tzdb.current_timezone());
+}
+
+pub fn now_tz(tz: ?*const Timezone) Date_Time.With_Offset {
+    return Date_Time.With_Offset.from_timestamp_ms(std.time.milliTimestamp(), tz);
+}
+
+const std = @import("std");
+
 test {
     _ = tzdb;
     _ = Date_Time;
