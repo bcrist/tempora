@@ -180,8 +180,8 @@ const Parse_Info = struct {
     utc_offset_ms: ?i32 = null,
 };
 
-pub fn parse(comptime fmt: []const u8, peek_stream: anytype) !Parse_Info {
-    var reader = peek_stream.reader();
+pub fn parse(comptime fmt: []const u8, stream: *std.io.FixedBufferStream([]const u8)) !Parse_Info {
+    var reader = stream.reader();
     var parsed: Parse_Info = .{};
     @setEvalBranchQuota(100000);
 
@@ -199,7 +199,7 @@ pub fn parse(comptime fmt: []const u8, peek_stream: anytype) !Parse_Info {
                 } else return error.InvalidFormat;
             },
             .M, .Mo => {
-                const raw = try read_int(u4, peek_stream);
+                const raw = try read_int(u4, stream);
                 if (raw < 1 or raw > 12) return error.InvalidFormat;
                 parsed.month = Month.from_number(raw);
 
@@ -233,7 +233,7 @@ pub fn parse(comptime fmt: []const u8, peek_stream: anytype) !Parse_Info {
             .Q, .Qo => {},
 
             .D, .Do => {
-                const raw = try read_int(u5, peek_stream);
+                const raw = try read_int(u5, stream);
                 if (raw < 1 or raw > 31) return error.InvalidFormat;
                 parsed.day = Day.from_number(raw);
 
@@ -252,7 +252,7 @@ pub fn parse(comptime fmt: []const u8, peek_stream: anytype) !Parse_Info {
             },
 
             .DDD, .DDDo => {
-                const raw = try read_int(u9, peek_stream);
+                const raw = try read_int(u9, stream);
                 if (raw < 1 or raw > 366) return error.InvalidFormat;
                 parsed.ordinal_day = Ordinal_Day.from_number(raw);
 
@@ -271,7 +271,7 @@ pub fn parse(comptime fmt: []const u8, peek_stream: anytype) !Parse_Info {
             },
 
             .d, .do, .e, .E, .Eo => {
-                var raw = try read_int(u3, peek_stream);
+                var raw = try read_int(u3, stream);
                 if (token != .E and token != .Eo) raw += 1;
                 if (raw < 1 or raw > 7) return error.InvalidFormat;
                 parsed.week_day = Week_Day.from_number(raw);
@@ -308,7 +308,7 @@ pub fn parse(comptime fmt: []const u8, peek_stream: anytype) !Parse_Info {
             },
 
             .w, .wo => {
-                const raw = try read_int(u6, peek_stream);
+                const raw = try read_int(u6, stream);
                 if (raw < 1 or raw > 53) return error.InvalidFormat;
                 parsed.ordinal_week = Ordinal_Week.from_number(raw);
 
@@ -327,7 +327,7 @@ pub fn parse(comptime fmt: []const u8, peek_stream: anytype) !Parse_Info {
             },
 
             .y, .Y, .YYY, .YYYYYY => {
-                const raw = try read_int(i32, peek_stream);
+                const raw = try read_int(i32, stream);
                 parsed.year = Year.from_number(raw);
             },
             .YY => {
@@ -364,7 +364,7 @@ pub fn parse(comptime fmt: []const u8, peek_stream: anytype) !Parse_Info {
             },
 
             .H, .h, .k => {
-                const raw = try read_int(u5, peek_stream);
+                const raw = try read_int(u5, stream);
                 if (raw > 24) return error.InvalidFormat;
                 parsed.hours = raw;
             },
@@ -378,7 +378,7 @@ pub fn parse(comptime fmt: []const u8, peek_stream: anytype) !Parse_Info {
             },
 
             .m => {
-                const raw = try read_int(u6, peek_stream);
+                const raw = try read_int(u6, stream);
                 if (raw > 59) return error.InvalidFormat;
                 parsed.minutes = raw;
             },
@@ -392,7 +392,7 @@ pub fn parse(comptime fmt: []const u8, peek_stream: anytype) !Parse_Info {
             },
 
             .s => {
-                const raw = try read_int(u6, peek_stream);
+                const raw = try read_int(u6, stream);
                 if (raw > 59) return error.InvalidFormat;
                 parsed.seconds = raw;
             },
@@ -439,7 +439,7 @@ pub fn parse(comptime fmt: []const u8, peek_stream: anytype) !Parse_Info {
                     }
                     
                     if (!std.ascii.isAlphabetic(buf[i])) {
-                        try peek_stream.putBackByte(buf[i]);
+                        stream.pos -= 1;
                         break buf[0..i];
                     }
                 } else &buf;
@@ -452,7 +452,7 @@ pub fn parse(comptime fmt: []const u8, peek_stream: anytype) !Parse_Info {
             },
 
             .x, .X => {
-                var raw = try read_int(i64, peek_stream);
+                var raw = try read_int(i64, stream);
                 if (token == .X) {
                     raw = try std.math.mul(i64, raw, 1000);
                 }
@@ -656,8 +656,8 @@ fn write_ordinal(writer: anytype, num: u32) !void {
     });
 }
 
-fn read_int(comptime T: type, peek_stream: anytype) !T {
-    const reader = peek_stream.reader();
+fn read_int(comptime T: type, stream: *std.io.FixedBufferStream([]const u8)) !T {
+    const reader = stream.reader();
 
     var sign: T = 1;
     var value: T = 0;
@@ -665,7 +665,7 @@ fn read_int(comptime T: type, peek_stream: anytype) !T {
     if (@typeInfo(T).Int.signedness == .signed) switch(try reader.readByte()) {
         '-' => sign = -1,
         '+' => {},
-        else => |c| try peek_stream.putBackByte(c),
+        else => stream.pos -= 1,
     };
 
     while (true) {
@@ -679,7 +679,7 @@ fn read_int(comptime T: type, peek_stream: anytype) !T {
                 value = try std.math.add(T, try std.math.mul(T, value, 10), digit);
             },
             else => {
-                try peek_stream.putBackByte(c);
+                stream.pos -= 1;
                 break;
             },
         }

@@ -156,8 +156,7 @@ pub const Time = enum (i32) {
 
         pub fn from_string(comptime fmt: []const u8, str: []const u8) !With_Offset {
             var stream = std.io.fixedBufferStream(str);
-            var peek_stream = std.io.peekStream(1, stream.reader());
-            const pi = formatting.parse(if (fmt.len == 0) fmt_iso8601 else fmt, &peek_stream) catch return error.InvalidFormat;
+            const pi = formatting.parse(if (fmt.len == 0) fmt_iso8601 else fmt, &stream) catch return error.InvalidFormat;
 
             const time: Time = if (pi.timestamp) |ts| blk: {
                 break :blk Date_Time.With_Offset.from_timestamp_ms(ts, null).dt.time;
