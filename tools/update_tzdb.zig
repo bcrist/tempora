@@ -20,7 +20,7 @@ pub fn main() !void {
     var designation_to_offset = std.StringHashMap(i32).init(gpa);
     defer designation_to_offset.deinit();
 
-    const designation_overrides = std.ComptimeStringMap(?i32, .{
+    const designation_override_kvs =  .{
         .{ "LMT", null }, // "Local mean time" - not a standard designation
         .{ "CMT", null },
         .{ "PMT", null },
@@ -59,7 +59,12 @@ pub fn main() !void {
         .{ "KST", 9 * 60 * 60 }, // Korea Standard Time
         .{ "ACST", (9 * 60 + 30) * 60 }, // Australian Central Standard Time
         .{ "NZST", 12 * 60 * 60 }, // New Zealand Standard Time
-    });
+    };
+
+    const designation_overrides = if (comptime @import("builtin").zig_version.minor == 12)
+        std.ComptimeStringMap(?i32, designation_override_kvs) // TODO remove zig 0.12 support when 0.14 is released
+    else
+        std.StaticStringMap(?i32).initComptime(designation_override_kvs);
 
     const zoneinfo = try std.fs.cwd().openDir("/usr/share/zoneinfo", .{ .iterate = true });
     var walker = try zoneinfo.walk(gpa);
@@ -115,9 +120,9 @@ pub fn main() !void {
         }
     }
 
-    for (designation_overrides.kvs) |entry| {
-        if (entry.value) |offset| {
-            try designation_to_offset.putNoClobber(entry.key, offset);
+    inline for (designation_override_kvs) |entry| {
+        if (@typeInfo(@TypeOf(entry[1])) != .Null) {
+            try designation_to_offset.putNoClobber(entry[0], entry[1]);
         }
     }
 
@@ -264,7 +269,15 @@ pub fn main() !void {
 
             var dir = try data_dir.makeOpenPath(hex[0..1], .{});
             defer dir.close();
-            try dir.writeFile(hex, compressed_data);
+
+            const writeFile = if (comptime @import("builtin").zig_version.minor == 12)
+                std.fs.Dir.writeFile2 // TODO remove zig 0.12 support when 0.14 is released
+            else
+                std.fs.Dir.writeFile;
+            try writeFile(dir, .{
+                .sub_path = hex,
+                .data = compressed_data,
+            });
 
             total_size += compressed_data.len;
 

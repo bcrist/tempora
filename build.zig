@@ -5,14 +5,14 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const module = b.addModule("tempora", .{
-        .root_source_file = .{ .path = "src/tempora.zig" },
+        .root_source_file = b.path("src/tempora.zig"),
     });
 
     const update_tzdb_exe = b.addExecutable(.{
         .name = "update_tzdb",
         .target = b.host,
         .optimize = .ReleaseSafe,
-        .root_source_file = .{ .path = "tools/update_tzdb.zig" },
+        .root_source_file = b.path("tools/update_tzdb.zig"),
     });
     update_tzdb_exe.root_module.addImport("tempora", module);
     const update_tzdb = b.addRunArtifact(update_tzdb_exe);
@@ -23,7 +23,7 @@ pub fn build(b: *std.Build) void {
         .name = "dump",
         .target = target,
         .optimize = optimize,
-        .root_source_file = .{ .path = "tools/dump.zig" },
+        .root_source_file = b.path("tools/dump.zig"),
     });
     dump_exe.root_module.addImport("tempora", module);
     b.installArtifact(dump_exe);
@@ -31,7 +31,7 @@ pub fn build(b: *std.Build) void {
     const run_all_tests = b.step("test", "Run all tests");
 
     const tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/tempora.zig" },
+        .root_source_file = b.path("src/tempora.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -39,7 +39,7 @@ pub fn build(b: *std.Build) void {
     run_all_tests.dependOn(&run_tests.step);
 
     const parser_tests = b.addTest(.{
-        .root_source_file = .{ .path = "test/parse_tzif.zig" },
+        .root_source_file = b.path("test/parse_tzif.zig"),
         .target = target,
         .optimize = optimize,
     });
