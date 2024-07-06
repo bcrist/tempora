@@ -163,7 +163,11 @@ pub const Time = enum (i32) {
             try formatting.format(self.with_date(.epoch), if (fmt.len == 0) fmt_iso8601 else fmt, writer);
         }
 
-        pub fn from_string(comptime fmt: []const u8, str: []const u8, timezone: ?*const Timezone) !With_Offset {
+        pub fn from_string(comptime fmt: []const u8, str: []const u8) !With_Offset {
+            return from_string_tz(fmt, str, null);
+        }
+
+        pub fn from_string_tz(comptime fmt: []const u8, str: []const u8, timezone: ?*const Timezone) !With_Offset {
             var stream = std.io.fixedBufferStream(str);
             const pi = formatting.parse(if (fmt.len == 0) fmt_iso8601 else fmt, &stream) catch return error.InvalidFormat;
 

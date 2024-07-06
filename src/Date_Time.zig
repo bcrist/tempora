@@ -192,7 +192,11 @@ pub const With_Offset = struct {
         try formatting.format(self, if (fmt.len == 0) fmt_iso8601 else fmt, writer);
     }
     
-    pub fn from_string(comptime fmt: []const u8, str: []const u8, timezone: ?*const Timezone) !With_Offset {
+    pub fn from_string(comptime fmt: []const u8, str: []const u8) !With_Offset {
+        return from_string_tz(fmt, str, null);
+    }
+
+    pub fn from_string_tz(comptime fmt: []const u8, str: []const u8, timezone: ?*const Timezone) !With_Offset {
         var stream = std.io.fixedBufferStream(str);
         const pi = formatting.parse(if (fmt.len == 0) fmt_iso8601 else fmt, &stream) catch return error.InvalidFormat;
 
@@ -274,8 +278,8 @@ test "Date_Time" {
     try expectFmt("Mon, 24 Dec 1928 00:30:00 GMT", With_Offset.http, .{ dt2.in_timezone(gmt) });
     try expectFmt("1928-12-24T00:30:00.000+00:00", With_Offset.iso8601, .{ dt2.in_timezone(gmt) });
 
-    try expectEqual(dt1, try With_Offset.from_string(With_Offset.fmt_sql_ms, "2024-02-01 12:34:56.789 +00:00", null));
-    try expectEqual(dt1, (try With_Offset.from_string(With_Offset.fmt_sql_ms, "2024-02-01 06:34:56.789 CST", null)).in_timezone(null));
+    try expectEqual(dt1, try With_Offset.from_string(With_Offset.fmt_sql_ms, "2024-02-01 12:34:56.789 +00:00"));
+    try expectEqual(dt1, (try With_Offset.from_string(With_Offset.fmt_sql_ms, "2024-02-01 06:34:56.789 CST")).in_timezone(null));
 }
 
 const expectFmt = std.testing.expectFmt;
