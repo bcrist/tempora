@@ -163,25 +163,28 @@ pub const Time = enum (i32) {
             try formatting.format(self.with_date(.epoch), if (fmt.len == 0) fmt_iso8601 else fmt, writer);
         }
 
-        pub fn from_string(comptime fmt: []const u8, str: []const u8) !With_Offset {
+        pub fn from_string(comptime fmt: []const u8, str: []const u8, timezone: ?*const Timezone) !With_Offset {
             var stream = std.io.fixedBufferStream(str);
             const pi = formatting.parse(if (fmt.len == 0) fmt_iso8601 else fmt, &stream) catch return error.InvalidFormat;
 
-            const time: Time = if (pi.timestamp) |ts| blk: {
-                break :blk Date_Time.With_Offset.from_timestamp_ms(ts, null).dt.time;
-            } else if (pi.hours) |raw_h| blk: {
+            if (pi.timestamp) |ts| {
+                const dto = Date_Time.With_Offset.from_timestamp_ms(ts, timezone);
+                return .{
+                    .time = dto.dt.time,
+                    .utc_offset_ms = dto.utc_offset_ms,
+                    .timezone = dto.timezone,
+                };
+            } else if (pi.hours) |raw_h| {
                 const h = @mod(if (pi.hours_is_pm) raw_h + 12 else raw_h, 24);
                 const m = pi.minutes orelse 0;
                 const s = pi.seconds orelse 0;
                 const milli = pi.ms orelse 0;
-                break :blk Time.from_hmsm(h, m, s, milli);
+                return .{
+                    .time = Time.from_hmsm(h, m, s, milli),
+                    .utc_offset_ms = pi.utc_offset_ms orelse if (timezone) |tz| tz.zone_info(std.time.timestamp()).offset * 1000 else 0,
+                    .timezone = timezone,
+                };
             } else return error.InvalidFormat;
-
-            return .{
-                .time = time,
-                .utc_offset_ms = pi.utc_offset_ms orelse 0,
-                .timezone = null,
-            };
         }
     };
 };
