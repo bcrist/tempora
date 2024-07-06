@@ -278,6 +278,11 @@ pub const Date = enum (i32) {
         };
     }
 
+    pub const iso8601 = "{" ++ fmt_iso8601 ++ "}";
+    pub const rfc2822 = "{" ++ fmt_rfc2822 ++ "}";
+    pub const us = "{" ++ fmt_us ++ "}";
+    pub const us_numeric = "{" ++ fmt_us_numeric ++ "}";
+
     pub const fmt_iso8601 = "YYYY-MM-DD";
     pub const fmt_rfc2822 = "ddd, DD MMM YYYY"; 
     pub const fmt_us = "MMMM D, Y";
@@ -337,12 +342,6 @@ pub const Date_Info = struct {
     }
 };
 
-var test_date_buf: [256]u8 = undefined;
-// for testing only!
-fn date_str(comptime format: []const u8, date: Date) ![]const u8 {
-    return std.fmt.bufPrint(&test_date_buf, "{" ++ format ++ "}", .{ date });
-}
-
 test "Date" {
     const date1 = Date.from_ymd(Year.from_number(2024), .february, .first);
     const date2 = Date.from_ymd(Year.from_number(1928), .december, Day.from_number(24));
@@ -351,28 +350,28 @@ test "Date" {
     const date5 = Date.from_ymd(Year.from_number(-123), .december, Day.from_number(24));
     const date6 = Date.from_ymd(Year.from_number(1970), .january, .first);
 
-    try expectEqualStrings("2024-02-01", try date_str("YYYY-MM-DD", date1));
-    try expectEqualStrings("2024-02-01", try date_str("", date1));
-    try expectEqualStrings("2 2nd Feb February", try date_str("M Mo MMM MMMM", date1));
-    try expectEqualStrings("1.1st", try date_str("Q.Qo", date1));
-    try expectEqualStrings("24 Do 24th", try date_str("D [Do] Do", date2));
-    try expectEqualStrings("359 359th 359", try date_str("DDD DDDo DDDD", date2));
-    try expectEqualStrings("32 32nd 032", try date_str("DDD DDDo DDDD", date1));
-    try expectEqualStrings("4 4 4th Th Thu Thursday", try date_str("d e do dd ddd dddd", date1));
-    try expectEqualStrings("5 5th", try date_str("E Eo", date1));
-    try expectEqualStrings("52 52nd 52", try date_str("w wo ww", date2));
-    try expectEqualStrings("2024 24 2024 2024 +002024", try date_str("Y YY YYY YYYY YYYYYY", date1));
-    try expectEqualStrings("1928 28 1928 1928 +001928", try date_str("Y YY YYY YYYY YYYYYY", date2));
-    try expectEqualStrings("0 00 0 0000 000000", try date_str("Y YY YYY YYYY YYYYYY", date3));
-    try expectEqualStrings("12 12 12 0012 +000012", try date_str("Y YY YYY YYYY YYYYYY", date4));
-    try expectEqualStrings("-123 -123 -123 -0123 -000123", try date_str("Y YY YYY YYYY YYYYYY", date5));
-    try expectEqualStrings("AD AD", try date_str("N NN", date1));
+    try expectFmt("2024-02-01", "{YYYY-MM-DD}", .{ date1 });
+    try expectFmt("2024-02-01", "{}", .{ date1 });
+    try expectFmt("2 2nd Feb February", "{M Mo MMM MMMM}", .{ date1 });
+    try expectFmt("1.1st", "{Q.Qo}", .{ date1 });
+    try expectFmt("24 Do 24th", "{D [Do] Do}", .{ date2 });
+    try expectFmt("359 359th 359", "{DDD DDDo DDDD}", .{ date2 });
+    try expectFmt("32 32nd 032", "{DDD DDDo DDDD}", .{ date1 });
+    try expectFmt("4 4 4th Th Thu Thursday", "{d e do dd ddd dddd}", .{ date1 });
+    try expectFmt("5 5th", "{E Eo}", .{ date1 });
+    try expectFmt("52 52nd 52", "{w wo ww}", .{ date2 });
+    try expectFmt("2024 24 2024 2024 +002024", "{Y YY YYY YYYY YYYYYY}", .{ date1 });
+    try expectFmt("1928 28 1928 1928 +001928", "{Y YY YYY YYYY YYYYYY}", .{ date2 });
+    try expectFmt("0 00 0 0000 000000", "{Y YY YYY YYYY YYYYYY}", .{ date3 });
+    try expectFmt("12 12 12 0012 +000012", "{Y YY YYY YYYY YYYYYY}", .{ date4 });
+    try expectFmt("-123 -123 -123 -0123 -000123", "{Y YY YYY YYYY YYYYYY}", .{ date5 });
+    try expectFmt("AD AD", "{N NN}", .{ date1 });
 
-    try expectEqualStrings("2000", try date_str("Y", @enumFromInt(0)));
-    try expectEqualStrings("2000", try date_str("Y", Year.from_number(2000).starting_date()));
-    try expectEqualStrings("2000", try date_str("Y", Date.from_yd(Year.from_number(2000), .first)));
-    try expectEqualStrings("2020", try date_str("Y", Date.from_yd(Year.from_number(2020), .first)));
-    try expectEqualStrings("1999", try date_str("Y", Date.from_yd(Year.from_number(1999), .first)));
+    try expectFmt("2000", "{Y}", .{ @as(Date, @enumFromInt(0)) });
+    try expectFmt("2000", "{Y}", .{ Year.from_number(2000).starting_date() });
+    try expectFmt("2000", "{Y}", .{ Date.from_yd(Year.from_number(2000), .first) });
+    try expectFmt("2020", "{Y}", .{ Date.from_yd(Year.from_number(2020), .first) });
+    try expectFmt("1999", "{Y}", .{ Date.from_yd(Year.from_number(1999), .first) });
 
     try expectEqual(date1, try Date.from_string("YYYY-MM-DD", "2024-02-01"));
     try expectEqual(date1, try Date.from_string("Y DDDo", "2024 32nd"));
@@ -417,7 +416,7 @@ test "Date" {
 const expect = std.testing.expect;
 const expectError = std.testing.expectError;
 const expectEqual = std.testing.expectEqual;
-const expectEqualStrings = std.testing.expectEqualStrings;
+const expectFmt = std.testing.expectFmt;
 
 const Year = @import("year.zig").Year;
 const Month = @import("month.zig").Month;

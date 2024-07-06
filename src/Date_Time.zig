@@ -169,11 +169,23 @@ pub const With_Offset = struct {
         return self.timestamp_ms() - past.timestamp_ms();
     }
 
+    pub const iso8601 = "{" ++ fmt_iso8601 ++ "}";
+    pub const iso8601_local = "{" ++ fmt_iso8601_local ++ "}";
+    pub const rfc2822 = "{" ++ fmt_rfc2822 ++ "}";
+    pub const http = "{" ++ fmt_http ++ "}";
+    pub const sql_ms = "{" ++ fmt_sql_ms ++ "}";
+    pub const sql_ms_local = "{" ++ fmt_sql_ms_local ++ "}";
+    pub const sql = "{" ++ fmt_sql ++ "}";
+    pub const sql_local = "{" ++ fmt_sql_local ++ "}";
+
     pub const fmt_iso8601 = "YYYY-MM-DDTHH;mm;ss.SSSZ";
+    pub const fmt_iso8601_local = "YYYY-MM-DDTHH;mm;ss.SSS";
     pub const fmt_rfc2822 = "ddd, DD MMM YYYY HH;mm;ss ZZ";
     pub const fmt_http = "ddd, DD MMM YYYY HH;mm;ss [GMT]"; // timezone must be GMT
     pub const fmt_sql_ms = "YYYY-MM-DD HH;mm;ss.SSS z";
+    pub const fmt_sql_ms_local = "YYYY-MM-DD HH;mm;ss.SSS";
     pub const fmt_sql = "YYYY-MM-DD HH;mm;ss z";
+    pub const fmt_sql_local = "YYYY-MM-DD HH;mm;ss";
 
     pub fn format(self: With_Offset, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
         _ = options;
@@ -224,12 +236,6 @@ pub const With_Offset = struct {
     }
 };
 
-var test_dt_buf: [256]u8 = undefined;
-// for testing only!
-fn dt_str(comptime fmt: []const u8, dto: With_Offset) ![]const u8 {
-    return std.fmt.bufPrint(&test_dt_buf, "{" ++ fmt ++ "}", .{ dto });
-}
-
 test "Date_Time" {
     try tzdb.init_cache(std.testing.allocator);
     defer tzdb.deinit_cache();
@@ -246,22 +252,20 @@ test "Date_Time" {
         .time = Time.from_hmsm(0, 30, 0, 0),
     }).with_offset(0);
 
-    try expectEqualStrings("2024-02-01 12:34:56.789 +00:00", try dt_str(With_Offset.fmt_sql_ms, dt1));
-    try expectEqualStrings("2024-02-01 12:34:56.789 GMT", try dt_str(With_Offset.fmt_sql_ms, dt1.in_timezone(gmt)));
-    try expectEqualStrings("2024-02-01 06:34:56.789 CST", try dt_str(With_Offset.fmt_sql_ms, dt1.in_timezone(tz)));
+    try expectFmt("2024-02-01 12:34:56.789 +00:00", With_Offset.sql_ms, .{ dt1 });
+    try expectFmt("2024-02-01 12:34:56.789 GMT", With_Offset.sql_ms, .{ dt1.in_timezone(gmt) });
+    try expectFmt("2024-02-01 06:34:56.789 CST", With_Offset.sql_ms, .{ dt1.in_timezone(tz) });
 
-    try expectEqualStrings("Mon, 24 Dec 1928 00:30:00 +0000", try dt_str(With_Offset.fmt_rfc2822, dt2.in_timezone(gmt)));
-    try expectEqualStrings("Mon, 24 Dec 1928 00:30:00 GMT", try dt_str(With_Offset.fmt_http, dt2.in_timezone(gmt)));
-    try expectEqualStrings("1928-12-24T00:30:00.000+00:00", try dt_str(With_Offset.fmt_iso8601, dt2.in_timezone(gmt)));
+    try expectFmt("Mon, 24 Dec 1928 00:30:00 +0000", With_Offset.rfc2822, .{ dt2.in_timezone(gmt) });
+    try expectFmt("Mon, 24 Dec 1928 00:30:00 GMT", With_Offset.http, .{ dt2.in_timezone(gmt) });
+    try expectFmt("1928-12-24T00:30:00.000+00:00", With_Offset.iso8601, .{ dt2.in_timezone(gmt) });
 
     try expectEqual(dt1, try With_Offset.from_string(With_Offset.fmt_sql_ms, "2024-02-01 12:34:56.789 +00:00"));
     try expectEqual(dt1, (try With_Offset.from_string(With_Offset.fmt_sql_ms, "2024-02-01 06:34:56.789 CST")).in_timezone(null));
 }
 
-const expect = std.testing.expect;
-const expectError = std.testing.expectError;
+const expectFmt = std.testing.expectFmt;
 const expectEqual = std.testing.expectEqual;
-const expectEqualStrings = std.testing.expectEqualStrings;
 
 const Date = @import("date.zig").Date;
 const Time = @import("time.zig").Time;

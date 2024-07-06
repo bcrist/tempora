@@ -141,8 +141,17 @@ pub const Time = enum (i32) {
                 .timezone = timezone,
             };
         }
-            
+
+        pub const iso8601 = "{" ++ fmt_iso8601 ++ "}";
+        pub const iso8601_local = "{" ++ fmt_iso8601_local ++ "}";
+        pub const rfc2822 = "{" ++ fmt_rfc2822 ++ "}";
+        pub const sql_ms = "{" ++ fmt_sql_ms ++ "}";
+        pub const sql = "{" ++ fmt_sql ++ "}";
+        pub const hms = "{" ++ fmt_hms ++ "}";
+        pub const hm = "{" ++ fmt_hm ++ "}";
+
         pub const fmt_iso8601 = "HH;mm;ss.SSSZ";
+        pub const fmt_iso8601_local = "HH;mm;ss.SSS";
         pub const fmt_rfc2822 = "HH;mm;ss ZZ";
         pub const fmt_sql_ms = "HH;mm;ss.SSS z";
         pub const fmt_sql = "HH;mm;ss z";
