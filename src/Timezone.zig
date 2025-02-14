@@ -40,7 +40,7 @@ pub fn deinit(self: *Timezone, allocator: std.mem.Allocator) void {
 pub fn zone_info(this: Timezone, utc: i64) Zone_Info {
     const transitions = this.transitions.slice();
     const transition_ts = transitions.items(.ts);
-    const next_transition = std.sort.upperBound(i64, utc, transition_ts, {}, ts_less_than);
+    const next_transition = std.sort.upperBound(i64, transition_ts, utc, ts_order);
 
     if (next_transition == transitions.len) {
         if (this.posix_tz) |posix_tz| {
@@ -515,8 +515,8 @@ pub const POSIX_TZ = struct {
     }
 };
 
-fn ts_less_than(_: void, a: i64, b: i64) bool {
-    return a < b;
+fn ts_order(a: i64, b: i64) std.math.Order {
+    return std.math.order(a, b);
 }
 
 const Date_Time = @import("Date_Time.zig");

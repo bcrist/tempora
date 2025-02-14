@@ -121,7 +121,7 @@ pub fn main() !void {
     }
 
     inline for (designation_override_kvs) |entry| {
-        if (@typeInfo(@TypeOf(entry[1])) != .Null) {
+        if (@typeInfo(@TypeOf(entry[1])) != .null) {
             try designation_to_offset.putNoClobber(entry[0], entry[1]);
         }
     }

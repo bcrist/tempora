@@ -662,7 +662,7 @@ fn read_int(comptime T: type, stream: *std.io.FixedBufferStream([]const u8)) !T 
     var sign: T = 1;
     var value: T = 0;
 
-    if (@typeInfo(T).Int.signedness == .signed) switch(try reader.readByte()) {
+    if (@typeInfo(T).int.signedness == .signed) switch(try reader.readByte()) {
         '-' => sign = -1,
         '+' => {},
         else => stream.pos -= 1,

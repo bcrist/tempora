@@ -35,7 +35,7 @@ fn current_timezone_id_windows() ![]const u8 {
     const codepoints = try std.unicode.utf16CountCodepoints(wide);
     if (codepoints <= 40) {
         var buf: [160]u8 = undefined;
-        const end = try std.unicode.utf16leToUtf8(&buf, wide);
+        const end = try std.unicode.utf16LeToUtf8(&buf, wide);
         const narrow = buf[0..end];
 
         // based on territory 001 data from https://github.com/unicode-org/cldr/blob/main/common/supplemental/windowsZones.xml

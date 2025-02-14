@@ -10,7 +10,7 @@ pub fn build(b: *std.Build) void {
 
     const update_tzdb_exe = b.addExecutable(.{
         .name = "update_tzdb",
-        .target = b.host,
+        .target = b.graph.host,
         .optimize = .ReleaseSafe,
         .root_source_file = b.path("tools/update_tzdb.zig"),
     });
