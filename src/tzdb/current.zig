@@ -23,7 +23,7 @@ const DYNAMIC_TIME_ZONE_INFORMATION = extern struct {
 
 const TIME_ZONE_ID_INVALID: win.DWORD = 0xffffffff;
 
-extern "kernel32" fn GetDynamicTimeZoneInformation(time_zone_information: *DYNAMIC_TIME_ZONE_INFORMATION) callconv(win.WINAPI) win.DWORD;
+extern "kernel32" fn GetDynamicTimeZoneInformation(time_zone_information: *DYNAMIC_TIME_ZONE_INFORMATION) callconv(.winapi) win.DWORD;
 
 fn current_timezone_id_windows() ![]const u8 {
     var tzinfo: DYNAMIC_TIME_ZONE_INFORMATION = undefined;
