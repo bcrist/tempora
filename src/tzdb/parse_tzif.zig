@@ -58,7 +58,7 @@ pub const TZif_Header = struct {
     typecnt: u32,
     charcnt: u32,
 
-    pub fn dataSize(self: TZif_Header, data_block_version: Version) u32 {
+    pub fn data_size(self: TZif_Header, data_block_version: Version) u32 {
         return self.timecnt * data_block_version.time_size() +
             self.timecnt +
             self.typecnt * time_type_size +
@@ -69,16 +69,16 @@ pub const TZif_Header = struct {
     }
 };
 
-pub fn parse_header(reader: anytype, seekableStream: anytype) !TZif_Header {
+pub fn parse_header(reader: *std.io.Reader) !TZif_Header {
     var magic_buf: [4]u8 = undefined;
-    try reader.readNoEof(&magic_buf);
+    try reader.readSliceAll(&magic_buf);
     if (!std.mem.eql(u8, "TZif", &magic_buf)) {
         return error.InvalidFormat; // Magic number "TZif" is missing
     }
 
     // Check verison
-    const version = reader.readEnum(Version, .little) catch |err| switch (err) {
-        error.InvalidValue => return error.UnsupportedVersion,
+    const version = reader.takeEnum(Version, .little) catch |err| switch (err) {
+        error.InvalidEnumTag => return error.UnsupportedVersion,
         else => |e| return e,
     };
     if (version == .V1) {
@@ -86,16 +86,16 @@ pub fn parse_header(reader: anytype, seekableStream: anytype) !TZif_Header {
     }
 
     // Seek past reserved bytes
-    try seekableStream.seekBy(15);
+    try reader.discardAll(15);
 
     return TZif_Header{
         .version = version,
-        .isutcnt = try reader.readInt(u32, .big),
-        .isstdcnt = try reader.readInt(u32, .big),
-        .leapcnt = try reader.readInt(u32, .big),
-        .timecnt = try reader.readInt(u32, .big),
-        .typecnt = try reader.readInt(u32, .big),
-        .charcnt = try reader.readInt(u32, .big),
+        .isutcnt = try reader.takeInt(u32, .big),
+        .isstdcnt = try reader.takeInt(u32, .big),
+        .leapcnt = try reader.takeInt(u32, .big),
+        .timecnt = try reader.takeInt(u32, .big),
+        .typecnt = try reader.takeInt(u32, .big),
+        .charcnt = try reader.takeInt(u32, .big),
     };
 }
 
@@ -287,11 +287,11 @@ pub fn parse_posix_tz(string: []const u8) !Timezone.POSIX_TZ {
     return result;
 }
 
-pub fn parse(allocator: std.mem.Allocator, reader: anytype, seekableStream: anytype) !Timezone {
-    const v1_header = try parse_header(reader, seekableStream);
-    try seekableStream.seekBy(v1_header.dataSize(.V1));
+pub fn parse(allocator: std.mem.Allocator, reader: *std.io.Reader) !Timezone {
+    const v1_header = try parse_header(reader);
+    try reader.discardAll(v1_header.data_size(.V1));
 
-    const v2_header = try parse_header(reader, seekableStream);
+    const v2_header = try parse_header(reader);
 
     var transitions: std.MultiArrayList(Timezone.Transition) = .{};
     try transitions.ensureTotalCapacity(allocator, v2_header.timecnt);
@@ -301,7 +301,7 @@ pub fn parse(allocator: std.mem.Allocator, reader: anytype, seekableStream: anyt
     {
         var prev: i64 = -(2 << 59); // Earliest time supported, this is earlier than the big bang
         for (0..v2_header.timecnt) |_| {
-            const ts = try reader.readInt(i64, .big);
+            const ts = try reader.takeInt(i64, .big);
             if (ts <= prev) {
                 return error.InvalidFormat;
             }
@@ -317,7 +317,7 @@ pub fn parse(allocator: std.mem.Allocator, reader: anytype, seekableStream: anyt
 
     // Parse transition types
     const transition_zones = transitions.items(.zone_index);
-    try reader.readNoEof(transition_zones);
+    try reader.readSliceAll(transition_zones);
     for (transition_zones) |zone_index| {
         if (zone_index >= v2_header.typecnt) {
             return error.InvalidFormat;
@@ -328,14 +328,14 @@ pub fn parse(allocator: std.mem.Allocator, reader: anytype, seekableStream: anyt
     const zone_infos = try allocator.alloc(Timezone.Zone_Info, v2_header.typecnt);
     errdefer allocator.free(zone_infos);
     for (zone_infos) |*zi| {
-        const offset = try reader.readInt(i32, .big);
-        const is_dst = switch (try reader.readByte()) {
+        const offset = try reader.takeInt(i32, .big);
+        const is_dst = switch (try reader.takeByte()) {
             0 => false,
             1 => true,
             else => return error.InvalidFormat,
         };
 
-        const designation_index = try reader.readByte(); // will be replaced below
+        const designation_index = try reader.takeByte(); // will be replaced below
         var designation_temp: []const u8 = &.{};
         designation_temp.len = designation_index;
 
@@ -352,7 +352,7 @@ pub fn parse(allocator: std.mem.Allocator, reader: anytype, seekableStream: anyt
     // Read designations
     const designations = try allocator.alloc(u8, v2_header.charcnt);
     errdefer allocator.free(designations);
-    try reader.readNoEof(designations);
+    try reader.readSliceAll(designations);
 
     // Update local time type records with a valid designation string
     for (zone_infos) |*zi| {
@@ -365,8 +365,8 @@ pub fn parse(allocator: std.mem.Allocator, reader: anytype, seekableStream: anyt
 
     // Parse and ignore leap seconds records
     for (0..v2_header.leapcnt) |_| {
-        _ = try reader.readInt(i64, .big);
-        _ = try reader.readInt(i32, .big);
+        _ = try reader.takeInt(i64, .big);
+        _ = try reader.takeInt(i32, .big);
     }
 
     // Parse standard/wall indicators
@@ -375,7 +375,7 @@ pub fn parse(allocator: std.mem.Allocator, reader: anytype, seekableStream: anyt
             return error.InvalidFormat;
         }
         for (zone_infos) |*zi| {
-            zi.source = switch (try reader.readByte()) {
+            zi.source = switch (try reader.takeByte()) {
                 1 => .tzdata_standard,
                 0 => .tzdata_wall,
                 else => return error.InvalidFormat,
@@ -389,7 +389,7 @@ pub fn parse(allocator: std.mem.Allocator, reader: anytype, seekableStream: anyt
             return error.InvalidFormat;
         }
         for (zone_infos) |*zi| {
-            zi.source = switch (try reader.readByte()) {
+            zi.source = switch (try reader.takeByte()) {
                 1 => switch (zi.source) {
                     .tzdata_standard => .tzdata_utc,
                     else => return error.InvalidFormat,
@@ -401,11 +401,13 @@ pub fn parse(allocator: std.mem.Allocator, reader: anytype, seekableStream: anyt
     }
 
     // Parse TZ string from footer
-    if ((try reader.readByte()) != '\n') return error.InvalidFormat;
+    if ((try reader.takeByte()) != '\n') return error.InvalidFormat;
 
     const tz_string = blk: {
-        var buf: [60]u8 = undefined;
-        const tz_string = try reader.readUntilDelimiter(&buf, '\n');
+        const tz_string = reader.takeDelimiterExclusive('\n') catch |err| switch (err) {
+            error.StreamTooLong => "", // highly unlikely to happen, but possible if file is corrupted or malicious
+            else => return err,
+        };
         break :blk try allocator.dupe(u8, tz_string);
     };
     errdefer allocator.free(tz_string);
@@ -427,12 +429,15 @@ pub fn parse(allocator: std.mem.Allocator, reader: anytype, seekableStream: anyt
 pub fn parse_file(allocator: std.mem.Allocator, path: []const u8) !Timezone {
     const file = try std.fs.cwd().openFile(path, .{});
     defer file.close();
-    return parse(allocator, file.reader(), file.seekableStream());
+
+    var buf: [8192]u8 = undefined;
+    var reader = file.reader(&buf);
+    return parse(allocator, &reader.interface);
 }
 
 pub fn parse_memory(allocator: std.mem.Allocator, data: []const u8) !Timezone {
-    var stream = std.io.fixedBufferStream(data);
-    return parse(allocator, stream.reader(), stream.seekableStream());
+    var reader = std.io.Reader.fixed(data);
+    return parse(allocator, &reader);
 }
 
 const log = std.log.scoped(.tempora);

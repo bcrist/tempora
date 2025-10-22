@@ -205,19 +205,16 @@ pub const POSIX_TZ = struct {
             }
         }
 
-        pub fn format(self: Rule, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-            _ = fmt;
-            _ = options;
-
+        pub fn format(self: Rule, writer: *std.io.Writer) !void {
             switch (self) {
                 .julian_day => |julian_day| {
-                    try std.fmt.format(writer, "J{}", .{julian_day.day});
+                    try writer.print("J{}", .{julian_day.day});
                 },
                 .julian_day_zero => |julian_day_zero| {
-                    try std.fmt.format(writer, "{}", .{julian_day_zero.day});
+                    try writer.print("{}", .{julian_day_zero.day});
                 },
                 .month_nth_week_day => |month_week_day| {
-                    try std.fmt.format(writer, "M{}.{}.{}", .{
+                    try writer.print("M{}.{}.{}", .{
                         month_week_day.month,
                         month_week_day.n,
                         month_week_day.day,
@@ -235,12 +232,12 @@ pub const POSIX_TZ = struct {
                 const minutes = @mod(@divTrunc(time, std.time.s_per_min), 60);
                 const hours = @divTrunc(@divTrunc(time, std.time.s_per_min), 60);
 
-                try std.fmt.format(writer, "/{}", .{hours});
+                try writer.print("/{}", .{hours});
                 if (minutes != 0 or seconds != 0) {
-                    try std.fmt.format(writer, ":{}", .{minutes});
+                    try writer.print(":{}", .{minutes});
                 }
                 if (seconds != 0) {
-                    try std.fmt.format(writer, ":{}", .{seconds});
+                    try writer.print(":{}", .{seconds});
                 }
             }
         }
@@ -356,10 +353,7 @@ pub const POSIX_TZ = struct {
         }
     }
 
-    pub fn format(self: POSIX_TZ, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-        _ = fmt;
-        _ = options;
-
+    pub fn format(self: POSIX_TZ, writer: *std.io.Writer) !void {
         const should_quote_std_designation = for (self.std_designation) |character| {
             if (!std.ascii.isAlphabetic(character)) {
                 break true;
@@ -379,12 +373,12 @@ pub const POSIX_TZ = struct {
         const std_minutes = @rem(@divTrunc(std_offset_west, std.time.s_per_min), 60);
         const std_hours = @divTrunc(@divTrunc(std_offset_west, std.time.s_per_min), 60);
 
-        try std.fmt.format(writer, "{}", .{std_hours});
+        try writer.print("{}", .{std_hours});
         if (std_minutes != 0 or std_seconds != 0) {
-            try std.fmt.format(writer, ":{}", .{if (std_minutes < 0) -std_minutes else std_minutes});
+            try writer.print(":{}", .{if (std_minutes < 0) -std_minutes else std_minutes});
         }
         if (std_seconds != 0) {
-            try std.fmt.format(writer, ":{}", .{if (std_seconds < 0) -std_seconds else std_seconds});
+            try writer.print(":{}", .{if (std_seconds < 0) -std_seconds else std_seconds});
         }
 
         if (self.dst_designation) |dst_designation| {
@@ -409,18 +403,18 @@ pub const POSIX_TZ = struct {
                 const dst_minutes = @rem(@divTrunc(dst_offset_west, std.time.s_per_min), 60);
                 const dst_hours = @divTrunc(@divTrunc(dst_offset_west, std.time.s_per_min), 60);
 
-                try std.fmt.format(writer, "{}", .{dst_hours});
+                try writer.print("{}", .{dst_hours});
                 if (dst_minutes != 0 or dst_seconds != 0) {
-                    try std.fmt.format(writer, ":{}", .{if (dst_minutes < 0) -dst_minutes else dst_minutes});
+                    try writer.print(":{}", .{if (dst_minutes < 0) -dst_minutes else dst_minutes});
                 }
                 if (dst_seconds != 0) {
-                    try std.fmt.format(writer, ":{}", .{if (dst_seconds < 0) -dst_seconds else dst_seconds});
+                    try writer.print(":{}", .{if (dst_seconds < 0) -dst_seconds else dst_seconds});
                 }
             }
         }
 
         if (self.dst_range) |dst_range| {
-            try std.fmt.format(writer, ",{},{}", .{ dst_range.start, dst_range.end });
+            try writer.print(",{f},{f}", .{ dst_range.start, dst_range.end });
         }
     }
 
@@ -450,7 +444,7 @@ pub const POSIX_TZ = struct {
             },
         };
 
-        try std.testing.expectFmt("MST7MDT,M3.2.0,M11.1.0", "{}", .{america_denver});
+        try std.testing.expectFmt("MST7MDT,M3.2.0,M11.1.0", "{f}", .{america_denver});
 
         const europe_berlin = POSIX_TZ{
             .std_designation = "CET",
@@ -476,7 +470,7 @@ pub const POSIX_TZ = struct {
                 },
             },
         };
-        try std.testing.expectFmt("CET-1CEST,M3.5.0,M10.5.0/3", "{}", .{europe_berlin});
+        try std.testing.expectFmt("CET-1CEST,M3.5.0,M10.5.0/3", "{f}", .{europe_berlin});
 
         const antarctica_syowa = POSIX_TZ{
             .std_designation = "+03",
@@ -485,7 +479,7 @@ pub const POSIX_TZ = struct {
             .dst_offset = undefined,
             .dst_range = null,
         };
-        try std.testing.expectFmt("<+03>-3", "{}", .{antarctica_syowa});
+        try std.testing.expectFmt("<+03>-3", "{f}", .{antarctica_syowa});
 
         const pacific_chatham = POSIX_TZ{
             .std_designation = "+1245",
@@ -511,7 +505,7 @@ pub const POSIX_TZ = struct {
                 },
             },
         };
-        try std.testing.expectFmt("<+1245>-12:45<+1345>,M9.5.0/2:45,M4.1.0/3:45", "{}", .{pacific_chatham});
+        try std.testing.expectFmt("<+1245>-12:45<+1345>,M9.5.0/2:45,M4.1.0/3:45", "{f}", .{pacific_chatham});
     }
 };
 

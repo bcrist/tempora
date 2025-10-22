@@ -39,13 +39,13 @@ pub const Week_Day = enum(u3) {
         }
 
         if (options.allow_numeric) {
-            const numeric = std.fmt.parseInt(u3, trimmed, 10) catch return error.InvalidFormat;
+            const numeric = std.fmt.parseInt(u3, trimmed, 10) catch return error.InvalidPattern;
             if (numeric >= 1 and numeric <= 7) {
                 return @enumFromInt(numeric);
             }
         }
 
-        return error.InvalidFormat;
+        return error.InvalidPattern;
     }
 
     pub fn as_number(self: Week_Day) i32 {
@@ -74,9 +74,9 @@ pub const Week_Day = enum(u3) {
 
 test "Week_Day" {
     try expectEqual(.monday, try Week_Day.from_string("Mon", .{}));
-    try expectError(error.InvalidFormat, Week_Day.from_string("Tues", .{}));
+    try expectError(error.InvalidPattern, Week_Day.from_string("Tues", .{}));
     try expectEqual(.wednesday, try Week_Day.from_string("wednesday", .{}));
-    try expectError(error.InvalidFormat, Week_Day.from_string("7", .{}));
+    try expectError(error.InvalidPattern, Week_Day.from_string("7", .{}));
     try expectEqual(.saturday, try Week_Day.from_string("7", .{ .allow_numeric = true }));
 }
 

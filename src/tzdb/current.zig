@@ -222,7 +222,7 @@ fn current_timezone_id_windows() ![]const u8 {
 }
 
 fn current_timezone_id_unix() ![]const u8 {
-    const buf: [std.fs.MAX_PATH_BYTES]u8 = undefined;
+    var buf: [std.fs.max_path_bytes]u8 = undefined;
     const raw = try std.fs.cwd().readLink("/etc/localtime", &buf);
     const prefix = "/usr/share/zoneinfo/";
 

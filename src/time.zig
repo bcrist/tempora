@@ -142,34 +142,38 @@ pub const Time = enum (i32) {
             };
         }
 
-        pub const iso8601 = "{" ++ fmt_iso8601 ++ "}";
-        pub const iso8601_local = "{" ++ fmt_iso8601_local ++ "}";
-        pub const rfc2822 = "{" ++ fmt_rfc2822 ++ "}";
-        pub const sql_ms = "{" ++ fmt_sql_ms ++ "}";
-        pub const sql = "{" ++ fmt_sql ++ "}";
-        pub const hms = "{" ++ fmt_hms ++ "}";
-        pub const hm = "{" ++ fmt_hm ++ "}";
+        pub const iso8601 = "HH:mm:ss.SSSZ";
+        pub const iso8601_local = "HH:mm:ss.SSS";
+        pub const rfc2822 = "HH:mm:ss ZZ";
+        pub const sql_ms = "HH:mm:ss.SSS z";
+        pub const sql = "HH:mm:ss z";
+        pub const hms = "h:mm:ss a";
+        pub const hm = "h:mm a";
 
-        pub const fmt_iso8601 = "HH;mm;ss.SSSZ";
-        pub const fmt_iso8601_local = "HH;mm;ss.SSS";
-        pub const fmt_rfc2822 = "HH;mm;ss ZZ";
-        pub const fmt_sql_ms = "HH;mm;ss.SSS z";
-        pub const fmt_sql = "HH;mm;ss z";
-        pub const fmt_hms = "h;mm;ss a";
-        pub const fmt_hm = "h;mm a";
-
-        pub fn format(self: With_Offset, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-            _ = options;
-            try formatting.format(self.with_date(.epoch), if (fmt.len == 0) fmt_iso8601 else fmt, writer);
+        pub fn format(self: With_Offset, writer: *std.io.Writer) !void {
+            try formatting.format(self.with_date(.epoch), iso8601, writer);
         }
 
-        pub fn from_string(comptime fmt: []const u8, str: []const u8) !With_Offset {
-            return from_string_tz(fmt, str, null);
+        pub fn fmt(self: With_Offset, comptime pattern: []const u8) Formatter(pattern) {
+            return .{ .time_with_offset = self };
         }
 
-        pub fn from_string_tz(comptime fmt: []const u8, str: []const u8, timezone: ?*const Timezone) !With_Offset {
+        pub fn Formatter(comptime pattern: []const u8) type {
+            return struct {
+                time_with_offset: With_Offset,
+                pub fn format(self: @This(), writer: *std.io.Writer) !void {
+                    try formatting.format(self.time_with_offset.with_date(.epoch), pattern, writer);
+                }
+            };
+        }
+
+        pub fn from_string(comptime pattern: []const u8, str: []const u8) !With_Offset {
+            return from_string_tz(pattern, str, null);
+        }
+
+        pub fn from_string_tz(comptime pattern: []const u8, str: []const u8, timezone: ?*const Timezone) !With_Offset {
             var stream = std.io.fixedBufferStream(str);
-            const pi = formatting.parse(if (fmt.len == 0) fmt_iso8601 else fmt, &stream) catch return error.InvalidFormat;
+            const pi = formatting.parse(if (pattern.len == 0) iso8601 else fmt, &stream) catch return error.InvalidPattern;
 
             if (pi.timestamp) |ts| {
                 const dto = Date_Time.With_Offset.from_timestamp_ms(ts, timezone);
@@ -188,7 +192,7 @@ pub const Time = enum (i32) {
                     .utc_offset_ms = pi.utc_offset_ms orelse if (timezone) |tz| tz.zone_info(std.time.timestamp()).offset * 1000 else 0,
                     .timezone = timezone,
                 };
-            } else return error.InvalidFormat;
+            } else return error.InvalidPattern;
         }
     };
 };

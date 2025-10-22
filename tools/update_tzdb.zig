@@ -4,23 +4,19 @@ pub fn main() !void {
     defer arena.deinit();
     const aa = arena.allocator();
 
-    var gpa_alloc: std.heap.GeneralPurposeAllocator(.{}) = .{};
-    defer _ = gpa_alloc.deinit();
-    const gpa = gpa_alloc.allocator();
-
     const Sha256 = std.crypto.hash.sha2.Sha256;
     const Digest = [Sha256.digest_length]u8;
 
-    var id_to_digest = std.StringHashMap(Digest).init(gpa);
-    defer id_to_digest.deinit();
+    var id_to_digest: std.StringHashMapUnmanaged(Digest) = .empty;
+    defer id_to_digest.deinit(gpa);
 
-    var digest_to_data = std.AutoHashMap(Digest, []const u8).init(gpa);
-    defer digest_to_data.deinit();
+    var digest_to_data: std.AutoHashMapUnmanaged(Digest, []const u8) = .empty;
+    defer digest_to_data.deinit(gpa);
 
-    var designation_to_offset = std.StringHashMap(i32).init(gpa);
-    defer designation_to_offset.deinit();
+    var designation_to_offset: std.StringHashMapUnmanaged(i32) = .empty;
+    defer designation_to_offset.deinit(gpa);
 
-    const designation_override_kvs =  .{
+    const designation_override_kvs = .{
         .{ "LMT", null }, // "Local mean time" - not a standard designation
         .{ "CMT", null },
         .{ "PMT", null },
@@ -61,10 +57,7 @@ pub fn main() !void {
         .{ "NZST", 12 * 60 * 60 }, // New Zealand Standard Time
     };
 
-    const designation_overrides = if (comptime @import("builtin").zig_version.minor == 12)
-        std.ComptimeStringMap(?i32, designation_override_kvs) // TODO remove zig 0.12 support when 0.14 is released
-    else
-        std.StaticStringMap(?i32).initComptime(designation_override_kvs);
+    const designation_overrides = std.StaticStringMap(?i32).initComptime(designation_override_kvs);
 
     const zoneinfo = try std.fs.cwd().openDir("/usr/share/zoneinfo", .{ .iterate = true });
     var walker = try zoneinfo.walk(gpa);
@@ -82,12 +75,14 @@ pub fn main() !void {
             const id = try aa.dupe(u8, entry.path);
             const stat = try zoneinfo.statFile(id);
 
-            const data = try zoneinfo.readFileAllocOptions(aa, id, 1_000_000, stat.size, 1, null);
-            var data_stream = std.io.fixedBufferStream(data);
+            const data = try zoneinfo.readFileAllocOptions(aa, id, 1_000_000, stat.size, .@"1", null);
 
-            var compressed = try std.ArrayList(u8).initCapacity(aa, (stat.size / 2) * 3);
-            try std.compress.zlib.compress(data_stream.reader(), compressed.writer(), .{ .level = .best });
-            const compressed_data = compressed.items;
+            var compressed = try std.io.Writer.Allocating.initCapacity(aa, (stat.size / 2) * 3);
+            var buf: [flate.max_window_len]u8 = undefined;
+            var compressor = try flate.Compress.init(&compressed.writer, &buf, .zlib, .best);
+            try compressor.writer.writeAll(data);
+            try compressor.writer.flush();
+            const compressed_data = compressed.written();
 
             var digest: Digest = undefined;
             Sha256.hash(compressed_data, &digest, .{});
@@ -100,7 +95,7 @@ pub fn main() !void {
                 if (std.mem.startsWith(u8, zi.designation, "-")) continue;
                 if (designation_overrides.get(zi.designation)) |_| continue;
 
-                const result = try designation_to_offset.getOrPut(zi.designation);
+                const result = try designation_to_offset.getOrPut(gpa, zi.designation);
                 if (result.found_existing) {
                     if (result.value_ptr.* != zi.offset) {
                         std.log.warn("Multiple offsets found for designation {s}: first saw {}, now {}", .{
@@ -115,14 +110,14 @@ pub fn main() !void {
                 }
             }
 
-            try id_to_digest.put(id, digest);
-            try digest_to_data.put(digest, compressed_data);
+            try id_to_digest.put(gpa, id, digest);
+            try digest_to_data.put(gpa, digest, compressed_data);
         }
     }
 
     inline for (designation_override_kvs) |entry| {
         if (@typeInfo(@TypeOf(entry[1])) != .null) {
-            try designation_to_offset.putNoClobber(entry[0], entry[1]);
+            try designation_to_offset.putNoClobber(gpa, entry[0], entry[1]);
         }
     }
 
@@ -132,7 +127,7 @@ pub fn main() !void {
         const src_id = try std.fmt.bufPrint(&buf1, "Etc/GMT+{}", .{ neg_utc_offset });
         const dest_id = try std.fmt.bufPrint(&buf2, "GMT-{}", .{ neg_utc_offset });
         const duped = try aa.dupe(u8, dest_id);
-        try id_to_digest.put(duped, id_to_digest.get(src_id).?);
+        try id_to_digest.put(gpa, duped, id_to_digest.get(src_id).?);
     }
 
     for (1..15) |utc_offset| {
@@ -141,7 +136,7 @@ pub fn main() !void {
         const src_id = try std.fmt.bufPrint(&buf1, "Etc/GMT-{}", .{ utc_offset });
         const dest_id = try std.fmt.bufPrint(&buf2, "GMT+{}", .{ utc_offset });
         const duped = try aa.dupe(u8, dest_id);
-        try id_to_digest.put(duped, id_to_digest.get(src_id).?);
+        try id_to_digest.put(gpa, duped, id_to_digest.get(src_id).?);
     }
 
     const sorted_designations: [][]const u8 = try aa.alloc([]const u8, designation_to_offset.count());
@@ -180,7 +175,9 @@ pub fn main() !void {
 
     var file = try std.fs.cwd().createFile("src/tzdb/data.zig", .{});
     defer file.close();
-    const writer = file.writer();
+    var buf: [16384]u8 = undefined;
+    var file_writer = file.writer(&buf);
+    var writer = &file_writer.interface;
 
     try writer.writeAll(
         \\pub const ids = [_][]const u8 {
@@ -197,7 +194,7 @@ pub fn main() !void {
             try writer.writeAll("\n    ");
             col = 4;
         }
-        try writer.print("\"{}\"", .{ std.zig.fmtEscapes(id) });
+        try writer.print("\"{f}\"", .{ std.zig.fmtString(id) });
         col += id.len + 2;
     }
 
@@ -205,10 +202,10 @@ pub fn main() !void {
         \\
         \\};
         \\
-        \\pub fn designations(allocator: std.mem.Allocator) !std.StringArrayHashMap(i32) {
-        \\    var m = std.StringArrayHashMap(i32).init(allocator);
-        \\    errdefer m.deinit();
-        \\    try m.ensureUnusedCapacity(
+        \\pub fn designations(allocator: std.mem.Allocator) !std.StringArrayHashMapUnmanaged(i32) {
+        \\    var m: std.StringArrayHashMapUnmanaged(i32) = .empty;
+        \\    errdefer m.deinit(allocator);
+        \\    try m.ensureUnusedCapacity(allocator, 
     );
     try writer.print("{}", .{ sorted_designations.len });
     try writer.writeAll(
@@ -217,8 +214,8 @@ pub fn main() !void {
     );
 
     for (sorted_designations) |designation| {
-        try writer.print("    try m.put(\"{}\", {});\n", .{
-            std.zig.fmtEscapes(designation),
+        try writer.print("    m.putAssumeCapacityNoClobber(\"{f}\", {});\n", .{
+            std.zig.fmtString(designation),
             designation_to_offset.get(designation).?,
         });
     }
@@ -227,10 +224,10 @@ pub fn main() !void {
         \\    return m;
         \\}
         \\
-        \\pub fn db(allocator: std.mem.Allocator) !std.StringArrayHashMap([]const u8) {
-        \\    var m = std.StringArrayHashMap([]const u8).init(allocator);
-        \\    errdefer m.deinit();
-        \\    try m.ensureUnusedCapacity(
+        \\pub fn db(allocator: std.mem.Allocator) !std.StringArrayHashMapUnmanaged([]const u8) {
+        \\    var m: std.StringArrayHashMapUnmanaged([]const u8) = .empty;
+        \\    errdefer m.deinit(allocator);
+        \\    try m.ensureUnusedCapacity(allocator, 
     );
     try writer.print("{}", .{ sorted_ids.len });
     try writer.writeAll(
@@ -240,12 +237,9 @@ pub fn main() !void {
 
     for (sorted_ids) |id| {
         const digest = id_to_digest.get(id).?;
-        var hex_buf: [digest.len*2]u8 = undefined;
-        const hex = try std.fmt.bufPrint(&hex_buf, "{s}", .{ std.fmt.fmtSliceHexLower(&digest) });
-
-        try writer.print("    try m.put(\"{}\", data._{s});\n", .{
-            std.zig.fmtEscapes(id),
-            hex,
+        try writer.print("    m.putAssumeCapacityNoClobber(\"{f}\", data._{x});\n", .{
+            std.zig.fmtString(id),
+            &digest,
         });
     }
 
@@ -265,16 +259,12 @@ pub fn main() !void {
             const digest = entry.key_ptr.*;
             const compressed_data = entry.value_ptr.*;
             var hex_buf: [digest.len*2]u8 = undefined;
-            const hex = try std.fmt.bufPrint(&hex_buf, "{s}", .{ std.fmt.fmtSliceHexLower(&digest) });
+            const hex = try std.fmt.bufPrint(&hex_buf, "{x}", .{ &digest });
 
             var dir = try data_dir.makeOpenPath(hex[0..1], .{});
             defer dir.close();
 
-            const writeFile = if (comptime @import("builtin").zig_version.minor == 12)
-                std.fs.Dir.writeFile2 // TODO remove zig 0.12 support when 0.14 is released
-            else
-                std.fs.Dir.writeFile;
-            try writeFile(dir, .{
+            try std.fs.Dir.writeFile(dir, .{
                 .sub_path = hex,
                 .data = compressed_data,
             });
@@ -296,6 +286,8 @@ pub fn main() !void {
         \\
     );
 
+    try writer.flush();
+
     std.log.info("Found {} designations, {} unique files ({} bytes compressed) and {} ids", .{
         designation_to_offset.count(),
         digest_to_data.count(),
@@ -308,5 +300,8 @@ fn sort_string(_: void, left: []const u8, right: []const u8) bool {
     return std.mem.lessThan(u8, left, right);
 }
 
+const gpa = std.heap.smp_allocator;
+
+const flate = @import("flate.zig");
 const tempora = @import("tempora");
 const std = @import("std");

@@ -3,38 +3,43 @@ pub const parse_tzif = @import("tzdb/parse_tzif.zig");
 var cache: ?Cache = null;
 const Cache = struct {
     mutex: std.Thread.Mutex = .{},
-    arena: std.heap.ArenaAllocator,
-    designation_offsets: std.StringArrayHashMap(i32),
-    db: std.StringArrayHashMap([]const u8),
-    cache: std.StringHashMap(*const Timezone),
-    temp: std.ArrayList(u8),
     current: ?*const Timezone = null,
+
+    arena: std.heap.ArenaAllocator,
+    designation_offsets: std.StringArrayHashMapUnmanaged(i32),
+    db: std.StringArrayHashMapUnmanaged([]const u8),
+
+    gpa: std.mem.Allocator,
+    cache: std.StringHashMapUnmanaged(*const Timezone),
+    temp: std.ArrayList(u8),
 };
 
 pub fn init_cache(gpa: std.mem.Allocator) !void {
     std.debug.assert(cache == null);
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    const aa = arena.allocator();
 
-    var designation_offsets = try data.designations(arena.allocator());
-    errdefer designation_offsets.deinit();
+    var designation_offsets = try data.designations(aa);
+    errdefer designation_offsets.deinit(aa);
 
-    var db = try data.db(arena.allocator());
-    errdefer db.deinit();
+    var db = try data.db(aa);
+    errdefer db.deinit(aa);
 
     cache = .{
+        .gpa = gpa,
         .arena = arena,
         .designation_offsets = designation_offsets,
         .db = db,
-        .cache = std.StringHashMap(*const Timezone).init(gpa),
-        .temp = std.ArrayList(u8).init(gpa),
+        .cache = .empty,
+        .temp = .empty,
     };
 }
 
 pub fn deinit_cache() void {
     if (cache) |*c| {
         c.arena.deinit();
-        c.cache.deinit();
-        c.temp.deinit();
+        c.cache.deinit(c.gpa);
+        c.temp.deinit(c.gpa);
         cache = null;
     }
 }
@@ -54,9 +59,11 @@ fn timezone_from_cache(id: []const u8, c: *Cache) !?*const Timezone {
     }
 
     if (c.db.getEntry(id)) |entry| {
-        var stream = std.io.fixedBufferStream(entry.value_ptr.*);
+        var reader = std.io.Reader.fixed(entry.value_ptr.*);
         c.temp.clearRetainingCapacity();
-        try std.compress.zlib.decompress(stream.reader(), c.temp.writer());
+        var buf: [std.compress.flate.max_window_len]u8 = undefined;
+        var decompressor = std.compress.flate.Decompress.init(&reader, .zlib, &buf);
+        try decompressor.reader.appendRemainingUnlimited(c.gpa, &c.temp);
         const tz = try parse_tzif.parse_memory(c.arena.allocator(), c.temp.items);
 
         const stable_id = entry.key_ptr.*;
@@ -64,8 +71,7 @@ fn timezone_from_cache(id: []const u8, c: *Cache) !?*const Timezone {
         stable_tz.* = tz;
         stable_tz.id = stable_id;
 
-        const result = try c.cache.getOrPut(id);
-        result.key_ptr.* = stable_id;
+        const result = try c.cache.getOrPut(c.gpa, stable_id);
         result.value_ptr.* = stable_tz;
         return stable_tz;
     }
@@ -74,7 +80,8 @@ fn timezone_from_cache(id: []const u8, c: *Cache) !?*const Timezone {
 }
 
 test "timezone" {
-    try init_cache(std.testing.allocator);
+    // TODO diagnose leak when using std.testing.allocator for tz cache
+    try init_cache(std.heap.smp_allocator);
     defer deinit_cache();
 
     const ct = (try timezone("America/Chicago")).?;

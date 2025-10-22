@@ -20,7 +20,7 @@ pub const Year = enum (i32) {
     };
     pub fn from_string(y: []const u8, options: From_String_Options) !Year {
         const trimmed = if (options.trim.len > 0) std.mem.trim(u8, y, options.trim) else y;
-        var numeric = std.fmt.parseInt(i32, trimmed, 10) catch return error.InvalidFormat;
+        var numeric = std.fmt.parseInt(i32, trimmed, 10) catch return error.InvalidPattern;
 
         if (options.allow_two_digit_year and trimmed.len == 2) {
             if (numeric < 50) {
@@ -35,7 +35,7 @@ pub const Year = enum (i32) {
             return from_number(numeric);
         }
 
-        return error.InvalidFormat;
+        return error.InvalidPattern;
     }
 
     pub fn is_leap(self: Year) bool {
@@ -86,13 +86,13 @@ test "Year" {
     try expectEqual(1999, Year.from_number(1999).as_number());
     try expectEqual(1970, Year.from_number(1970).as_number());
     try expectEqual(Year.from_number(2024), try Year.from_string("2024", .{}));
-    try expectError(error.InvalidFormat, Year.from_string("2024", .{ .allow_non_two_digit_year = false }));
+    try expectError(error.InvalidPattern, Year.from_string("2024", .{ .allow_non_two_digit_year = false }));
     try expectEqual(Year.from_number(2024), try Year.from_string("'24", .{}));
     try expectEqual(Year.from_number(24), try Year.from_string("'24", .{ .allow_two_digit_year = false }));
     try expectEqual(Year.from_number(1969), try Year.from_string("69", .{}));
     try expectEqual(Year.from_number(123), try Year.from_string("123", .{}));
     try expectEqual(Year.from_number(4), try Year.from_string(" 4 ", .{}));
-    try expectError(error.InvalidFormat, Year.from_string("'24", .{ .allow_two_digit_year = false, .allow_non_two_digit_year = false }));
+    try expectError(error.InvalidPattern, Year.from_string("'24", .{ .allow_two_digit_year = false, .allow_non_two_digit_year = false }));
 
     try expect(Year.from_number(2000).is_leap());
     try expect(!Year.from_number(2001).is_leap());

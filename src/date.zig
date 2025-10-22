@@ -278,24 +278,33 @@ pub const Date = enum (i32) {
         };
     }
 
-    pub const iso8601 = "{" ++ fmt_iso8601 ++ "}";
-    pub const rfc2822 = "{" ++ fmt_rfc2822 ++ "}";
-    pub const us = "{" ++ fmt_us ++ "}";
-    pub const us_numeric = "{" ++ fmt_us_numeric ++ "}";
+    pub const iso8601 = "YYYY-MM-DD";
+    pub const rfc2822 = "ddd, DD MMM YYYY"; 
+    pub const us = "MMMM D, Y";
+    pub const us_numeric = "M/D/Y";
+    pub const uk = "D MMMM Y";
+    pub const uk_numeric = "D/M/Y";
 
-    pub const fmt_iso8601 = "YYYY-MM-DD";
-    pub const fmt_rfc2822 = "ddd, DD MMM YYYY"; 
-    pub const fmt_us = "MMMM D, Y";
-    pub const fmt_us_numeric = "M/D/Y";
-
-    pub fn format(self: Date, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-        _ = options;
-        try formatting.format(self.with_time(.midnight).with_offset(0), if (fmt.len == 0) fmt_iso8601 else fmt, writer);
+    pub fn format(self: Date, writer: *std.io.Writer) !void {
+        try formatting.format(self.with_time(.midnight).with_offset(0), iso8601, writer);
     }
 
-    pub fn from_string(comptime fmt: []const u8, str: []const u8) !Date {
-        var stream = std.io.fixedBufferStream(str);
-        const pi = formatting.parse(if (fmt.len == 0) fmt_iso8601 else fmt, &stream) catch return error.InvalidFormat;
+    pub fn fmt(self: Date, comptime pattern: []const u8) Formatter(pattern) {
+        return .{ .date = self };
+    }
+
+    pub fn Formatter(comptime pattern: []const u8) type {
+        return struct {
+            date: Date,
+            pub inline fn format(self: @This(), writer: *std.io.Writer) !void {
+                try formatting.format(self.date.with_time(.midnight).with_offset(0), pattern, writer);
+            }
+        };
+    }
+
+    pub fn from_string(comptime pattern: []const u8, str: []const u8) !Date {
+        var reader = std.io.Reader.fixed(str);
+        const pi = formatting.parse(if (pattern.len == 0) iso8601 else pattern, &reader) catch return error.InvalidPattern;
         
         if (pi.timestamp) |ts| {
             return Date_Time.With_Offset.from_timestamp_ms(ts, null).dt.date;
@@ -318,7 +327,7 @@ pub const Date = enum (i32) {
             return from_yd(y, .first);
         }
         
-        return error.InvalidFormat;
+        return error.InvalidPattern;
     }
 };
 pub const Date_Info = struct {
@@ -350,73 +359,68 @@ test "Date" {
     const date5 = Date.from_ymd(Year.from_number(-123), .december, Day.from_number(24));
     const date6 = Date.from_ymd(Year.from_number(1970), .january, .first);
 
-    try expectFmt("2024-02-01", "{YYYY-MM-DD}", .{ date1 });
-    try expectFmt("2024-02-01", "{}", .{ date1 });
-    try expectFmt("2 2nd Feb February", "{M Mo MMM MMMM}", .{ date1 });
-    try expectFmt("1.1st", "{Q.Qo}", .{ date1 });
-    try expectFmt("24 Do 24th", "{D [Do] Do}", .{ date2 });
-    try expectFmt("359 359th 359", "{DDD DDDo DDDD}", .{ date2 });
-    try expectFmt("32 32nd 032", "{DDD DDDo DDDD}", .{ date1 });
-    try expectFmt("4 4 4th Th Thu Thursday", "{d e do dd ddd dddd}", .{ date1 });
-    try expectFmt("5 5th", "{E Eo}", .{ date1 });
-    try expectFmt("52 52nd 52", "{w wo ww}", .{ date2 });
-    try expectFmt("2024 24 2024 2024 +002024", "{Y YY YYY YYYY YYYYYY}", .{ date1 });
-    try expectFmt("1928 28 1928 1928 +001928", "{Y YY YYY YYYY YYYYYY}", .{ date2 });
-    try expectFmt("0 00 0 0000 000000", "{Y YY YYY YYYY YYYYYY}", .{ date3 });
-    try expectFmt("12 12 12 0012 +000012", "{Y YY YYY YYYY YYYYYY}", .{ date4 });
-    try expectFmt("-123 -123 -123 -0123 -000123", "{Y YY YYY YYYY YYYYYY}", .{ date5 });
-    try expectFmt("AD AD", "{N NN}", .{ date1 });
+    try std.testing.expectFmt("2024-02-01", "{f}", .{ date1.fmt("YYYY-MM-DD") });
+    try std.testing.expectFmt("2024-02-01", "{f}", .{ date1 });
+    try std.testing.expectFmt("2 2nd Feb February", "{f}", .{ date1.fmt("M Mo MMM MMMM") });
+    try std.testing.expectFmt("1.1st", "{f}", .{ date1.fmt("Q.Qo") });
+    try std.testing.expectFmt("24 Do 24th", "{f}", .{ date2.fmt("D [Do] Do") });
+    try std.testing.expectFmt("359 359th 359", "{f}", .{ date2.fmt("DDD DDDo DDDD") });
+    try std.testing.expectFmt("32 32nd 032", "{f}", .{ date1.fmt("DDD DDDo DDDD") });
+    try std.testing.expectFmt("4 4 4th Th Thu Thursday", "{f}", .{ date1.fmt("d e do dd ddd dddd") });
+    try std.testing.expectFmt("5 5th", "{f}", .{ date1.fmt("E Eo") });
+    try std.testing.expectFmt("52 52nd 52", "{f}", .{ date2.fmt("w wo ww") });
+    try std.testing.expectFmt("2024 24 2024 2024 +002024", "{f}", .{ date1.fmt("Y YY YYY YYYY YYYYYY") });
+    try std.testing.expectFmt("1928 28 1928 1928 +001928", "{f}", .{ date2.fmt("Y YY YYY YYYY YYYYYY") });
+    try std.testing.expectFmt("0 00 0 0000 000000", "{f}", .{ date3.fmt("Y YY YYY YYYY YYYYYY") });
+    try std.testing.expectFmt("12 12 12 0012 +000012", "{f}", .{ date4.fmt("Y YY YYY YYYY YYYYYY") });
+    try std.testing.expectFmt("-123 -123 -123 -0123 -000123", "{f}", .{ date5.fmt("Y YY YYY YYYY YYYYYY") });
+    try std.testing.expectFmt("AD AD", "{f}", .{ date1.fmt("N NN") });
 
-    try expectFmt("2000", "{Y}", .{ @as(Date, @enumFromInt(0)) });
-    try expectFmt("2000", "{Y}", .{ Year.from_number(2000).starting_date() });
-    try expectFmt("2000", "{Y}", .{ Date.from_yd(Year.from_number(2000), .first) });
-    try expectFmt("2020", "{Y}", .{ Date.from_yd(Year.from_number(2020), .first) });
-    try expectFmt("1999", "{Y}", .{ Date.from_yd(Year.from_number(1999), .first) });
+    try std.testing.expectFmt("2000", "{f}", .{ @as(Date, @enumFromInt(0)).fmt("Y") });
+    try std.testing.expectFmt("2000", "{f}", .{ Year.from_number(2000).starting_date().fmt("Y") });
+    try std.testing.expectFmt("2000", "{f}", .{ Date.from_yd(Year.from_number(2000), .first).fmt("Y") });
+    try std.testing.expectFmt("2020", "{f}", .{ Date.from_yd(Year.from_number(2020), .first).fmt("Y") });
+    try std.testing.expectFmt("1999", "{f}", .{ Date.from_yd(Year.from_number(1999), .first).fmt("Y") });
 
-    try expectEqual(date1, try Date.from_string("YYYY-MM-DD", "2024-02-01"));
-    try expectEqual(date1, try Date.from_string("Y DDDo", "2024 32nd"));
-    try expectEqual(date1, try Date.from_string("Y MMM D", "+002024 feb 1"));
-    try expectEqual(date6, try Date.from_string("YY", "70"));
-    try expectEqual(date6, (try Date.from_string("YYYY-MM-DD", "1969-12-31")).plus_days(1));
-    try expectEqual(date6, try Date.from_string("x", "0"));
-    try expectEqual(date6, try Date.from_string("X", "0"));
-    try expectError(error.InvalidFormat, Date.from_string("MM", "12"));
+    try std.testing.expectEqual(date1, try Date.from_string("YYYY-MM-DD", "2024-02-01"));
+    try std.testing.expectEqual(date1, try Date.from_string("Y DDDo", "2024 32nd"));
+    try std.testing.expectEqual(date1, try Date.from_string("Y MMM D", "+002024 feb 1"));
+    try std.testing.expectEqual(date6, try Date.from_string("YY", "70"));
+    try std.testing.expectEqual(date6, (try Date.from_string("YYYY-MM-DD", "1969-12-31")).plus_days(1));
+    try std.testing.expectEqual(date6, try Date.from_string("x", "0"));
+    try std.testing.expectEqual(date6, try Date.from_string("X", "0"));
+    try std.testing.expectError(error.InvalidPattern, Date.from_string("MM", "12"));
 
     var d = Date.from_ymd(Year.from_number(2000), .january, .first);
-    try expectEqual(.first, d.ordinal_day());
-    try expectEqual(d, (try Date.from_string("YYYY-MM-DD", "1999-12-31")).plus_days(1));
-    try expect(!d.is_after(d));
-    try expect(!d.is_before(d));
-    try expect(d.is_after(try Date.from_string("YYYY-MM-DD", "1999-12-31")));
-    try expect(d.is_before(try Date.from_string("YYYY-MM-DD", "2000-01-02")));
+    try std.testing.expectEqual(.first, d.ordinal_day());
+    try std.testing.expectEqual(d, (try Date.from_string("YYYY-MM-DD", "1999-12-31")).plus_days(1));
+    try std.testing.expect(!d.is_after(d));
+    try std.testing.expect(!d.is_before(d));
+    try std.testing.expect(d.is_after(try Date.from_string("YYYY-MM-DD", "1999-12-31")));
+    try std.testing.expect(d.is_before(try Date.from_string("YYYY-MM-DD", "2000-01-02")));
 
     d = d.advance_to_day(Day.from_number(14));
-    try expectEqual(d, try Date.from_string("YYYY-MM-DD", "2000-01-14"));
+    try std.testing.expectEqual(d, try Date.from_string("YYYY-MM-DD", "2000-01-14"));
     d = d.advance_to_day(Day.from_number(14));
-    try expectEqual(d, try Date.from_string("YYYY-MM-DD", "2000-02-14"));
+    try std.testing.expectEqual(d, try Date.from_string("YYYY-MM-DD", "2000-02-14"));
     d = d.advance_to_day(Day.from_number(13));
-    try expectEqual(d, try Date.from_string("YYYY-MM-DD", "2000-03-13"));
+    try std.testing.expectEqual(d, try Date.from_string("YYYY-MM-DD", "2000-03-13"));
     d = d.advance_to_day(Day.from_number(14));
-    try expectEqual(d, try Date.from_string("YYYY-MM-DD", "2000-03-14"));
+    try std.testing.expectEqual(d, try Date.from_string("YYYY-MM-DD", "2000-03-14"));
 
-    try expectEqual(.tuesday, d.week_day());
+    try std.testing.expectEqual(.tuesday, d.week_day());
     d = d.advance_to_week_day(.friday);
-    try expectEqual(d, try Date.from_string("YYYY-MM-DD", "2000-03-17"));
+    try std.testing.expectEqual(d, try Date.from_string("YYYY-MM-DD", "2000-03-17"));
     d = d.advance_to_week_day(.friday);
-    try expectEqual(d, try Date.from_string("YYYY-MM-DD", "2000-03-24"));
+    try std.testing.expectEqual(d, try Date.from_string("YYYY-MM-DD", "2000-03-24"));
 
     d = d.advance_to_month_and_day(.october, Day.from_number(18));
-    try expectEqual(d, try Date.from_string("YYYY-MM-DD", "2000-10-18"));
+    try std.testing.expectEqual(d, try Date.from_string("YYYY-MM-DD", "2000-10-18"));
     d = d.advance_to_month_and_day(.october, Day.from_number(18));
-    try expectEqual(d, try Date.from_string("YYYY-MM-DD", "2001-10-18"));
+    try std.testing.expectEqual(d, try Date.from_string("YYYY-MM-DD", "2001-10-18"));
     d = d.advance_to_month_and_day(.september, Day.from_number(18));
-    try expectEqual(d, try Date.from_string("YYYY-MM-DD", "2002-09-18"));
+    try std.testing.expectEqual(d, try Date.from_string("YYYY-MM-DD", "2002-09-18"));
 }
-
-const expect = std.testing.expect;
-const expectError = std.testing.expectError;
-const expectEqual = std.testing.expectEqual;
-const expectFmt = std.testing.expectFmt;
 
 const Year = @import("year.zig").Year;
 const Month = @import("month.zig").Month;

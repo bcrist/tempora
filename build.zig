@@ -10,40 +10,52 @@ pub fn build(b: *std.Build) void {
 
     const update_tzdb_exe = b.addExecutable(.{
         .name = "update_tzdb",
-        .target = b.graph.host,
-        .optimize = .ReleaseSafe,
-        .root_source_file = b.path("tools/update_tzdb.zig"),
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("tools/update_tzdb.zig"),
+            .target = b.graph.host,
+            .optimize = .ReleaseSafe,
+            .imports = &.{
+                .{ .name = "tempora", .module = module },
+            },
+        }),
     });
-    update_tzdb_exe.root_module.addImport("tempora", module);
-    const update_tzdb = b.addRunArtifact(update_tzdb_exe);
-    _ = b.step("update_tzdb", "Rebuild tzdb data from the current host's /usr/share/zoneinfo/").dependOn(&update_tzdb.step);
     b.installArtifact(update_tzdb_exe);
+
+    _ = b.step("update_tzdb", "Rebuild tzdb data from the current host's /usr/share/zoneinfo/").dependOn(&b.addRunArtifact(update_tzdb_exe).step);
 
     const dump_exe = b.addExecutable(.{
         .name = "dump",
-        .target = target,
-        .optimize = optimize,
-        .root_source_file = b.path("tools/dump.zig"),
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("tools/dump.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "tempora", .module = module },
+            },
+        }),
     });
-    dump_exe.root_module.addImport("tempora", module);
     b.installArtifact(dump_exe);
 
     const run_all_tests = b.step("test", "Run all tests");
 
     const tests = b.addTest(.{
-        .root_source_file = b.path("src/tempora.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/tempora.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
-    const run_tests = b.addRunArtifact(tests);
-    run_all_tests.dependOn(&run_tests.step);
+    run_all_tests.dependOn(&b.addRunArtifact(tests).step);
 
     const parser_tests = b.addTest(.{
-        .root_source_file = b.path("test/parse_tzif.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("test/parse_tzif.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "tempora", .module = module },
+            },
+        }),
     });
-    parser_tests.root_module.addImport("tempora", module);
-    const run_parser_tests = b.addRunArtifact(parser_tests);
-    run_all_tests.dependOn(&run_parser_tests.step);
+    run_all_tests.dependOn(&b.addRunArtifact(parser_tests).step);
 }

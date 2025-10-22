@@ -1,9 +1,9 @@
 pub const default_from_string_trim = std.ascii.whitespace ++ "-/,._'";
 
-pub fn format(dto: Date_Time.With_Offset, comptime fmt: []const u8, writer: anytype) !void {
+pub fn format(dto: Date_Time.With_Offset, comptime pattern: []const u8, writer: *std.io.Writer) std.io.Writer.Error!void {
     @setEvalBranchQuota(100000);
 
-    comptime var iter = Token.iterator(fmt);
+    comptime var iter = Token.iterator(pattern);
     const need_date_info = inline while (comptime iter.next()) |token| {
         switch (token) {
             .y, .Y, .YY, .YYY, .YYYY, .YYYYYY,
@@ -29,64 +29,64 @@ pub fn format(dto: Date_Time.With_Offset, comptime fmt: []const u8, writer: anyt
         .ordinal_day = .first,
     };
 
-    iter = comptime Token.iterator(fmt);
+    iter = comptime Token.iterator(pattern);
     inline while (comptime iter.next()) |token| switch (token) {
-        .MM => try writer.print("{:0>2}", .{ di.month.as_unsigned() }),
-        .M => try writer.print("{}", .{ di.month.as_unsigned() }),
+        .MM => try writer.print("{d:0>2}", .{ di.month.as_unsigned() }),
+        .M => try writer.print("{d}", .{ di.month.as_unsigned() }),
         .Mo => try write_ordinal(writer, di.month.as_unsigned()),
         .MMM => try writer.writeAll(di.month.short_name()),
         .MMMM => try writer.writeAll(di.month.name()),
 
-        .Q => try writer.print("{}", .{ (di.month.as_unsigned() - 1) / 3 + 1 }),
+        .Q => try writer.print("{d}", .{ (di.month.as_unsigned() - 1) / 3 + 1 }),
         .Qo => try write_ordinal(writer, (di.month.as_unsigned() - 1) / 3 + 1),
 
-        .D => try writer.print("{}", .{ di.day.as_unsigned() }),
+        .D => try writer.print("{d}", .{ di.day.as_unsigned() }),
         .Do => try write_ordinal(writer, di.day.as_unsigned()),
-        .DD => try writer.print("{:0>2}", .{ di.day.as_unsigned() }),
+        .DD => try writer.print("{d:0>2}", .{ di.day.as_unsigned() }),
 
-        .DDD => try writer.print("{}", .{ di.ordinal_day.as_unsigned() }),
+        .DDD => try writer.print("{d}", .{ di.ordinal_day.as_unsigned() }),
         .DDDo => try write_ordinal(writer, di.ordinal_day.as_unsigned()),
-        .DDDD => try writer.print("{:0>3}", .{ di.ordinal_day.as_unsigned() }),
+        .DDDD => try writer.print("{d:0>3}", .{ di.ordinal_day.as_unsigned() }),
 
-        .d, .e => try writer.print("{}", .{ di.week_day.as_unsigned() - 1 }),
+        .d, .e => try writer.print("{d}", .{ di.week_day.as_unsigned() - 1 }),
         .do => try write_ordinal(writer, di.week_day.as_unsigned() - 1),
         .dd => try writer.writeAll(di.week_day.name()[0..2]),
         .ddd => try writer.writeAll(di.week_day.short_name()),
         .dddd => try writer.writeAll(di.week_day.name()),
-        .E => try writer.print("{}", .{ di.week_day.as_unsigned() }),
+        .E => try writer.print("{d}", .{ di.week_day.as_unsigned() }),
         .Eo => try write_ordinal(writer, di.week_day.as_unsigned()),
 
-        .w => try writer.print("{}", .{ di.ordinal_day.ordinal_week().as_unsigned() }),
+        .w => try writer.print("{d}", .{ di.ordinal_day.ordinal_week().as_unsigned() }),
         .wo => try write_ordinal(writer, di.ordinal_day.ordinal_week().as_unsigned()),
         .ww => try writer.print("{:0>2}", .{ di.ordinal_day.ordinal_week().as_unsigned() }),
 
-        .y => try writer.print("{}", .{ @as(u32, @intCast(@abs(di.year.as_number()))) }),
+        .y => try writer.print("{d}", .{ @as(u32, @intCast(@abs(di.year.as_number()))) }),
         .Y => if (di.year.as_number() > 9999) {
-            try writer.print("{}", .{ di.year.as_number() });
+            try writer.print("{d}", .{ di.year.as_number() });
         } else if (di.year.as_number() < 0) {
-            try writer.print("-{}", .{ @as(u32, @intCast(-di.year.as_number())) });
+            try writer.print("-{d}", .{ @as(u32, @intCast(-di.year.as_number())) });
         } else {
-            try writer.print("{}", .{ di.year.as_unsigned() });
+            try writer.print("{d}", .{ di.year.as_unsigned() });
         },
         .YY => if (di.year.as_number() >= 0) {
-            try writer.print("{:0>2}", .{ di.year.as_unsigned() % 100 });
+            try writer.print("{d:0>2}", .{ di.year.as_unsigned() % 100 });
         } else {
-            try writer.print("{}", .{ di.year.as_number() });
+            try writer.print("{d}", .{ di.year.as_number() });
         },
         .YYY => if (di.year.as_number() >= 0) {
-            try writer.print("{}", .{ di.year.as_unsigned() });
+            try writer.print("{d}", .{ di.year.as_unsigned() });
         } else {
-            try writer.print("{}", .{ di.year.as_number() });
+            try writer.print("{d}", .{ di.year.as_number() });
         },
         .YYYY => if (di.year.as_number() >= 0) {
-            try writer.print("{:0>4}", .{ di.year.as_unsigned() });
+            try writer.print("{d:0>4}", .{ di.year.as_unsigned() });
         } else {
-            try writer.print("-{:0>4}", .{ @as(u32, @intCast(-di.year.as_number())) });
+            try writer.print("-{d:0>4}", .{ @as(u32, @intCast(-di.year.as_number())) });
         },
         .YYYYYY => if (di.year.as_number() > 0) {
-            try writer.print("+{:0>6}", .{ di.year.as_unsigned() });
+            try writer.print("+{d:0>6}", .{ di.year.as_unsigned() });
         } else if (di.year.as_number() < 0) {
-            try writer.print("-{:0>6}", .{ @as(u32, @intCast(-di.year.as_number())) });
+            try writer.print("-{d:0>6}", .{ @as(u32, @intCast(-di.year.as_number())) });
         } else {
             try writer.writeAll("000000");
         },
@@ -103,33 +103,33 @@ pub fn format(dto: Date_Time.With_Offset, comptime fmt: []const u8, writer: anyt
 
         .A => try writer.writeAll(if (dto.dt.time.hours() < 12) "AM" else "PM"),
         .a => try writer.writeAll(if (dto.dt.time.hours() < 12) "am" else "pm"),
-        .H => try writer.print("{}", .{ @as(u32, @intCast(dto.dt.time.hours())) }),
-        .HH => try writer.print("{:0>2}", .{ @as(u32, @intCast(dto.dt.time.hours())) }),
-        .h => try writer.print("{}", .{ @as(u32, switch (dto.dt.time.hours()) {
+        .H => try writer.print("{d}", .{ @as(u32, @intCast(dto.dt.time.hours())) }),
+        .HH => try writer.print("{d:0>2}", .{ @as(u32, @intCast(dto.dt.time.hours())) }),
+        .h => try writer.print("{d}", .{ @as(u32, switch (dto.dt.time.hours()) {
             0 => 12,
             1...12 => |h| h,
             else => |h| h - 12,
         }) }),
-        .hh => try writer.print("{:0>2}", .{ @as(u32, switch (dto.dt.time.hours()) {
+        .hh => try writer.print("{d:0>2}", .{ @as(u32, switch (dto.dt.time.hours()) {
             0 => 12,
             1...12 => |h| h,
             else => |h| h - 12,
         }) }),
-        .k => try writer.print("{}", .{ @as(u32, switch (dto.dt.time.hours()) {
+        .k => try writer.print("{d}", .{ @as(u32, switch (dto.dt.time.hours()) {
             0 => 24,
             else => |h| h,
         }) }),
-        .kk => try writer.print("{:0>2}", .{ @as(u32, switch (dto.dt.time.hours()) {
+        .kk => try writer.print("{d:0>2}", .{ @as(u32, switch (dto.dt.time.hours()) {
             0 => 24,
             else => |h| h,
         }) }),
-        .m => try writer.print("{}", .{ @as(u32, @intCast(dto.dt.time.minutes())) }),
-        .mm => try writer.print("{:0>2}", .{ @as(u32, @intCast(dto.dt.time.minutes())) }),
-        .s => try writer.print("{}", .{ @as(u32, @intCast(dto.dt.time.seconds())) }),
-        .ss => try writer.print("{:0>2}", .{ @as(u32, @intCast(dto.dt.time.seconds())) }),
-        .S => try writer.print("{}", .{ @as(u32, @intCast(@divFloor(dto.dt.time.ms(), 100))) }),
-        .SS => try writer.print("{:0>2}", .{ @as(u32, @intCast(@divFloor(dto.dt.time.ms(), 10))) }),
-        .SSS => try writer.print("{:0>3}", .{ @as(u32, @intCast(dto.dt.time.ms())) }),
+        .m => try writer.print("{d}", .{ @as(u32, @intCast(dto.dt.time.minutes())) }),
+        .mm => try writer.print("{d:0>2}", .{ @as(u32, @intCast(dto.dt.time.minutes())) }),
+        .s => try writer.print("{d}", .{ @as(u32, @intCast(dto.dt.time.seconds())) }),
+        .ss => try writer.print("{d:0>2}", .{ @as(u32, @intCast(dto.dt.time.seconds())) }),
+        .S => try writer.print("{d}", .{ @as(u32, @intCast(@divFloor(dto.dt.time.ms(), 100))) }),
+        .SS => try writer.print("{d:0>2}", .{ @as(u32, @intCast(@divFloor(dto.dt.time.ms(), 10))) }),
+        .SSS => try writer.print("{d:0>3}", .{ @as(u32, @intCast(dto.dt.time.ms())) }),
         .z, .zz, .Z, .ZZ => done: {
             if (token == .z or token == .zz) {
                 if (dto.timezone) |tz| {
@@ -146,20 +146,20 @@ pub fn format(dto: Date_Time.With_Offset, comptime fmt: []const u8, writer: anyt
 
             if (token == .zz or token == .ZZ) {
                 if (dto.utc_offset_ms < 0) {
-                    try writer.print("-{:0>4}", .{ minutes });
+                    try writer.print("-{d:0>4}", .{ minutes });
                 } else {
-                    try writer.print("+{:0>4}", .{ minutes });
+                    try writer.print("+{d:0>4}", .{ minutes });
                 }
             } else {
                 if (dto.utc_offset_ms < 0) {
-                    try writer.print("-{:0>2}:{:0>2}", .{ @divFloor(minutes, 60), @mod(minutes, 60) });
+                    try writer.print("-{d:0>2}:{d:0>2}", .{ @divFloor(minutes, 60), @mod(minutes, 60) });
                 } else {
-                    try writer.print("+{:0>2}:{:0>2}", .{ @divFloor(minutes, 60), @mod(minutes, 60) });
+                    try writer.print("+{d:0>2}:{d:0>2}", .{ @divFloor(minutes, 60), @mod(minutes, 60) });
                 }
             }
         },
-        .x => try writer.print("{}", .{ dto.timestamp_ms() }),
-        .X => try writer.print("{}", .{ dto.timestamp_s() }),
+        .x => try writer.print("{d}", .{ dto.timestamp_ms() }),
+        .X => try writer.print("{d}", .{ dto.timestamp_s() }),
     };
 }
 
@@ -180,266 +180,257 @@ const Parse_Info = struct {
     utc_offset_ms: ?i32 = null,
 };
 
-pub fn parse(comptime fmt: []const u8, stream: *std.io.FixedBufferStream([]const u8)) !Parse_Info {
-    var reader = stream.reader();
+const Parse_Error = error {
+    InvalidPattern,
+    EndOfStream,
+    ReadFailed,
+    WriteFailed,
+};
+
+pub fn parse(comptime pattern: []const u8, reader: *std.io.Reader) !Parse_Info {
     var parsed: Parse_Info = .{};
     @setEvalBranchQuota(100000);
 
-    comptime var iter = Token.iterator(fmt);
+    comptime var iter = Token.iterator(pattern);
     inline while (comptime iter.next()) |token| {
         switch (token) {
             .MM => {
                 var buf: [2]u8 = undefined;
-                if (2 == try reader.readAll(&buf)) {
-                    parsed.month = try Month.from_string(&buf, .{
-                        .trim = "",
-                        .allow_short = false,
-                        .allow_long = false,
-                    });
-                } else return error.InvalidFormat;
+                try reader.readSliceAll(&buf);
+                parsed.month = try Month.from_string(&buf, .{
+                    .trim = "",
+                    .allow_short = false,
+                    .allow_long = false,
+                });
             },
             .M, .Mo => {
-                const raw = try read_int(u4, stream);
-                if (raw < 1 or raw > 12) return error.InvalidFormat;
+                const raw = try read_int(u4, reader);
+                if (raw < 1 or raw > 12) return error.InvalidPattern;
                 parsed.month = Month.from_number(raw);
 
                 if (token == .Mo) {
-                    _ = try reader.readByte();
-                    _ = try reader.readByte();
+                    _ = try reader.takeByte();
+                    _ = try reader.takeByte();
                 }
             },
             .MMM, .MMMM => {
                 var buf: [3]u8 = undefined;
-                if (3 == try reader.readAll(&buf)) {
-                    const m = try Month.from_string(&buf, .{
-                        .trim = "",
-                        .allow_long = false,
-                        .allow_numeric = false,
-                    });
-                    parsed.month = m;
+                try reader.readSliceAll(&buf);
+                const m = try Month.from_string(&buf, .{
+                    .trim = "",
+                    .allow_long = false,
+                    .allow_numeric = false,
+                });
+                parsed.month = m;
 
-                    if (token == .MMMM) {
-                        const remaining = m.name()[3..];
-                        var buf2: [16]u8 = undefined;
-                        if (remaining.len == try reader.readAll(buf2[0..remaining.len])) {
-                            if (!std.ascii.eqlIgnoreCase(remaining, buf2[0..remaining.len])) {
-                                return error.InvalidFormat;
-                            }
-                        } else return error.InvalidFormat;
+                if (token == .MMMM) {
+                    const remaining = m.name()[3..];
+                    var buf2: [16]u8 = undefined;
+                    try reader.readSliceAll(buf2[0..remaining.len]);
+                    if (!std.ascii.eqlIgnoreCase(remaining, buf2[0..remaining.len])) {
+                        return error.InvalidPattern;
                     }
-                } else return error.InvalidFormat;
+                }
             },
 
             .Q, .Qo => {},
 
             .D, .Do => {
-                const raw = try read_int(u5, stream);
-                if (raw < 1 or raw > 31) return error.InvalidFormat;
+                const raw = try read_int(u5, reader);
+                if (raw < 1 or raw > 31) return error.InvalidPattern;
                 parsed.day = Day.from_number(raw);
 
                 if (token == .Do) {
-                    _ = try reader.readByte();
-                    _ = try reader.readByte();
+                    _ = try reader.takeByte();
+                    _ = try reader.takeByte();
                 }
             },
             .DD => {
                 var buf: [2]u8 = undefined;
-                if (2 == try reader.readAll(&buf)) {
-                    const num = try std.fmt.parseInt(u5, &buf, 10);
-                    if (num < 1 or num > 31) return error.InvalidFormat;
-                    parsed.day = Day.from_number(num);
-                } else return error.InvalidFormat;
+                try reader.readSliceAll(&buf);
+                const num = try std.fmt.parseInt(u5, &buf, 10);
+                if (num < 1 or num > 31) return error.InvalidPattern;
+                parsed.day = Day.from_number(num);
             },
 
             .DDD, .DDDo => {
-                const raw = try read_int(u9, stream);
-                if (raw < 1 or raw > 366) return error.InvalidFormat;
+                const raw = try read_int(u9, reader);
+                if (raw < 1 or raw > 366) return error.InvalidPattern;
                 parsed.ordinal_day = Ordinal_Day.from_number(raw);
 
                 if (token == .DDDo) {
-                    _ = try reader.readByte();
-                    _ = try reader.readByte();
+                    _ = try reader.takeByte();
+                    _ = try reader.takeByte();
                 }
             },
             .DDDD => {
                 var buf: [3]u8 = undefined;
-                if (3 == try reader.readAll(&buf)) {
-                    const num = try std.fmt.parseInt(u5, &buf, 10);
-                    if (num < 1 or num > 366) return error.InvalidFormat;
-                    parsed.ordinal_day = Ordinal_Day.from_number(num);
-                } else return error.InvalidFormat;
+                try reader.readSliceAll(&buf);
+                const num = try std.fmt.parseInt(u5, &buf, 10);
+                if (num < 1 or num > 366) return error.InvalidPattern;
+                parsed.ordinal_day = Ordinal_Day.from_number(num);
             },
 
             .d, .do, .e, .E, .Eo => {
-                var raw = try read_int(u3, stream);
+                var raw = try read_int(u3, reader);
                 if (token != .E and token != .Eo) raw += 1;
-                if (raw < 1 or raw > 7) return error.InvalidFormat;
+                if (raw < 1 or raw > 7) return error.InvalidPattern;
                 parsed.week_day = Week_Day.from_number(raw);
 
                 if (token == .do or token == .Eo) {
-                    _ = try reader.readByte();
-                    _ = try reader.readByte();
+                    _ = try reader.takeByte();
+                    _ = try reader.takeByte();
                 }
             },
             .dd, .ddd, .dddd => {
                 var buf: [2]u8 = undefined;
-                if (2 == try reader.readAll(&buf)) {
-                    const d = try Week_Day.from_string(&buf, .{
-                        .trim = "",
-                        .allow_long = false,
-                        .allow_numeric = false,
-                    });
-                    parsed.week_day = d;
+                try reader.readSliceAll(&buf);
+                const d = try Week_Day.from_string(&buf, .{
+                    .trim = "",
+                    .allow_long = false,
+                    .allow_numeric = false,
+                });
+                parsed.week_day = d;
 
-                    if (token == .ddd) {
-                        if (d.name()[2] != std.ascii.toLower(try reader.readByte())) {
-                            return error.InvalidFormat;
-                        }
-                    } else if (token == .dddd) {
-                        const remaining = d.name()[2..];
-                        var buf2: [16]u8 = undefined;
-                        if (remaining.len == try reader.readAll(buf2[0..remaining.len])) {
-                            if (!std.ascii.eqlIgnoreCase(remaining, buf2[0..remaining.len])) {
-                                return error.InvalidFormat;
-                            }
-                        } else return error.InvalidFormat;
+                if (token == .ddd) {
+                    if (d.name()[2] != std.ascii.toLower(try reader.takeByte())) {
+                        return error.InvalidPattern;
                     }
-                } else return error.InvalidFormat;
+                } else if (token == .dddd) {
+                    const remaining = d.name()[2..];
+                    var buf2: [16]u8 = undefined;
+                    try reader.readSliceAll(buf2[0..remaining.len]);
+                    if (!std.ascii.eqlIgnoreCase(remaining, buf2[0..remaining.len])) {
+                        return error.InvalidPattern;
+                    }
+                }
             },
 
             .w, .wo => {
-                const raw = try read_int(u6, stream);
-                if (raw < 1 or raw > 53) return error.InvalidFormat;
+                const raw = try read_int(u6, reader);
+                if (raw < 1 or raw > 53) return error.InvalidPattern;
                 parsed.ordinal_week = Ordinal_Week.from_number(raw);
 
                 if (token == .wo) {
-                    _ = try reader.readByte();
-                    _ = try reader.readByte();
+                    _ = try reader.takeByte();
+                    _ = try reader.takeByte();
                 }
             },
             .ww => {
                 var buf: [2]u8 = undefined;
-                if (2 == try reader.readAll(&buf)) {
-                    const num = try std.fmt.parseInt(u6, &buf, 10);
-                    if (num < 1 or num > 53) return error.InvalidFormat;
-                    parsed.ordinal_week = Ordinal_Week.from_number(num);
-                } else return error.InvalidFormat;
+                try reader.readSliceAll(&buf);
+                const num = try std.fmt.parseInt(u6, &buf, 10);
+                if (num < 1 or num > 53) return error.InvalidPattern;
+                parsed.ordinal_week = Ordinal_Week.from_number(num);
             },
 
             .y, .Y, .YYY, .YYYYYY => {
-                const raw = try read_int(i32, stream);
+                const raw = try read_int(i32, reader);
                 parsed.year = Year.from_number(raw);
             },
             .YY => {
                 var buf: [2]u8 = undefined;
-                if (2 == try reader.readAll(&buf)) {
-                    parsed.year = try Year.from_string(&buf, .{
-                        .trim = "",
-                        .allow_non_two_digit_year = false,
-                    });
-                } else return error.InvalidFormat;
+                try reader.readSliceAll(&buf);
+                parsed.year = try Year.from_string(&buf, .{
+                    .trim = "",
+                    .allow_non_two_digit_year = false,
+                });
             },
             .YYYY => {
                 var buf: [4]u8 = undefined;
-                if (4 == try reader.readAll(&buf)) {
-                    parsed.year = try Year.from_string(&buf, .{
-                        .trim = "",
-                        .allow_two_digit_year = false,
-                    });
-                } else return error.InvalidFormat;
+                try reader.readSliceAll(&buf);
+                parsed.year = try Year.from_string(&buf, .{
+                    .trim = "",
+                    .allow_two_digit_year = false,
+                });
             },
 
             .N, .NN => {
                 var buf: [2]u8 = undefined;
-                if (2 == try reader.readAll(&buf)) {
-                    parsed.negate_year = std.ascii.eqlIgnoreCase(&buf, "BC");
-                } else return error.InvalidFormat;
+                try reader.readSliceAll(&buf);
+                parsed.negate_year = std.ascii.eqlIgnoreCase(&buf, "BC");
             },
 
             .A, .a => {
                 var buf: [2]u8 = undefined;
-                if (2 == try reader.readAll(&buf)) {
-                    parsed.hours_is_pm = std.ascii.eqlIgnoreCase(&buf, "PM");
-                } else return error.InvalidFormat;
+                try reader.readSliceAll(&buf);
+                parsed.hours_is_pm = std.ascii.eqlIgnoreCase(&buf, "PM");
             },
 
             .H, .h, .k => {
-                const raw = try read_int(u5, stream);
-                if (raw > 24) return error.InvalidFormat;
+                const raw = try read_int(u5, reader);
+                if (raw > 24) return error.InvalidPattern;
                 parsed.hours = raw;
             },
             .HH, .hh, .kk => {
                 var buf: [2]u8 = undefined;
-                if (2 == try reader.readAll(&buf)) {
-                    const num = try std.fmt.parseInt(u5, &buf, 10);
-                    if (num > 24) return error.InvalidFormat;
-                    parsed.hours = num;
-                } else return error.InvalidFormat;
+                try reader.readSliceAll(&buf);
+                const num = try std.fmt.parseInt(u5, &buf, 10);
+                if (num > 24) return error.InvalidPattern;
+                parsed.hours = num;
             },
 
             .m => {
-                const raw = try read_int(u6, stream);
-                if (raw > 59) return error.InvalidFormat;
+                const raw = try read_int(u6, reader);
+                if (raw > 59) return error.InvalidPattern;
                 parsed.minutes = raw;
             },
             .mm => {
                 var buf: [2]u8 = undefined;
-                if (2 == try reader.readAll(&buf)) {
-                    const num = try std.fmt.parseInt(u6, &buf, 10);
-                    if (num > 59) return error.InvalidFormat;
-                    parsed.minutes = num;
-                } else return error.InvalidFormat;
+                try reader.readSliceAll(&buf);
+                const num = try std.fmt.parseInt(u6, &buf, 10);
+                if (num > 59) return error.InvalidPattern;
+                parsed.minutes = num;
             },
 
             .s => {
-                const raw = try read_int(u6, stream);
-                if (raw > 59) return error.InvalidFormat;
+                const raw = try read_int(u6, reader);
+                if (raw > 59) return error.InvalidPattern;
                 parsed.seconds = raw;
             },
             .ss => {
                 var buf: [2]u8 = undefined;
-                if (2 == try reader.readAll(&buf)) {
-                    const num = try std.fmt.parseInt(u6, &buf, 10);
-                    if (num > 59) return error.InvalidFormat;
-                    parsed.seconds = num;
-                } else return error.InvalidFormat;
+                try reader.readSliceAll(&buf);
+                const num = try std.fmt.parseInt(u6, &buf, 10);
+                if (num > 59) return error.InvalidPattern;
+                parsed.seconds = num;
             },
 
             .S => {
                 var buf: [1]u8 = undefined;
-                if (1 == try reader.readAll(&buf)) {
-                    const num = try std.fmt.parseInt(u10, &buf, 10);
-                    if (num > 9) return error.InvalidFormat;
-                    parsed.ms = num;
-                } else return error.InvalidFormat;
+                try reader.readSliceAll(&buf);
+                const num = try std.fmt.parseInt(u10, &buf, 10);
+                if (num > 9) return error.InvalidPattern;
+                parsed.ms = num;
             },
             .SS => {
                 var buf: [2]u8 = undefined;
-                if (2 == try reader.readAll(&buf)) {
-                    const num = try std.fmt.parseInt(u10, &buf, 10);
-                    if (num > 99) return error.InvalidFormat;
-                    parsed.ms = num;
-                } else return error.InvalidFormat;
+                try reader.readSliceAll(&buf);
+                const num = try std.fmt.parseInt(u10, &buf, 10);
+                if (num > 99) return error.InvalidPattern;
+                parsed.ms = num;
             },
             .SSS => {
                 var buf: [3]u8 = undefined;
-                if (3 == try reader.readAll(&buf)) {
-                    const num = try std.fmt.parseInt(u10, &buf, 10);
-                    if (num > 999) return error.InvalidFormat;
-                    parsed.ms = num;
-                } else return error.InvalidFormat;
+                try reader.readSliceAll(&buf);
+                const num = try std.fmt.parseInt(u10, &buf, 10);
+                if (num > 999) return error.InvalidPattern;
+                parsed.ms = num;
             },
 
             .Z, .ZZ => parsed.utc_offset_ms = try read_utc_offset(reader, token == .Z),
             .z, .zz => {
                 var buf: [5]u8 = undefined;
-                const designation: []const u8 = for (0..buf.len) |i| {
-                    if (0 == try reader.read(buf[i..i+1])) {
-                        break buf[0..i];
-                    }
+                const designation: []const u8 = for (0.., &buf) |i, *b| {
+                    const ch = reader.peekByte() catch |err| switch (err) {
+                        error.EndOfStream => break buf[0..i],
+                        else => return err,
+                    };
                     
-                    if (!std.ascii.isAlphabetic(buf[i])) {
-                        stream.pos -= 1;
+                    if (std.ascii.isAlphabetic(ch)) {
+                        b.* = ch;
+                        reader.toss(1);
+                    } else {
                         break buf[0..i];
                     }
                 } else &buf;
@@ -448,11 +439,11 @@ pub fn parse(comptime fmt: []const u8, stream: *std.io.FixedBufferStream([]const
                     parsed.utc_offset_ms = try read_utc_offset(reader, token == .z);
                 } else if (try tzdb.designation_offset_ms(designation)) |offset_ms| {
                     parsed.utc_offset_ms = offset_ms;
-                } else return error.InvalidFormat;
+                } else return error.InvalidPattern;
             },
 
             .x, .X => {
-                var raw = try read_int(i64, stream);
+                var raw = try read_int(i64, reader);
                 if (token == .X) {
                     raw = try std.math.mul(i64, raw, 1000);
                 }
@@ -461,12 +452,11 @@ pub fn parse(comptime fmt: []const u8, stream: *std.io.FixedBufferStream([]const
 
             .literal => |text| {
                 var buf: [text.len]u8 = undefined;
-                if (text.len == try reader.readAll(&buf)) {
-                    if (!std.ascii.eqlIgnoreCase(&buf, text)) {
-                        //std.log.err("Expected {s}; found {s}", .{ text, &buf });
-                        return error.InvalidFormat;
-                    }
-                } else return error.InvalidFormat;
+                try reader.readSliceAll(&buf);
+                if (!std.ascii.eqlIgnoreCase(&buf, text)) {
+                    //std.log.err("Expected {s}; found {s}", .{ text, &buf });
+                    return error.InvalidPattern;
+                }
             },
 
         }
@@ -532,8 +522,8 @@ const Token = union (enum) {
     X, // unix seconds
     literal: []const u8,
 
-    pub fn iterator(fmt: []const u8) Iterator {
-        return .{ .remaining = fmt };
+    pub fn iterator(pattern: []const u8) Iterator {
+        return .{ .remaining = pattern };
     }
 
     pub const Iterator = struct {
@@ -618,12 +608,6 @@ const Token = union (enum) {
                         break :blk .{ .literal = remaining[1..] };
                     }
                 },
-                ';' => blk: {
-                    // Since std.fmt treats ':' as a special character in format strings, we support using
-                    // semicolons in the format string, which will be treated as colons instead.
-                    literal_chars_used = 1;
-                    break :blk .{ .literal = ":" };
-                },
                 else => blk: {
                     literal_chars_used = std.mem.indexOfAny(u8, remaining, "MQDdeEwYNAaHhkmsSzZxX[") orelse remaining.len;
                     break :blk .{ .literal = remaining[0..literal_chars_used] };
@@ -643,8 +627,8 @@ const Token = union (enum) {
     };
 };
 
-fn write_ordinal(writer: anytype, num: u32) !void {
-    try writer.print("{}", .{num});
+fn write_ordinal(writer: *std.io.Writer, num: u32) std.io.Writer.Error!void {
+    try writer.print("{d}", .{ num });
     try writer.writeAll(switch(num % 100) {
         11, 12, 13 => "th",
         else => switch (num % 10) {
@@ -656,60 +640,61 @@ fn write_ordinal(writer: anytype, num: u32) !void {
     });
 }
 
-fn read_int(comptime T: type, stream: *std.io.FixedBufferStream([]const u8)) !T {
-    const reader = stream.reader();
-
+fn read_int(comptime T: type, reader: *std.io.Reader) !T {
     var sign: T = 1;
     var value: T = 0;
 
-    if (@typeInfo(T).int.signedness == .signed) switch(try reader.readByte()) {
-        '-' => sign = -1,
-        '+' => {},
-        else => stream.pos -= 1,
+    if (@typeInfo(T).int.signedness == .signed) switch(try reader.peekByte()) {
+        '-' => {
+            sign = -1;
+            reader.toss(1);
+        },
+        '+' => {
+            reader.toss(1);
+        },
+        else => {},
     };
 
     while (true) {
-        const c = reader.readByte() catch |err| switch (err) {
+        const c = reader.peekByte() catch |err| switch (err) {
             error.EndOfStream => break,
             else => return err,
         };
         switch (c) {
             '0'...'9' => {
+                reader.toss(1);
                 const digit = std.math.cast(T, c - '0') orelse return error.Overflow;
                 value = try std.math.add(T, try std.math.mul(T, value, 10), digit);
             },
-            else => {
-                stream.pos -= 1;
-                break;
-            },
+            else => break,
         }
     }
 
     return try std.math.mul(T, sign, value);
 }
 
-fn read_utc_offset(reader: anytype, colon: bool) !i32 {
-    const mult: i32 = switch (try reader.readByte()) {
+fn read_utc_offset(reader: *std.io.Reader, colon: bool) !i32 {
+    const mult: i32 = switch (try reader.takeByte()) {
         '+' => 1,
         '-' => -1,
-        else => return error.InvalidFormat,
+        else => return error.InvalidPattern,
     };
 
     var hours: [2]u8 = undefined;
-    hours[0] = try reader.readByte();
-    hours[1] = try reader.readByte();
+    hours[0] = try reader.takeByte();
+    hours[1] = try reader.takeByte();
 
-    if (colon and ':' != try reader.readByte()) return error.InvalidFormat;
+    if (colon and ':' != try reader.takeByte()) return error.InvalidPattern;
 
     var minutes: [2]u8 = undefined;
-    minutes[0] = try reader.readByte();
-    minutes[1] = try reader.readByte();
+    minutes[0] = try reader.takeByte();
+    minutes[1] = try reader.takeByte();
 
     const h: i32 = try std.fmt.parseInt(u5, &hours, 10);
     const m: i32 = try std.fmt.parseInt(u5, &minutes, 10);
 
-    if (h > 23) return error.InvalidFormat;
-    if (m > 59) return error.InvalidFormat;
+    if (h > 23) return error.InvalidPattern;
+    if (m > 59) return error.InvalidPattern;
 
     return (h * 60 + m) * 60 * 1000 * mult;
 }

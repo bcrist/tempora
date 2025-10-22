@@ -169,36 +169,39 @@ pub const With_Offset = struct {
         return self.timestamp_ms() - past.timestamp_ms();
     }
 
-    pub const iso8601 = "{" ++ fmt_iso8601 ++ "}";
-    pub const iso8601_local = "{" ++ fmt_iso8601_local ++ "}";
-    pub const rfc2822 = "{" ++ fmt_rfc2822 ++ "}";
-    pub const http = "{" ++ fmt_http ++ "}";
-    pub const sql_ms = "{" ++ fmt_sql_ms ++ "}";
-    pub const sql_ms_local = "{" ++ fmt_sql_ms_local ++ "}";
-    pub const sql = "{" ++ fmt_sql ++ "}";
-    pub const sql_local = "{" ++ fmt_sql_local ++ "}";
+    pub const iso8601 = "YYYY-MM-DDTHH:mm:ss.SSSZ";
+    pub const iso8601_local = "YYYY-MM-DDTHH:mm:ss.SSS";
+    pub const rfc2822 = "ddd, DD MMM YYYY HH:mm:ss ZZ";
+    pub const http = "ddd, DD MMM YYYY HH:mm:ss [GMT]"; // timezone must be GMT
+    pub const sql_ms = "YYYY-MM-DD HH:mm:ss.SSS z";
+    pub const sql_ms_local = "YYYY-MM-DD HH:mm:ss.SSS";
+    pub const sql = "YYYY-MM-DD HH:mm:ss z";
+    pub const sql_local = "YYYY-MM-DD HH:mm:ss";
 
-    pub const fmt_iso8601 = "YYYY-MM-DDTHH;mm;ss.SSSZ";
-    pub const fmt_iso8601_local = "YYYY-MM-DDTHH;mm;ss.SSS";
-    pub const fmt_rfc2822 = "ddd, DD MMM YYYY HH;mm;ss ZZ";
-    pub const fmt_http = "ddd, DD MMM YYYY HH;mm;ss [GMT]"; // timezone must be GMT
-    pub const fmt_sql_ms = "YYYY-MM-DD HH;mm;ss.SSS z";
-    pub const fmt_sql_ms_local = "YYYY-MM-DD HH;mm;ss.SSS";
-    pub const fmt_sql = "YYYY-MM-DD HH;mm;ss z";
-    pub const fmt_sql_local = "YYYY-MM-DD HH;mm;ss";
+    pub fn format(self: With_Offset, writer: *std.io.Writer) !void {
+        try formatting.format(self, iso8601, writer);
+    }
 
-    pub fn format(self: With_Offset, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-        _ = options;
-        try formatting.format(self, if (fmt.len == 0) fmt_iso8601 else fmt, writer);
+    pub fn fmt(self: With_Offset, comptime pattern: []const u8) Formatter(pattern) {
+        return .{ .date_time_with_offset = self };
+    }
+
+    pub fn Formatter(comptime pattern: []const u8) type {
+        return struct {
+            date_time_with_offset: With_Offset,
+            pub fn format(self: @This(), writer: *std.io.Writer) !void {
+                try formatting.format(self.date_time_with_offset, pattern, writer);
+            }
+        };
     }
     
-    pub fn from_string(comptime fmt: []const u8, str: []const u8) !With_Offset {
-        return from_string_tz(fmt, str, null);
+    pub fn from_string(comptime pattern: []const u8, str: []const u8) !With_Offset {
+        return from_string_tz(pattern, str, null);
     }
 
-    pub fn from_string_tz(comptime fmt: []const u8, str: []const u8, timezone: ?*const Timezone) !With_Offset {
-        var stream = std.io.fixedBufferStream(str);
-        const pi = formatting.parse(if (fmt.len == 0) fmt_iso8601 else fmt, &stream) catch return error.InvalidFormat;
+    pub fn from_string_tz(comptime pattern: []const u8, str: []const u8, timezone: ?*const Timezone) !With_Offset {
+        var reader = std.io.Reader.fixed(str);
+        const pi = formatting.parse(if (pattern.len == 0) iso8601 else pattern, &reader) catch return error.InvalidPattern;
 
         var dt: Date_Time = .{
             .date = .epoch,
@@ -221,7 +224,7 @@ pub const With_Offset = struct {
                 } else {
                     dt.date = Date.from_yd(y, .first);
                 }
-            } else return error.InvalidFormat;
+            } else return error.InvalidPattern;
 
             if (pi.hours) |raw_h| {
                 const h = @mod(if (pi.hours_is_pm) raw_h + 12 else raw_h, 24);
@@ -229,7 +232,7 @@ pub const With_Offset = struct {
                 const s = pi.seconds orelse 0;
                 const milli = pi.ms orelse 0;
                 dt.time = Time.from_hmsm(h, m, s, milli);
-            } else return error.InvalidFormat;
+            } else return error.InvalidPattern;
         }
 
         var dto: With_Offset = .{
@@ -255,7 +258,8 @@ pub const With_Offset = struct {
 };
 
 test "Date_Time" {
-    try tzdb.init_cache(std.testing.allocator);
+    // TODO diagnose leak when using std.testing.allocator for tz cache
+    try tzdb.init_cache(std.heap.smp_allocator);
     defer tzdb.deinit_cache();
 
     const tz = (try tzdb.timezone("America/Chicago")).?;
@@ -270,20 +274,17 @@ test "Date_Time" {
         .time = Time.from_hmsm(0, 30, 0, 0),
     }).with_offset(0);
 
-    try expectFmt("2024-02-01 12:34:56.789 +00:00", With_Offset.sql_ms, .{ dt1 });
-    try expectFmt("2024-02-01 12:34:56.789 GMT", With_Offset.sql_ms, .{ dt1.in_timezone(gmt) });
-    try expectFmt("2024-02-01 06:34:56.789 CST", With_Offset.sql_ms, .{ dt1.in_timezone(tz) });
+    try std.testing.expectFmt("2024-02-01 12:34:56.789 +00:00", "{f}", .{ dt1.fmt(With_Offset.sql_ms) });
+    try std.testing.expectFmt("2024-02-01 12:34:56.789 GMT", "{f}", .{ dt1.in_timezone(gmt).fmt(With_Offset.sql_ms) });
+    try std.testing.expectFmt("2024-02-01 06:34:56.789 CST", "{f}", .{ dt1.in_timezone(tz).fmt(With_Offset.sql_ms) });
 
-    try expectFmt("Mon, 24 Dec 1928 00:30:00 +0000", With_Offset.rfc2822, .{ dt2.in_timezone(gmt) });
-    try expectFmt("Mon, 24 Dec 1928 00:30:00 GMT", With_Offset.http, .{ dt2.in_timezone(gmt) });
-    try expectFmt("1928-12-24T00:30:00.000+00:00", With_Offset.iso8601, .{ dt2.in_timezone(gmt) });
+    try std.testing.expectFmt("Mon, 24 Dec 1928 00:30:00 +0000", "{f}", .{ dt2.in_timezone(gmt).fmt(With_Offset.rfc2822) });
+    try std.testing.expectFmt("Mon, 24 Dec 1928 00:30:00 GMT", "{f}", .{ dt2.in_timezone(gmt).fmt(With_Offset.http) });
+    try std.testing.expectFmt("1928-12-24T00:30:00.000+00:00", "{f}", .{ dt2.in_timezone(gmt).fmt(With_Offset.iso8601) });
 
-    try expectEqual(dt1, try With_Offset.from_string(With_Offset.fmt_sql_ms, "2024-02-01 12:34:56.789 +00:00"));
-    try expectEqual(dt1, (try With_Offset.from_string(With_Offset.fmt_sql_ms, "2024-02-01 06:34:56.789 CST")).in_timezone(null));
+    try std.testing.expectEqual(dt1, try With_Offset.from_string(With_Offset.sql_ms, "2024-02-01 12:34:56.789 +00:00"));
+    try std.testing.expectEqual(dt1, (try With_Offset.from_string(With_Offset.sql_ms, "2024-02-01 06:34:56.789 CST")).in_timezone(null));
 }
-
-const expectFmt = std.testing.expectFmt;
-const expectEqual = std.testing.expectEqual;
 
 const Date = @import("date.zig").Date;
 const Time = @import("time.zig").Time;

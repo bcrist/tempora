@@ -1,7 +1,8 @@
 .{
-    .name = "tempora",
-    .version = "0.1.4",
-    .minimum_zig_version = "0.14.0-dev.3217+5b9b5e45c",
+    .name = .tempora,
+    .fingerprint = 0xb3d860680d9e3c19,
+    .version = "0.2.0",
+    .minimum_zig_version = "0.15.1",
     .paths = .{
         "src",
         "build.zig",

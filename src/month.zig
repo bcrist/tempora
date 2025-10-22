@@ -40,13 +40,13 @@ pub const Month = enum (u4) {
         }
 
         if (options.allow_numeric) {
-            const numeric = std.fmt.parseInt(u4, trimmed, 10) catch return error.InvalidFormat;
+            const numeric = std.fmt.parseInt(u4, trimmed, 10) catch return error.InvalidPattern;
             if (numeric >= 1 and numeric <= 12) {
                 return @enumFromInt(numeric);
             }
         }
         
-        return error.InvalidFormat;
+        return error.InvalidPattern;
     }
 
     pub fn as_number(self: Month) i32 {
@@ -105,49 +105,47 @@ pub const Month = enum (u4) {
 };
 
 test "Month" {
-    try expectEqual(.january, try Month.from_string("Jan", .{}));
-    try expectError(error.InvalidFormat, Month.from_string("Jan", .{ .allow_short = false }));
-    try expectEqual(.february, try Month.from_string("february", .{}));
-    try expectEqual(.february, try Month.from_string("february", .{ .allow_short = false }));
-    try expectError(error.InvalidFormat, Month.from_string("febru", .{}));
-    try expectEqual(.may, try Month.from_string("may", .{}));
-    try expectEqual(.october, try Month.from_string("OCT", .{}));
-    try expectEqual(.november, try Month.from_string("NOVembER", .{}));
-    try expectEqual(.december, try Month.from_string(" 12 ", .{ .allow_short = false, .allow_long = false }));
-    try expectEqual(.september, try Month.from_string("___9", .{ .allow_long = false }));
-    try expectEqual(error.InvalidFormat, Month.from_string("___9", .{ .allow_numeric = false }));
-    try expectError(error.InvalidFormat, Month.from_string("00", .{}));
-    try expectError(error.InvalidFormat, Month.from_string("13", .{}));
+    try std.testing.expectEqual(.january, try Month.from_string("Jan", .{}));
+    try std.testing.expectError(error.InvalidPattern, Month.from_string("Jan", .{ .allow_short = false }));
+    try std.testing.expectEqual(.february, try Month.from_string("february", .{}));
+    try std.testing.expectEqual(.february, try Month.from_string("february", .{ .allow_short = false }));
+    try std.testing.expectError(error.InvalidPattern, Month.from_string("febru", .{}));
+    try std.testing.expectEqual(.may, try Month.from_string("may", .{}));
+    try std.testing.expectEqual(.october, try Month.from_string("OCT", .{}));
+    try std.testing.expectEqual(.november, try Month.from_string("NOVembER", .{}));
+    try std.testing.expectEqual(.december, try Month.from_string(" 12 ", .{ .allow_short = false, .allow_long = false }));
+    try std.testing.expectEqual(.september, try Month.from_string("___9", .{ .allow_long = false }));
+    try std.testing.expectEqual(error.InvalidPattern, Month.from_string("___9", .{ .allow_numeric = false }));
+    try std.testing.expectError(error.InvalidPattern, Month.from_string("00", .{}));
+    try std.testing.expectError(error.InvalidPattern, Month.from_string("13", .{}));
 
-    try expectEqual(31, Month.from_number(1).days_assume_non_leap_year());
-    try expectEqual(28, Month.from_number(2).days_assume_non_leap_year());
-    try expectEqual(31, Month.from_number(3).days_assume_non_leap_year());
-    try expectEqual(30, Month.from_number(4).days_assume_non_leap_year());
-    try expectEqual(31, Month.from_number(5).days_assume_non_leap_year());
-    try expectEqual(30, Month.from_number(6).days_assume_non_leap_year());
-    try expectEqual(31, Month.from_number(7).days_assume_non_leap_year());
-    try expectEqual(31, Month.from_number(8).days_assume_non_leap_year());
-    try expectEqual(30, Month.from_number(9).days_assume_non_leap_year());
-    try expectEqual(31, Month.from_number(10).days_assume_non_leap_year());
-    try expectEqual(30, Month.from_number(11).days_assume_non_leap_year());
-    try expectEqual(31, Month.from_number(12).days_assume_non_leap_year());
+    try std.testing.expectEqual(31, Month.from_number(1).days_assume_non_leap_year());
+    try std.testing.expectEqual(28, Month.from_number(2).days_assume_non_leap_year());
+    try std.testing.expectEqual(31, Month.from_number(3).days_assume_non_leap_year());
+    try std.testing.expectEqual(30, Month.from_number(4).days_assume_non_leap_year());
+    try std.testing.expectEqual(31, Month.from_number(5).days_assume_non_leap_year());
+    try std.testing.expectEqual(30, Month.from_number(6).days_assume_non_leap_year());
+    try std.testing.expectEqual(31, Month.from_number(7).days_assume_non_leap_year());
+    try std.testing.expectEqual(31, Month.from_number(8).days_assume_non_leap_year());
+    try std.testing.expectEqual(30, Month.from_number(9).days_assume_non_leap_year());
+    try std.testing.expectEqual(31, Month.from_number(10).days_assume_non_leap_year());
+    try std.testing.expectEqual(30, Month.from_number(11).days_assume_non_leap_year());
+    try std.testing.expectEqual(31, Month.from_number(12).days_assume_non_leap_year());
 
-    try expectEqual(31, Month.from_number(1).days(Year.from_number(2020)));
-    try expectEqual(29, Month.from_number(2).days(Year.from_number(2020)));
-    try expectEqual(31, Month.from_number(3).days(Year.from_number(2020)));
-    try expectEqual(30, Month.from_number(4).days(Year.from_number(2020)));
-    try expectEqual(31, Month.from_number(5).days(Year.from_number(2020)));
-    try expectEqual(30, Month.from_number(6).days(Year.from_number(2020)));
-    try expectEqual(31, Month.from_number(7).days(Year.from_number(2020)));
-    try expectEqual(31, Month.from_number(8).days(Year.from_number(2020)));
-    try expectEqual(30, Month.from_number(9).days(Year.from_number(2020)));
-    try expectEqual(31, Month.from_number(10).days(Year.from_number(2020)));
-    try expectEqual(30, Month.from_number(11).days(Year.from_number(2020)));
-    try expectEqual(31, Month.from_number(12).days(Year.from_number(2020)));
+    try std.testing.expectEqual(31, Month.from_number(1).days(Year.from_number(2020)));
+    try std.testing.expectEqual(29, Month.from_number(2).days(Year.from_number(2020)));
+    try std.testing.expectEqual(31, Month.from_number(3).days(Year.from_number(2020)));
+    try std.testing.expectEqual(30, Month.from_number(4).days(Year.from_number(2020)));
+    try std.testing.expectEqual(31, Month.from_number(5).days(Year.from_number(2020)));
+    try std.testing.expectEqual(30, Month.from_number(6).days(Year.from_number(2020)));
+    try std.testing.expectEqual(31, Month.from_number(7).days(Year.from_number(2020)));
+    try std.testing.expectEqual(31, Month.from_number(8).days(Year.from_number(2020)));
+    try std.testing.expectEqual(30, Month.from_number(9).days(Year.from_number(2020)));
+    try std.testing.expectEqual(31, Month.from_number(10).days(Year.from_number(2020)));
+    try std.testing.expectEqual(30, Month.from_number(11).days(Year.from_number(2020)));
+    try std.testing.expectEqual(31, Month.from_number(12).days(Year.from_number(2020)));
 }
 
-const expectError = std.testing.expectError;
-const expectEqual = std.testing.expectEqual;
 
 const Date = @import("date.zig").Date;
 const Year = @import("year.zig").Year;
