@@ -39,13 +39,28 @@ pub const Year = enum (i32) {
     }
 
     pub fn is_leap(self: Year) bool {
+        // based on isleap32_benjoffe from
+        // https://github.com/benjoffe/fast-date-benchmarks/blob/main/benchmarks/leap_tests.cpp
+
+        // 32-bit reciprocal of 100 (division-by-constant constant)
+        // Value: 42,949,673
+        const cen_mul: u32 = ((1 << 32) / 100) + 1;
+  
+        // Cutoff selected to isolate the `%100 == 0` remainder
+        // after domain biasing and 32-bit wrap.
+        // Value: 171,798,692
+        const cen_cutoff: u32 = cen_mul * 4;
+        
+        // Signed => unsigned domain shift. A multiple of 100 near 2^31
+        // so that `%100` residues remain aligned after bias.
+        // Value: 2,147,483,600
+        const cen_bias: u32 = cen_mul / 2 * 100;
+
         const y = self.as_number();
-        if ((y & 3) != 0) return false;
-        switch (@mod(y, 400)) {
-            100, 200, 300 => return false,
-            else => {},
-        }
-        return true;
+        const y_biased: u32 = @bitCast(y +% cen_bias);
+
+        const low: u32 = y_biased *% cen_mul;
+        return 0 == (y & @as(i32, if (low < cen_cutoff) 0xF else 0x3));
     }
 
     pub fn starting_date(self: Year) Date {
@@ -107,6 +122,32 @@ test "Year" {
     try expect(!Year.from_number(2021).is_leap());
     try expect(!Year.from_number(2022).is_leap());
     try expect(!Year.from_number(2023).is_leap());
+
+    for (0..10000) |i| {
+        const y: Year = .from_number(@intCast(i));
+        try expectEqual(is_leap_naive(y), y.is_leap());
+    }
+
+    for (0..10000) |i| {
+        const y: Year = .from_number(@intCast(std.math.maxInt(i32) - i));
+        try expectEqual(is_leap_naive(y), y.is_leap());
+    }
+
+    for (0..10000) |i| {
+        const i_signed: i32 = @intCast(i);
+        const y: Year = .from_number(@intCast(std.math.minInt(i32) + i_signed));
+        try expectEqual(is_leap_naive(y), y.is_leap());
+    }
+}
+
+fn is_leap_naive(year: Year) bool {
+    const y: i32 = year.as_number();
+    if ((y & 3) != 0) return false;
+    switch (@mod(y, 400)) {
+        100, 200, 300 => return false,
+        else => {},
+    }
+    return true;
 }
 
 const expect = std.testing.expect;
