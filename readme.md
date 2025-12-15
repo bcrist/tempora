@@ -20,7 +20,8 @@
 
 ## Comparison with Zeit
 [Zeit](https://github.com/rockorager/zeit) is another Zig date/time library which provides a similar feature set to Tempora, but there are very few exact equivalents between the tempora and zeit APIs.
-* `tempora.Date` is roughly equivalent to `zeit.Days`, but the latter is a simple alias for `i32` and thus is not type safe ergonomic for doing anything other than converting into a `zeit.Instant` or `zeit.Time`, and tempora also uses a different epoch date.
+* `tempora.Time` does not have an equivalent in Zeit
+* `tempora.Date` is roughly equivalent to `zeit.Days`, but the latter is a simple alias for `i32` and thus is not type safe or ergonomic for doing anything other than converting into a `zeit.Instant` or `zeit.Date`.  Note tempora also uses a different epoch date.
 * `tempora.Year`: Zeit just uses `i32`
 * `tempora.Year.Info` does not have an equivalent in Zeit
 * `tempora.Month` <=> `zeit.Month`
