@@ -4,6 +4,7 @@
 ## Features
 * Efficient storage (32b `Time`, 32b `Date`, 64b `Date_Time`)
 * Composition and decomposition (year, ordinal day/week, month, day, weekday, hour, minute, second, ms)
+    * Uses Ben Joffe's [fast calendar algorithm](https://www.benjoffe.com/fast-date-64)
 * Add/subtract days/hours/minutes/seconds/ms
 * Advance to the next weekday/day/ordinal day
 * Convert to/from unix timestamps
@@ -16,4 +17,3 @@
 * Localized month and weekday names are not supported; only English.
 * Non-Gregorian calendars are not supported.
 * Date/time values directly correspond to timestamps, so accurate durations that take leap seconds into account are not possible (but leap seconds are being abolished in 2035 anyway).
-* I am certain that there are more optimized algorithms for timestamp <--> calendar conversions (but performance should be fine for all but the most demanding use cases).
