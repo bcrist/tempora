@@ -1,4 +1,3 @@
-
 pub const Date = enum (i32) {
     epoch = 0,
     _,
