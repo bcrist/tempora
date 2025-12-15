@@ -5,192 +5,88 @@ pub const Date = enum (i32) {
 
     pub const epoch_year = 2000;
 
-    // In the gregorian calendar, there are 97 leap years per 400 years,
-    // so the average length of a year is 365 + 97/400 = 365.2425
-    const average_days_per_year_x400 = 365 * 400 + 97;
-
-    pub fn from_ymd(y: Year, m: Month, d: Day) Date {
-        return from_yd(y, Ordinal_Day.from_ymd(y, m, d));
+    pub fn from_ymd(d: YMD) Date {
+        var years: u32 = @intCast(d.year.as_number() + 14700 * 400);
+        var month_days_temp: u32 = 979 * d.month.as_unsigned();
+        if (d.month.as_number() <= 2) {
+            years -= 1;
+            month_days_temp += 8829;
+        } else {
+            month_days_temp -= 2919;
+        }
+        const month_days: u32 = month_days_temp / 32;
+        const centuries: u32 = years / 100;
+        const year_days: u33 = @as(u33, years * 365) + years / 4 - centuries + centuries / 4;
+        var days: i34 = year_days + month_days + d.day.as_unsigned();
+        days -= 14700 * days_per_era + epoch_days_since_0000_02_29;
+        return @enumFromInt(days);
     }
 
-    pub fn from_yd(y: Year, d: Ordinal_Day) Date {
-        const raw = @intFromEnum(y.starting_date()) + d.as_number() - 1;
+    pub fn from_yod(y: Year, od: Ordinal_Day) Date {
+        const raw = @intFromEnum(y.starting_date()) + od.as_number() - 1;
         return @enumFromInt(raw);
     }
 
+    pub fn from_yiod(yi: Year.Info, od: Ordinal_Day) Date {
+        const raw = @intFromEnum(yi.starting_date) + od.as_number() - 1;
+        return @enumFromInt(raw);
+    }
+
+    /// Returns the date corresponding to January 1 of the specified year
+    pub fn from_year(y: Year) Date {
+        const years: u32 = @intCast(y.as_number() + 14700 * 400 - 1);
+        const centuries: u32 = years / 100;
+        var days: i34 = @as(u33, years * 365) + years / 4 - centuries + centuries / 4 + 307;
+        days -= 14700 * days_per_era + epoch_days_since_0000_02_29;
+        return @enumFromInt(days);
+
+        // TODO verify that the above is faster than the old impl:
+        // const year_offset = @intFromEnum(self) - Date.epoch_year;
+        // var leap_years: i32 = 0;
+        // if (year_offset < 0) {
+        //     const century_offset: i32 = @divTrunc(year_offset, 100);
+        //     leap_years = ((year_offset + 3) >> 2) - century_offset + ((century_offset + 3) >> 2);
+        // } else if (year_offset > 0) {
+        //     // If 'year' is a leap year, the leap day doesn't happen until february, which is after
+        //     // the start of the year.  So we won't actually "pass" it until the next year.  To account
+        //     // for this we can just subtract 1 from the year offset when it's positive and add 1 to
+        //     // leap_years, since epoch_year is a leap year.
+        //     const modified_year_offset: i32 = year_offset - 1;
+        //     const century_offset: i32 = @divTrunc(modified_year_offset, 100);
+        //     leap_years = (modified_year_offset >> 2) - century_offset + (century_offset >> 2) + 1;
+        // }
+        // return @enumFromInt(year_offset * 365 + leap_years);
+    }
+
     pub fn year(self: Date) Year {
-        return Year.from_number(self.year_info().year);
+        return civil.days_to_year(@intFromEnum(self));
     }
 
     pub fn year_info(self: Date) Year.Info {
-        var yi: Year.Info = undefined;
-
-        const raw = @intFromEnum(self);
-
-        const four_hundreths: i64 = @as(i64, raw) * 400;
-
-        // Due to leap years this starts as only a guess; but it will be
-        // correct within +/- one year.
-        yi.year = @intCast(epoch_year + @divFloor(four_hundreths, average_days_per_year_x400));
-        yi.starting_date = Year.from_number(yi.year).starting_date();
-        const delta = raw - @intFromEnum(yi.starting_date);
-        if (delta < 0) {
-            yi.year -= 1;
-            yi.is_leap = Year.from_number(yi.year).is_leap();
-            yi.starting_date = yi.starting_date.plus_days(if (yi.is_leap) -366 else -365);
-        } else if (delta >= 365) {
-            if (Year.from_number(yi.year).is_leap()) {
-                if (delta >= 366) {
-                    yi.starting_date = yi.starting_date.plus_days(366);
-                    yi.year += 1;
-                    yi.is_leap = Year.from_number(yi.year).is_leap();
-                } else {
-                    yi.is_leap = true;
-                }
-            } else {
-                yi.starting_date = yi.starting_date.plus_days(365);
-                yi.year += 1;
-                yi.is_leap = Year.from_number(yi.year).is_leap();
-            }
-        } else {
-            yi.is_leap = Year.from_number(yi.year).is_leap();
-        }
-
-        return yi;
+        return self.year().info();
     }
 
     pub fn month(self: Date) Month {
-        return self.month_from_yi(self.year_info());
-    }
-
-    fn month_from_yi(self: Date, yi: Year.Info) Month {
-        var od = self.ordinal_day_from_yi(yi);
-
-        const noleap_od = Ordinal_Day.from_md_assume_non_leap_year;
-
-        if (od.is_before(comptime noleap_od(.march, .first))) {
-            if (od.is_before(comptime noleap_od(.february, .first))) {
-                return .january;
-            } else {
-                return .february;
-            }
-        } else {
-            if (yi.is_leap) {
-                if (od == comptime noleap_od(.march, .first)) {
-                    return .february;
-                } else {
-                    od = Ordinal_Day.from_number(od.as_number() - 1);
-                }
-            }
-
-            if (od.is_before(comptime noleap_od(.june, .first))) {
-                if (od.is_before(comptime noleap_od(.april, .first))) {
-                    return .march;
-                } else if (od.is_before(comptime noleap_od(.may, .first))) {
-                    return .april;
-                } else {
-                    return .may;
-                }
-            } else if (od.is_before(comptime noleap_od(.september, .first))) {
-                if (od.is_before(comptime noleap_od(.july, .first))) {
-                    return .june;
-                } else if (od.is_before(comptime noleap_od(.august, .first))) {
-                    return .july;
-                } else {
-                    return .august;
-                }
-            } else if (od.is_before(comptime noleap_od(.november, .first))) {
-                if (od.is_before(comptime noleap_od(.october, .first))) {
-                    return .september;
-                } else {
-                    return .october;
-                }
-            } else if (od.is_before(comptime noleap_od(.december, .first))) {
-                return .november;
-            } else {
-                return .december;
-            }
-        }
+        return self.ymd().month;
     }
 
     pub fn day(self: Date) Day {
-        return self.day_from_yi(self.year_info());
-    }
-
-    fn day_from_yi(self: Date, yi: Year.Info) Day {
-        var od = self.ordinal_day_from_yi(yi);
-
-        const noleap_od = Ordinal_Day.from_md_assume_non_leap_year;
-
-        const offset: i32 = blk: {
-            if (od.is_before(comptime noleap_od(.march, .first))) {
-                if (od.is_before(comptime noleap_od(.february, .first))) {
-                    break :blk 0;
-                } else {
-                    break :blk comptime -noleap_od(.february, .first).as_number() + 1;
-                }
-            } else {
-                if (yi.is_leap) {
-                    if (od == comptime noleap_od(.march, .first)) {
-                        break :blk comptime -noleap_od(.february, .first).as_number() + 1;
-                    } else {
-                        od = Ordinal_Day.from_number(od.as_number() - 1);
-                    }
-                }
-
-                if (od.is_before(comptime noleap_od(.june, .first))) {
-                    if (od.is_before(comptime noleap_od(.april, .first))) {
-                        break :blk comptime -noleap_od(.march, .first).as_number() + 1;
-                    } else if (od.is_before(comptime noleap_od(.may, .first))) {
-                        break :blk comptime -noleap_od(.april, .first).as_number() + 1;
-                    } else {
-                        break :blk comptime -noleap_od(.may, .first).as_number() + 1;
-                    }
-                } else if (od.is_before(comptime noleap_od(.september, .first))) {
-                    if (od.is_before(comptime noleap_od(.july, .first))) {
-                        break :blk comptime -noleap_od(.june, .first).as_number() + 1;
-                    } else if (od.is_before(comptime noleap_od(.august, .first))) {
-                        break :blk comptime -noleap_od(.july, .first).as_number() + 1;
-                    } else {
-                        break :blk comptime -noleap_od(.august, .first).as_number() + 1;
-                    }
-                } else if (od.is_before(comptime noleap_od(.november, .first))) {
-                    if (od.is_before(comptime noleap_od(.october, .first))) {
-                        break :blk comptime -noleap_od(.september, .first).as_number() + 1;
-                    } else {
-                        break :blk comptime -noleap_od(.october, .first).as_number() + 1;
-                    }
-                } else if (od.is_before(comptime noleap_od(.december, .first))) {
-                    break :blk comptime -noleap_od(.november, .first).as_number() + 1;
-                } else {
-                    break :blk comptime -noleap_od(.december, .first).as_number() + 1;
-                }
-            }
-        };
-
-        return Day.from_number(od.as_number() + offset);
+        return self.ymd().day;
     }
 
     pub fn ordinal_day(self: Date) Ordinal_Day {
-        return self.ordinal_day_from_yi(self.year_info());
-    }
-
-    fn ordinal_day_from_yi(self: Date, yi: Year.Info) Ordinal_Day {
-        return Ordinal_Day.from_number(@intFromEnum(self) - @intFromEnum(yi.starting_date) + 1);
+        return .from_number(@intFromEnum(self) - @intFromEnum(self.year().starting_date()) + 1);
     }
 
     pub fn ordinal_week(self: Date) Ordinal_Week {
-        return self.ordinal_week_from_yi(self.year_info());
-    }
-
-    fn ordinal_week_from_yi(self: Date, yi: Year.Info) Ordinal_Week {
-        return Ordinal_Week.from_od(self.ordinal_day_from_yi(yi));
+        return .from_od(self.ordinal_day());
     }
 
     pub fn week_day(self: Date) Week_Day {
         // epoch (2000-01-01) was a saturday (7).
 
         var raw: i32 = @intFromEnum(self);
+        if (raw < 0) raw += 7; // prevent underflow for std.math.minInt(i32)
         raw = @mod(raw - 1, 7) + 1;
 
         return Week_Day.from_number(raw);
@@ -198,19 +94,47 @@ pub const Date = enum (i32) {
 
     pub const Info = Date_Info;
     pub fn info(self: Date) Info {
-        var di: Date_Info = undefined;
-        di.raw = @intFromEnum(self);
-        const yi = self.year_info();
-        di.start_of_year = yi.starting_date;
-        di.year = Year.from_number(yi.year);
-        di.is_leap_year = yi.is_leap;
-        di.month = self.month_from_yi(yi);
-        di.day = self.day_from_yi(yi);
-        di.week_day = self.week_day();
-        di.ordinal_day = self.ordinal_day_from_yi(yi);
-        di.start_of_month = @enumFromInt(di.raw - di.day.as_number() + 1);
-        di.start_of_week = @enumFromInt(di.raw - di.week_day.as_number() + 1);
-        return di;
+        const raw = @intFromEnum(self);
+        const weekday = self.week_day();
+        const c = self.ymd();
+        const start_of_year = c.year.starting_date();
+        return .{
+            .raw = raw,
+            .year = c.year,
+            .month = c.month,
+            .day = c.day,
+            .start_of_year = start_of_year,
+            .is_leap_year = c.year.is_leap(),
+            .week_day = weekday,
+            .ordinal_day = .from_number(@intFromEnum(self) - @intFromEnum(start_of_year) + 1),
+            .start_of_month = @enumFromInt(raw - c.day.as_number() + 1),
+            .start_of_week = @enumFromInt(raw - weekday.as_number() + 1),
+        };
+    }
+
+    pub const YMD = struct {
+        year: Year,
+        month: Month,
+        day: Day,
+
+        pub fn from_numbers(y: i32, m: i32, d: i32) YMD {
+            return .{
+                .year = .from_number(y),
+                .month = .from_number(m),
+                .day = .from_number(d),
+            };
+        }
+
+        pub fn from_date(d: Date) YMD {
+            return civil.days_to_ymd(@intFromEnum(d));
+        }
+
+        pub fn date(self: YMD) Date {
+            return .from_ymd(self);
+        }
+    };
+    pub fn ymd(self: Date) YMD {
+        return .from_date(self);
     }
 
     pub fn is_before(self: Date, other: Date) bool {
@@ -253,7 +177,7 @@ pub const Date = enum (i32) {
                 },
                 else => Month.from_number(di.month.as_number() + 1),
             };
-            return Date.from_ymd(y, m, d);
+            return Date.from_ymd(.{ .year = y, .month = m, .day = d });
         }
     }
 
@@ -261,13 +185,13 @@ pub const Date = enum (i32) {
         const di = self.info();
 
         const current = di.ordinal_day.as_number();
-        const target = Ordinal_Day.from_ymd(di.year, m, d).as_number();
+        const target = Ordinal_Day.from_ymd(.{ .year = di.year, .month = m, .day = d }).as_number();
 
         if (current < target) {
             return self.plus_days(target - current);
         } else {
             const y = Year.from_number(di.year.as_number() + 1);
-            return Date.from_ymd(y, m, d);
+            return Date.from_ymd(.{ .year = y, .month = m, .day = d });
         }
     }
 
@@ -313,22 +237,24 @@ pub const Date = enum (i32) {
         if (pi.year) |pi_y| {
             const y = if (pi.negate_year) Year.from_number(-pi_y.as_number()) else pi_y;
 
-            if (pi.ordinal_day) |od| return from_yd(y, od);
+            if (pi.ordinal_day) |od| return .from_yod(y, od);
             if (pi.ordinal_week) |ow| {
-                const d = from_yd(y, ow.starting_day());
+                const d: Date = .from_yod(y, ow.starting_day());
                 if (pi.week_day) |wd| {
                     return d.advance_to_week_day(wd);
                 }
                 return d;
             }
             if (pi.month) |m| {
-                if (pi.day) |d| return from_ymd(y, m, d);
+                if (pi.day) |d| return from_ymd(.{ .year = y, .month = m, .day = d });
             }
-            return from_yd(y, .first);
+            return .from_yod(y, .first);
         }
         
         return error.InvalidPattern;
     }
+
+    const civil = if (@sizeOf(usize) < 8) civil32 else civil64;
 };
 pub const Date_Info = struct {
     raw: i32,
@@ -349,15 +275,161 @@ pub const Date_Info = struct {
             .is_leap = self.is_leap_year,
         };
     }
+
+    pub fn ymd(self: Date_Info) Date.YMD {
+        return .{
+            .year = self.year,
+            .month = self.month,
+            .day = self.day,
+        };
+    }
+
+    pub fn date(self: Date_Info) Date {
+        return @enumFromInt(self.raw);
+    }
+};
+
+const days_per_era = 400 * 365 + 97;
+const epoch_days_since_0000_02_29 = 730426;
+
+const civil64 = struct {
+    // Date conversion for 64-bit targets
+    // based on https://github.com/benjoffe/fast-date-benchmarks/blob/main/algorithms/benjoffe_fast64.hpp
+    // Modified for 2000-01-01 epoch instead of 1970-01-01
+
+    const eras = 14705;
+    const d_shift: i64 = eras * days_per_era - epoch_days_since_0000_02_29;
+    const y_shift: i64 = 400 * eras - 1;
+
+    const scale = switch (builtin.cpu.arch) {
+        .aarch64, .aarch64_be => 1,
+        else => 32,
+    };
+
+    const shift_0: u32 = 30556 * scale;
+    const shift_1: u32 = 5980 * scale;
+
+    const c1: u128 = 505054698555331; // floor(2^64*4/146097)
+    const c2: u128 = 50504432782230121; // ceil(2^64*4/1461)
+    const c3: u128 = 8619973866219416 * 32 / scale; // floor(2^64/2140);
+    const c4: u128 = 24451 * scale;
+
+    pub fn days_to_year(days: i32) Year {
+        // 1. Adjust for 100/400 leap year rule
+        const reverse_days: u64 = @intCast(d_shift - days);
+        const centuries: u64 = @intCast((reverse_days * c1) >> 64); // divide by 36524.25
+        const reverse_julian: u64 = reverse_days - centuries / 4 + centuries;
+
+        // 2. Determine year and year-part
+        const reverse_years_fixedpoint: u128 = reverse_julian * c2; // divide by 365.25
+        const reverse_years: u32 = @intCast(reverse_years_fixedpoint >> 64);
+        const years: i32 = @intCast(y_shift - reverse_years);
+        const low: u64 = @truncate(reverse_years_fixedpoint);
+        const year_part: u32 = @intCast((c4 * low) >> 64);
+
+        // Overflow year when Jan or Feb:
+        return .from_number(if (year_part < 3952 * scale) years + 1 else years);
+    }
+
+    pub fn days_to_ymd(days: i32) Date.YMD {
+        // 1. Adjust for 100/400 leap year rule
+        const reverse_days: u64 = @intCast(d_shift - days);
+        const centuries: u64 = @intCast((reverse_days * c1) >> 64); // divide by 36524.25
+        const reverse_julian: u64 = reverse_days - centuries / 4 + centuries;
+
+        // 2. Determine year and year-part
+        const reverse_years_fixedpoint: u128 = reverse_julian * c2; // divide by 365.25
+        const reverse_years: u32 = @intCast(reverse_years_fixedpoint >> 64);
+        const years: i32 = @intCast(y_shift - reverse_years);
+        const low: u64 = @truncate(reverse_years_fixedpoint);
+        const year_part: u32 = @intCast((c4 * low) >> 64);
+
+        var bump: bool = undefined;
+        const shift: u32 = if (scale == 1) shift_0 else shift: {
+            bump = year_part < 3952 * scale;
+            break :shift if (bump) shift_1 else shift_0;
+        };
+
+        // 3. Year-modulo-bitshift for leap years, also revert to forward direction.
+        const mod: u32 = @intCast(@mod(years, 4));
+        const n: u32 = mod * (16 * scale) + shift - year_part;
+        const raw_month: u32 = n / (2048 * scale);
+        const raw_day: i32 = @intCast((c3 * (n % (2048 * scale))) >> 64);
+
+        return .{
+            .year = .from_number(if (bump) years + 1 else years),
+            .month = .from_number(@intCast(if (scale == 1) month: {
+                bump = raw_month > 12;
+                break :month if (bump) raw_month - 12 else raw_month;
+            } else raw_month)),
+            .day = .from_number (raw_day + 1),
+        };
+    }
+};
+
+const civil32 = struct {
+    // Date conversion for 32-bit targets
+    // based on https://github.com/benjoffe/fast-date-benchmarks/blobmain/algorithms/benjoffe_article_2.hpp
+    // Modified for 2000-01-01 epoch instead of 1970-01-01
+
+    const k: u32 = (719162 + 306 - 3845 - days_per_era * 4) * 4 + 3;
+    const l: i32 = 14695 * 400;
+
+    pub fn days_to_year(days: i32) Year {
+        const d0_33: u33 = @bitCast(@as(i33, days) + 0x8000_0000);
+        const d0: u32 = @truncate(d0_33);
+        const bucket: u32 = d0 >> 20;
+        const era_days: u32 = d0 - (7 * days_per_era) * bucket + 10957;
+        const qds: u32 = era_days * 4 + k;
+        const cen: u32 = qds / days_per_era;
+        const jul: u32 = qds - (cen & ~@as(u32, 3)) + cen * 4;
+        const yrs: u32 = jul / 1461;
+        const rem: u32 = jul % 1461 / 4;
+
+        var year: i32 = @intCast(yrs + bucket * (7 * 400));
+        if (rem >= 306) year += 1;
+        year -= l;
+
+        return .from_number(year);
+    }
+
+    pub fn days_to_ymd(days: i32) Date.YMD {
+        const d0_33: u33 = @bitCast(@as(i33, days) + 0x8000_0000);
+        const d0: u32 = @truncate(d0_33);
+        const bucket: u32 = d0 >> 20;
+        const era_days: u32 = d0 - (7 * days_per_era) * bucket + 10957;
+        const qds: u32 = era_days * 4 + k;
+        const cen: u32 = qds / days_per_era;
+        const jul: u32 = qds - (cen & ~@as(u32, 3)) + cen * 4;
+        const yrs: u32 = jul / 1461;
+        const rem: u32 = jul % 1461 / 4;
+
+        // Neri-Schneider technique for Day & Month:
+        const n: u32 = rem * 2141 + 197913;
+        const m: u32 = n / 65536;
+        const d: u32 = n % 65536 / 2141;
+
+        const bump: u1 = @intFromBool(rem >= 306);
+        const day: u32 = d + 1;
+        const month: u32 = if (bump != 0) m - 12 else m;
+        var year: i32 = @intCast(yrs + bucket * (7 * 400) + bump);
+        year -= l;
+
+        return .{
+            .year = .from_number(year),
+            .month = .from_number(@intCast(month)),
+            .day = .from_number(@intCast(day)),
+        };
+    }
 };
 
 test "Date" {
-    const date1 = Date.from_ymd(Year.from_number(2024), .february, .first);
-    const date2 = Date.from_ymd(Year.from_number(1928), .december, Day.from_number(24));
-    const date3 = Date.from_ymd(Year.from_number(0), .december, Day.from_number(24));
-    const date4 = Date.from_ymd(Year.from_number(12), .december, Day.from_number(24));
-    const date5 = Date.from_ymd(Year.from_number(-123), .december, Day.from_number(24));
-    const date6 = Date.from_ymd(Year.from_number(1970), .january, .first);
+    const date1 = Date.from_ymd(.from_numbers(2024, 2, 1));
+    const date2 = Date.from_ymd(.from_numbers(1928, 12, 24));
+    const date3 = Date.from_ymd(.from_numbers(0, 12, 24));
+    const date4 = Date.from_ymd(.from_numbers(12, 12, 24));
+    const date5 = Date.from_ymd(.from_numbers(-123, 12, 24));
+    const date6 = Date.from_ymd(.from_numbers(1970, 1, 1));
 
     try std.testing.expectFmt("2024-02-01", "{f}", .{ date1.fmt("YYYY-MM-DD") });
     try std.testing.expectFmt("2024-02-01", "{f}", .{ date1 });
@@ -378,9 +450,9 @@ test "Date" {
 
     try std.testing.expectFmt("2000", "{f}", .{ @as(Date, @enumFromInt(0)).fmt("Y") });
     try std.testing.expectFmt("2000", "{f}", .{ Year.from_number(2000).starting_date().fmt("Y") });
-    try std.testing.expectFmt("2000", "{f}", .{ Date.from_yd(Year.from_number(2000), .first).fmt("Y") });
-    try std.testing.expectFmt("2020", "{f}", .{ Date.from_yd(Year.from_number(2020), .first).fmt("Y") });
-    try std.testing.expectFmt("1999", "{f}", .{ Date.from_yd(Year.from_number(1999), .first).fmt("Y") });
+    try std.testing.expectFmt("2000", "{f}", .{ Date.from_yod(Year.from_number(2000), .first).fmt("Y") });
+    try std.testing.expectFmt("2020", "{f}", .{ Date.from_yod(Year.from_number(2020), .first).fmt("Y") });
+    try std.testing.expectFmt("1999", "{f}", .{ Date.from_yod(Year.from_number(1999), .first).fmt("Y") });
 
     try std.testing.expectEqual(date1, try Date.from_string("YYYY-MM-DD", "2024-02-01"));
     try std.testing.expectEqual(date1, try Date.from_string("Y DDDo", "2024 32nd"));
@@ -391,7 +463,7 @@ test "Date" {
     try std.testing.expectEqual(date6, try Date.from_string("X", "0"));
     try std.testing.expectError(error.InvalidPattern, Date.from_string("MM", "12"));
 
-    var d = Date.from_ymd(Year.from_number(2000), .january, .first);
+    var d = Date.from_ymd(.{ .year = .from_number(2000), .month = .january, .day = .first });
     try std.testing.expectEqual(.first, d.ordinal_day());
     try std.testing.expectEqual(d, (try Date.from_string("YYYY-MM-DD", "1999-12-31")).plus_days(1));
     try std.testing.expect(!d.is_after(d));
@@ -422,6 +494,215 @@ test "Date" {
     try std.testing.expectEqual(d, try Date.from_string("YYYY-MM-DD", "2002-09-18"));
 }
 
+test "gregorian civil date conversion" {
+    try check_civil_conversion(2000, 1, 1, .epoch);
+
+    try check_civil_conversion(0, 1, 1, @enumFromInt(-730_485));
+    try check_civil_conversion(0, 1, 2, @enumFromInt(-730_484));
+    try check_civil_conversion(175, 1, 22, @enumFromInt(-666_546));
+    try check_civil_conversion(238, 5, 4, @enumFromInt(-643_434));
+    try check_civil_conversion(477, 10, 30, @enumFromInt(-555_961));
+    try check_civil_conversion(526, 3, 5, @enumFromInt(-538_304));
+    try check_civil_conversion(527, 4, 28, @enumFromInt(-537_885));
+    try check_civil_conversion(533, 5, 8, @enumFromInt(-535_683));
+    try check_civil_conversion(609, 12, 22, @enumFromInt(-507_697));
+    try check_civil_conversion(637, 9, 17, @enumFromInt(-497_566));
+    try check_civil_conversion(734, 1, 25, @enumFromInt(-462_373));
+    try check_civil_conversion(781, 9, 4, @enumFromInt(-444_984));
+    try check_civil_conversion(785, 2, 27, @enumFromInt(-443_712));
+    try check_civil_conversion(785, 2, 28, @enumFromInt(-443_711));
+    try check_civil_conversion(785, 3, 1, @enumFromInt(-443_710));
+    try check_civil_conversion(785, 3, 2, @enumFromInt(-443_709));
+    try check_civil_conversion(814, 6, 12, @enumFromInt(-433_015));
+    try check_civil_conversion(867, 6, 10, @enumFromInt(-413_659));
+    try check_civil_conversion(884, 5, 8, @enumFromInt(-407_482));
+    try check_civil_conversion(904, 12, 8, @enumFromInt(-399_964));
+    try check_civil_conversion(977, 1, 17, @enumFromInt(-373_626));
+    try check_civil_conversion(1004, 3, 15, @enumFromInt(-363_708));
+    try check_civil_conversion(1006, 10, 24, @enumFromInt(-362_755));
+    try check_civil_conversion(1075, 5, 19, @enumFromInt(-337_711));
+    try check_civil_conversion(1080, 7, 3, @enumFromInt(-335_839));
+    try check_civil_conversion(1134, 10, 3, @enumFromInt(-316_025));
+    try check_civil_conversion(1143, 4, 14, @enumFromInt(-312_910));
+    try check_civil_conversion(1211, 4, 10, @enumFromInt(-288_077));
+    try check_civil_conversion(1303, 12, 11, @enumFromInt(-254_230));
+    try check_civil_conversion(1308, 2, 18, @enumFromInt(-252_700));
+    try check_civil_conversion(1308, 2, 27, @enumFromInt(-252_691));
+    try check_civil_conversion(1308, 2, 28, @enumFromInt(-252_690));
+    try check_civil_conversion(1308, 2, 29, @enumFromInt(-252_689));
+    try check_civil_conversion(1308, 3, 1, @enumFromInt(-252_688));
+    try check_civil_conversion(1325, 2, 18, @enumFromInt(-246_490));
+    try check_civil_conversion(1325, 2, 27, @enumFromInt(-246_481));
+    try check_civil_conversion(1325, 2, 28, @enumFromInt(-246_480));
+    try check_civil_conversion(1325, 3, 1, @enumFromInt(-246_479));
+    try check_civil_conversion(1333, 1, 9, @enumFromInt(-243_608));
+    try check_civil_conversion(1346, 1, 17, @enumFromInt(-238_852));
+    try check_civil_conversion(1413, 4, 26, @enumFromInt(-214_282));
+    try check_civil_conversion(1452, 9, 23, @enumFromInt(-199_887));
+    try check_civil_conversion(1500, 2, 28, @enumFromInt(-182_563));
+    try check_civil_conversion(1500, 3, 1, @enumFromInt(-182_562));
+    try check_civil_conversion(1500, 3, 2, @enumFromInt(-182_561));
+    try check_civil_conversion(1529, 9, 3, @enumFromInt(-171_784));
+    try check_civil_conversion(1566, 7, 6, @enumFromInt(-158_329));
+    try check_civil_conversion(1578, 6, 4, @enumFromInt(-153_978));
+    try check_civil_conversion(1600, 2, 27, @enumFromInt(-146_040));
+    try check_civil_conversion(1600, 2, 28, @enumFromInt(-146_039));
+    try check_civil_conversion(1600, 2, 29, @enumFromInt(-146_038));
+    try check_civil_conversion(1600, 3, 1, @enumFromInt(-146_037));
+    try check_civil_conversion(1600, 9, 10, @enumFromInt(-145_844));
+    try check_civil_conversion(1608, 1, 9, @enumFromInt(-143_167));
+    try check_civil_conversion(1622, 2, 22, @enumFromInt(-138_009));
+    try check_civil_conversion(1630, 6, 11, @enumFromInt(-134_978));
+    try check_civil_conversion(1739, 6, 15, @enumFromInt(-95_163));
+    try check_civil_conversion(1777, 12, 22, @enumFromInt(-81_093));
+    try check_civil_conversion(1788, 9, 15, @enumFromInt(-77_173));
+    try check_civil_conversion(1804, 7, 20, @enumFromInt(-71_387));
+    try check_civil_conversion(1814, 6, 26, @enumFromInt(-67_759));
+    try check_civil_conversion(1859, 11, 25, @enumFromInt(-51_171));
+    try check_civil_conversion(1896, 2, 2, @enumFromInt(-37_953));
+    try check_civil_conversion(1900, 7, 25, @enumFromInt(-36_319));
+    try check_civil_conversion(1910, 8, 4, @enumFromInt(-32_657));
+    try check_civil_conversion(1910, 9, 18, @enumFromInt(-32_612));
+    try check_civil_conversion(1914, 7, 24, @enumFromInt(-31_207));
+    try check_civil_conversion(1916, 2, 20, @enumFromInt(-30_631));
+    try check_civil_conversion(1917, 1, 24, @enumFromInt(-30_292));
+    try check_civil_conversion(1918, 6, 23, @enumFromInt(-29_777));
+    try check_civil_conversion(1935, 12, 30, @enumFromInt(-23_378));
+    try check_civil_conversion(1936, 2, 13, @enumFromInt(-23_333));
+    try check_civil_conversion(1939, 10, 31, @enumFromInt(-21_977));
+    try check_civil_conversion(1941, 7, 3, @enumFromInt(-21_366));
+    try check_civil_conversion(1941, 11, 1, @enumFromInt(-21_245));
+    try check_civil_conversion(1942, 2, 2, @enumFromInt(-21_152));
+    try check_civil_conversion(1945, 6, 22, @enumFromInt(-19_916));
+    try check_civil_conversion(1949, 5, 22, @enumFromInt(-18_486));
+    try check_civil_conversion(1954, 12, 29, @enumFromInt(-16_439));
+    try check_civil_conversion(1958, 11, 8, @enumFromInt(-15_029));
+    try check_civil_conversion(1960, 12, 13, @enumFromInt(-14_263));
+    try check_civil_conversion(1963, 9, 9, @enumFromInt(-13_263));
+    try check_civil_conversion(1963, 10, 30, @enumFromInt(-13_212));
+    try check_civil_conversion(1964, 1, 26, @enumFromInt(-13_124));
+    try check_civil_conversion(1968, 1, 24, @enumFromInt(-11_665));
+    try check_civil_conversion(1968, 6, 28, @enumFromInt(-11_509));
+    try check_civil_conversion(1968, 10, 30, @enumFromInt(-11_385));
+    try check_civil_conversion(1970, 12, 6, @enumFromInt(-10_618));
+    try check_civil_conversion(1977, 1, 14, @enumFromInt(-8_387));
+    try check_civil_conversion(1977, 3, 1, @enumFromInt(-8_341));
+    try check_civil_conversion(1979, 9, 14, @enumFromInt(-7_414));
+    try check_civil_conversion(1980, 10, 25, @enumFromInt(-7_007));
+    try check_civil_conversion(1992, 8, 4, @enumFromInt(-2_706));
+    try check_civil_conversion(1999, 10, 6, @enumFromInt(-87));
+    try check_civil_conversion(1999, 10, 26, @enumFromInt(-67));
+    try check_civil_conversion(1999, 12, 31, @enumFromInt(-1));
+    try check_civil_conversion(2000, 1, 2, @enumFromInt(1));
+    try check_civil_conversion(2003, 6, 28, @enumFromInt(1_274));
+    try check_civil_conversion(2005, 12, 26, @enumFromInt(2_186));
+    try check_civil_conversion(2018, 5, 4, @enumFromInt(6_698));
+    try check_civil_conversion(2018, 7, 17, @enumFromInt(6_772));
+    try check_civil_conversion(2022, 12, 14, @enumFromInt(8_383));
+    try check_civil_conversion(2022, 12, 26, @enumFromInt(8_395));
+    try check_civil_conversion(2023, 7, 2, @enumFromInt(8_583));
+    try check_civil_conversion(2027, 3, 1, @enumFromInt(9_921));
+    try check_civil_conversion(2028, 5, 4, @enumFromInt(10_351));
+    try check_civil_conversion(2029, 10, 15, @enumFromInt(10_880));
+    try check_civil_conversion(2031, 11, 9, @enumFromInt(11_635));
+    try check_civil_conversion(2032, 7, 21, @enumFromInt(11_890));
+    try check_civil_conversion(2038, 1, 19, @enumFromInt(13_898));
+    try check_civil_conversion(2038, 1, 20, @enumFromInt(13_899));
+    try check_civil_conversion(2040, 8, 4, @enumFromInt(14_826));
+    try check_civil_conversion(2041, 8, 10, @enumFromInt(15_197));
+    try check_civil_conversion(2043, 8, 9, @enumFromInt(15_926));
+    try check_civil_conversion(2052, 4, 22, @enumFromInt(19_105));
+    try check_civil_conversion(2054, 8, 31, @enumFromInt(19_966));
+    try check_civil_conversion(2092, 3, 16, @enumFromInt(33_678));
+    try check_civil_conversion(2104, 2, 24, @enumFromInt(38_039));
+    try check_civil_conversion(2104, 2, 28, @enumFromInt(38_043));
+    try check_civil_conversion(2104, 2, 29, @enumFromInt(38_044));
+    try check_civil_conversion(2104, 3, 1, @enumFromInt(38_045));
+    try check_civil_conversion(2126, 3, 5, @enumFromInt(46_084));
+    try check_civil_conversion(2156, 1, 22, @enumFromInt(56_999));
+    try check_civil_conversion(2166, 5, 11, @enumFromInt(60_761));
+    try check_civil_conversion(2233, 11, 12, @enumFromInt(85_417));
+    try check_civil_conversion(2252, 5, 27, @enumFromInt(92_188));
+    try check_civil_conversion(2261, 11, 28, @enumFromInt(95_660));
+    try check_civil_conversion(2271, 10, 30, @enumFromInt(99_283));
+    try check_civil_conversion(2386, 10, 3, @enumFromInt(141_259));
+    try check_civil_conversion(2388, 12, 30, @enumFromInt(142_078));
+    try check_civil_conversion(2389, 8, 1, @enumFromInt(142_292));
+    try check_civil_conversion(2401, 2, 19, @enumFromInt(146_512));
+    try check_civil_conversion(2445, 10, 8, @enumFromInt(162_814));
+    try check_civil_conversion(2485, 8, 11, @enumFromInt(177_366));
+    try check_civil_conversion(2509, 11, 5, @enumFromInt(186_217));
+    try check_civil_conversion(2515, 1, 24, @enumFromInt(188_123));
+    try check_civil_conversion(2546, 7, 4, @enumFromInt(199_607));
+    try check_civil_conversion(2555, 5, 8, @enumFromInt(202_837));
+    try check_civil_conversion(2578, 1, 5, @enumFromInt(211_115));
+    try check_civil_conversion(2585, 3, 8, @enumFromInt(213_734));
+    try check_civil_conversion(2618, 12, 14, @enumFromInt(226_067));
+    try check_civil_conversion(2619, 5, 30, @enumFromInt(226_234));
+    try check_civil_conversion(2658, 11, 6, @enumFromInt(240_639));
+    try check_civil_conversion(2719, 8, 3, @enumFromInt(262_823));
+    try check_civil_conversion(2767, 12, 11, @enumFromInt(280_485));
+    try check_civil_conversion(2774, 5, 6, @enumFromInt(282_823));
+    try check_civil_conversion(2788, 10, 30, @enumFromInt(288_114));
+    try check_civil_conversion(2798, 12, 7, @enumFromInt(291_804));
+    try check_civil_conversion(2800, 7, 26, @enumFromInt(292_401));
+    try check_civil_conversion(2817, 12, 1, @enumFromInt(298_738));
+    try check_civil_conversion(2826, 10, 24, @enumFromInt(301_987));
+    try check_civil_conversion(2834, 9, 19, @enumFromInt(304_874));
+    try check_civil_conversion(2838, 12, 25, @enumFromInt(306_432));
+    try check_civil_conversion(2865, 11, 15, @enumFromInt(316_254));
+    try check_civil_conversion(2912, 1, 25, @enumFromInt(333_125));
+    try check_civil_conversion(2913, 11, 23, @enumFromInt(333_793));
+    try check_civil_conversion(2918, 11, 16, @enumFromInt(335_612));
+    try check_civil_conversion(2922, 6, 28, @enumFromInt(336_932));
+    try check_civil_conversion(2932, 12, 5, @enumFromInt(340_745));
+    try check_civil_conversion(2988, 3, 17, @enumFromInt(360_936));
+    try check_civil_conversion(3111, 6, 8, @enumFromInt(405_942));
+    try check_civil_conversion(3132, 6, 1, @enumFromInt(413_606));
+    try check_civil_conversion(3134, 12, 30, @enumFromInt(414_548));
+    try check_civil_conversion(3146, 8, 31, @enumFromInt(418_810));
+    try check_civil_conversion(3380, 11, 28, @enumFromInt(504_367));
+    try check_civil_conversion(3393, 2, 18, @enumFromInt(508_832));
+    try check_civil_conversion(3409, 8, 11, @enumFromInt(514_849));
+    try check_civil_conversion(3414, 3, 19, @enumFromInt(516_530));
+    try check_civil_conversion(3438, 1, 9, @enumFromInt(525_227));
+    try check_civil_conversion(3488, 10, 26, @enumFromInt(543_780));
+    try check_civil_conversion(3490, 5, 8, @enumFromInt(544_339));
+    try check_civil_conversion(3501, 3, 30, @enumFromInt(548_317));
+    try check_civil_conversion(3629, 12, 24, @enumFromInt(595_338));
+    try check_civil_conversion(3649, 3, 15, @enumFromInt(602_359));
+    try check_civil_conversion(3806, 2, 5, @enumFromInt(659_663));
+    try check_civil_conversion(6544, 1, 2, @enumFromInt(1_659_663));
+    try check_civil_conversion(9281, 11, 28, @enumFromInt(2_659_663));
+    try check_civil_conversion(31185, 3, 2, @enumFromInt(10_659_663));
+
+    try check_civil_conversion(-1, 12, 31, @enumFromInt(-730_486));
+    try check_civil_conversion(-274, 3, 17, @enumFromInt(-830_486));
+
+    try check_civil_conversion(5_881_610, 7, 11, @enumFromInt(std.math.maxInt(i32)));
+    try check_civil_conversion(-5_877_611, 6, 22, @enumFromInt(std.math.minInt(i32)));
+}
+
+fn check_civil_conversion(y: i32, m: u8, d: u8, date: Date) !void {
+    errdefer std.debug.print("For {f}\n", .{ date });
+    try std.testing.expectEqual(date, Date.from_ymd(.from_numbers(y, m, d)));
+    if (y > -5877611) {
+        try std.testing.expectEqual(Date.from_year(.from_number(y)), Date.from_ymd(.from_numbers(y, 1, 1)));
+    }
+
+    var ymd = civil64.days_to_ymd(@intFromEnum(date));
+    try std.testing.expectEqual(y, ymd.year.as_number());
+    try std.testing.expectEqual(m, ymd.month.as_number());
+    try std.testing.expectEqual(d, ymd.day.as_number());
+    try std.testing.expectEqual(y, civil64.days_to_year(@intFromEnum(date)).as_number());
+
+    ymd = civil32.days_to_ymd(@intFromEnum(date));
+    try std.testing.expectEqual(y, ymd.year.as_number());
+    try std.testing.expectEqual(m, ymd.month.as_number());
+    try std.testing.expectEqual(d, ymd.day.as_number());
+    try std.testing.expectEqual(y, civil32.days_to_year(@intFromEnum(date)).as_number());
+}
+
 const Year = @import("year.zig").Year;
 const Month = @import("month.zig").Month;
 const Day = @import("day.zig").Day;
@@ -431,4 +712,5 @@ const Ordinal_Week = @import("ordinal_week.zig").Ordinal_Week;
 const Date_Time = @import("Date_Time.zig");
 const Time = @import("time.zig").Time;
 const formatting = @import("formatting.zig");
+const builtin = @import("builtin");
 const std = @import("std");

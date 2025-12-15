@@ -215,14 +215,18 @@ pub const With_Offset = struct {
                 const y = if (pi.negate_year) Year.from_number(-pi_y.as_number()) else pi_y;
 
                 if (pi.ordinal_day) |od| {
-                    dt.date = Date.from_yd(y, od);
+                    dt.date = Date.from_yod(y, od);
                 } else if (pi.ordinal_week) |ow| {
-                    const d = Date.from_yd(y, ow.starting_day());
+                    const d = Date.from_yod(y, ow.starting_day());
                     dt.date = if (pi.week_day) |wd| d.advance_to_week_day(wd) else d;
                 } else if (pi.month) |m| {
-                    dt.date = if (pi.day) |d| Date.from_ymd(y, m, d) else Date.from_yd(y, .first);
+                    dt.date = if (pi.day) |d| Date.from_ymd(.{
+                        .year = y,
+                        .month = m,
+                        .day = d,
+                    }) else Date.from_yod(y, .first);
                 } else {
-                    dt.date = Date.from_yd(y, .first);
+                    dt.date = Date.from_yod(y, .first);
                 }
             } else return error.InvalidPattern;
 
@@ -266,12 +270,12 @@ test "Date_Time" {
     const gmt = (try tzdb.timezone("GMT")).?;
 
     const dt1 = (Date_Time {
-        .date = Date.from_ymd(Year.from_number(2024), .february, .first),
-        .time = Time.from_hmsm(12, 34, 56, 789),
+        .date = .from_ymd(.{ .year = .from_number(2024), .month = .february, .day = .first }),
+        .time = .from_hmsm(12, 34, 56, 789),
     }).with_offset(0);
     const dt2 = (Date_Time {
-        .date = Date.from_ymd(Year.from_number(1928), .december, Day.from_number(24)),
-        .time = Time.from_hmsm(0, 30, 0, 0),
+        .date = .from_ymd(.from_numbers(1928, 12, 24)),
+        .time = .from_hmsm(0, 30, 0, 0),
     }).with_offset(0);
 
     try std.testing.expectFmt("2024-02-01 12:34:56.789 +00:00", "{f}", .{ dt1.fmt(With_Offset.sql_ms) });

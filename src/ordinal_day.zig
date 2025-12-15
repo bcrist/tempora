@@ -9,9 +9,9 @@ pub const Ordinal_Day = enum (u9) {
         return @enumFromInt(day);
     }
 
-    pub fn from_ymd(y: Year, m: Month, d: Day) Ordinal_Day {
-        const day_of_month: i32 = d.as_number();
-        return Ordinal_Day.from_number(switch (m) {
+    pub fn from_ymd(ymd: Date.YMD) Ordinal_Day {
+        const day_of_month: i32 = ymd.day.as_number();
+        return Ordinal_Day.from_number(switch (ymd.month) {
             .january => day_of_month,
             .february => Month.january.days_assume_non_leap_year() + day_of_month,
             inline else => |comptime_month| blk: {
@@ -19,7 +19,7 @@ pub const Ordinal_Day = enum (u9) {
                 inline for (1..comptime comptime_month.as_number()) |prev_month| {
                     base += comptime Month.from_number(prev_month).days_assume_non_leap_year();
                 }
-                break :blk base + day_of_month + if (y.is_leap()) @as(u1, 1) else 0;
+                break :blk base + day_of_month + if (ymd.year.is_leap()) @as(u1, 1) else 0;
             },
         });
     }

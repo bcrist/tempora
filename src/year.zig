@@ -41,27 +41,15 @@ pub const Year = enum (i32) {
     pub fn is_leap(self: Year) bool {
         const y = self.as_number();
         if ((y & 3) != 0) return false;
-        if (@mod(y, 100) != 0) return true;
-        if (@mod(y, 400) == 0) return true;
-        return false;
+        switch (@mod(y, 400)) {
+            100, 200, 300 => return false,
+            else => {},
+        }
+        return true;
     }
 
     pub fn starting_date(self: Year) Date {
-        const year_offset = @intFromEnum(self) - Date.epoch_year;
-        var leap_years: i32 = 0;
-        if (year_offset < 0) {
-            const century_offset: i32 = @divTrunc(year_offset, 100);
-            leap_years = ((year_offset + 3) >> 2) - century_offset + ((century_offset + 3) >> 2);
-        } else if (year_offset > 0) {
-            // If 'year' is a leap year, the leap day doesn't happen until february, which is after
-            // the start of the year.  So we won't actually "pass" it until the next year.  To account
-            // for this we can just subtract 1 from the year offset when it's positive and add 1 to
-            // leap_years, since epoch_year is a leap year.
-            const modified_year_offset: i32 = year_offset - 1;
-            const century_offset: i32 = @divTrunc(modified_year_offset, 100);
-            leap_years = (modified_year_offset >> 2) - century_offset + (century_offset >> 2) + 1;
-        }
-        return @enumFromInt(year_offset * 365 + leap_years);
+        return .from_year(self);
     }
 
     pub const Info = Year_Info;

@@ -4,96 +4,99 @@ pub fn format(dto: Date_Time.With_Offset, comptime pattern: []const u8, writer: 
     @setEvalBranchQuota(100000);
 
     comptime var iter = Token.iterator(pattern);
-    const need_date_info = inline while (comptime iter.next()) |token| {
+    comptime var need_year = false;
+    comptime var need_month_day = false;
+    comptime var need_ordinal_day = false;
+    comptime var need_week_day = false;
+    inline while (comptime iter.next()) |token| {
         switch (token) {
-            .y, .Y, .YY, .YYY, .YYYY, .YYYYYY,
-            .MM, .M, .Mo, .MMM, .MMMM, .Q, .Qo,
-            .D, .Do, .DD, .DDD, .DDDo, .DDDD, .d, .e, .do, .dd, .ddd, .dddd, .E, .Eo,
-            .w, .wo, .ww, .N, .NN,
-            => break true,
-
+            .y, .Y, .YY, .YYY, .YYYY, .YYYYYY, .N, .NN => need_year = true,
+            .MM, .M, .Mo, .MMM, .MMMM, .Q, .Qo => need_month_day = true,
+            .D, .Do, .DD => need_month_day = true,
+            .DDD, .DDDo, .DDDD => need_ordinal_day = true,
+            .d, .e, .do, .dd, .ddd, .dddd, .E, .Eo => need_week_day = true,
+            .w, .wo, .ww => need_ordinal_day = true,
             else => {},
         }
-    } else false;
+    }
 
-    var di: Date.Info = if (need_date_info) dto.dt.date.info() else .{
-        .raw = 0,
-        .start_of_year = .epoch,
-        .start_of_month = .epoch,
-        .start_of_week = .epoch,
-        .is_leap_year = false,
-        .year = .epoch,
-        .month = .january,
-        .day = .first,
-        .week_day = .sunday,
-        .ordinal_day = .first,
-    };
+    var ymd: Date.YMD = undefined;
+    var od: Ordinal_Day = undefined;
+    var wd: Week_Day = undefined;
+
+    if (need_month_day) {
+        ymd = dto.dt.date.ymd();
+    } else if (need_year) {
+        ymd.year = dto.dt.date.year();
+    }
+    if (need_ordinal_day) od = dto.dt.date.ordinal_day();
+    if (need_week_day) wd = dto.dt.date.week_day();
 
     iter = comptime Token.iterator(pattern);
     inline while (comptime iter.next()) |token| switch (token) {
-        .MM => try writer.print("{d:0>2}", .{ di.month.as_unsigned() }),
-        .M => try writer.print("{d}", .{ di.month.as_unsigned() }),
-        .Mo => try write_ordinal(writer, di.month.as_unsigned()),
-        .MMM => try writer.writeAll(di.month.short_name()),
-        .MMMM => try writer.writeAll(di.month.name()),
+        .MM => try writer.print("{d:0>2}", .{ ymd.month.as_unsigned() }),
+        .M => try writer.print("{d}", .{ ymd.month.as_unsigned() }),
+        .Mo => try write_ordinal(writer, ymd.month.as_unsigned()),
+        .MMM => try writer.writeAll(ymd.month.short_name()),
+        .MMMM => try writer.writeAll(ymd.month.name()),
 
-        .Q => try writer.print("{d}", .{ (di.month.as_unsigned() - 1) / 3 + 1 }),
-        .Qo => try write_ordinal(writer, (di.month.as_unsigned() - 1) / 3 + 1),
+        .Q => try writer.print("{d}", .{ (ymd.month.as_unsigned() - 1) / 3 + 1 }),
+        .Qo => try write_ordinal(writer, (ymd.month.as_unsigned() - 1) / 3 + 1),
 
-        .D => try writer.print("{d}", .{ di.day.as_unsigned() }),
-        .Do => try write_ordinal(writer, di.day.as_unsigned()),
-        .DD => try writer.print("{d:0>2}", .{ di.day.as_unsigned() }),
+        .D => try writer.print("{d}", .{ ymd.day.as_unsigned() }),
+        .Do => try write_ordinal(writer, ymd.day.as_unsigned()),
+        .DD => try writer.print("{d:0>2}", .{ ymd.day.as_unsigned() }),
 
-        .DDD => try writer.print("{d}", .{ di.ordinal_day.as_unsigned() }),
-        .DDDo => try write_ordinal(writer, di.ordinal_day.as_unsigned()),
-        .DDDD => try writer.print("{d:0>3}", .{ di.ordinal_day.as_unsigned() }),
+        .DDD => try writer.print("{d}", .{ od.as_unsigned() }),
+        .DDDo => try write_ordinal(writer, od.as_unsigned()),
+        .DDDD => try writer.print("{d:0>3}", .{ od.as_unsigned() }),
 
-        .d, .e => try writer.print("{d}", .{ di.week_day.as_unsigned() - 1 }),
-        .do => try write_ordinal(writer, di.week_day.as_unsigned() - 1),
-        .dd => try writer.writeAll(di.week_day.name()[0..2]),
-        .ddd => try writer.writeAll(di.week_day.short_name()),
-        .dddd => try writer.writeAll(di.week_day.name()),
-        .E => try writer.print("{d}", .{ di.week_day.as_unsigned() }),
-        .Eo => try write_ordinal(writer, di.week_day.as_unsigned()),
+        .d, .e => try writer.print("{d}", .{ wd.as_unsigned() - 1 }),
+        .do => try write_ordinal(writer, wd.as_unsigned() - 1),
+        .dd => try writer.writeAll(wd.name()[0..2]),
+        .ddd => try writer.writeAll(wd.short_name()),
+        .dddd => try writer.writeAll(wd.name()),
+        .E => try writer.print("{d}", .{ wd.as_unsigned() }),
+        .Eo => try write_ordinal(writer, wd.as_unsigned()),
 
-        .w => try writer.print("{d}", .{ di.ordinal_day.ordinal_week().as_unsigned() }),
-        .wo => try write_ordinal(writer, di.ordinal_day.ordinal_week().as_unsigned()),
-        .ww => try writer.print("{:0>2}", .{ di.ordinal_day.ordinal_week().as_unsigned() }),
+        .w => try writer.print("{d}", .{ od.ordinal_week().as_unsigned() }),
+        .wo => try write_ordinal(writer, od.ordinal_week().as_unsigned()),
+        .ww => try writer.print("{:0>2}", .{ od.ordinal_week().as_unsigned() }),
 
-        .y => try writer.print("{d}", .{ @as(u32, @intCast(@abs(di.year.as_number()))) }),
-        .Y => if (di.year.as_number() > 9999) {
-            try writer.print("{d}", .{ di.year.as_number() });
-        } else if (di.year.as_number() < 0) {
-            try writer.print("-{d}", .{ @as(u32, @intCast(-di.year.as_number())) });
+        .y => try writer.print("{d}", .{ @as(u32, @intCast(@abs(ymd.year.as_number()))) }),
+        .Y => if (ymd.year.as_number() > 9999) {
+            try writer.print("{d}", .{ ymd.year.as_number() });
+        } else if (ymd.year.as_number() < 0) {
+            try writer.print("-{d}", .{ @as(u32, @intCast(-ymd.year.as_number())) });
         } else {
-            try writer.print("{d}", .{ di.year.as_unsigned() });
+            try writer.print("{d}", .{ ymd.year.as_unsigned() });
         },
-        .YY => if (di.year.as_number() >= 0) {
-            try writer.print("{d:0>2}", .{ di.year.as_unsigned() % 100 });
+        .YY => if (ymd.year.as_number() >= 0) {
+            try writer.print("{d:0>2}", .{ ymd.year.as_unsigned() % 100 });
         } else {
-            try writer.print("{d}", .{ di.year.as_number() });
+            try writer.print("{d}", .{ ymd.year.as_number() });
         },
-        .YYY => if (di.year.as_number() >= 0) {
-            try writer.print("{d}", .{ di.year.as_unsigned() });
+        .YYY => if (ymd.year.as_number() >= 0) {
+            try writer.print("{d}", .{ ymd.year.as_unsigned() });
         } else {
-            try writer.print("{d}", .{ di.year.as_number() });
+            try writer.print("{d}", .{ ymd.year.as_number() });
         },
-        .YYYY => if (di.year.as_number() >= 0) {
-            try writer.print("{d:0>4}", .{ di.year.as_unsigned() });
+        .YYYY => if (ymd.year.as_number() >= 0) {
+            try writer.print("{d:0>4}", .{ ymd.year.as_unsigned() });
         } else {
-            try writer.print("-{d:0>4}", .{ @as(u32, @intCast(-di.year.as_number())) });
+            try writer.print("-{d:0>4}", .{ @as(u32, @intCast(-ymd.year.as_number())) });
         },
-        .YYYYYY => if (di.year.as_number() > 0) {
-            try writer.print("+{d:0>6}", .{ di.year.as_unsigned() });
-        } else if (di.year.as_number() < 0) {
-            try writer.print("-{d:0>6}", .{ @as(u32, @intCast(-di.year.as_number())) });
+        .YYYYYY => if (ymd.year.as_number() > 0) {
+            try writer.print("+{d:0>6}", .{ ymd.year.as_unsigned() });
+        } else if (ymd.year.as_number() < 0) {
+            try writer.print("-{d:0>6}", .{ @as(u32, @intCast(-ymd.year.as_number())) });
         } else {
             try writer.writeAll("000000");
         },
 
-        .N, .NN => if (di.year.as_number() > 0) {
+        .N, .NN => if (ymd.year.as_number() > 0) {
             try writer.writeAll("AD");
-        } else if (di.year.as_number() < 0) {
+        } else if (ymd.year.as_number() < 0) {
             try writer.writeAll("BC");
         },
 

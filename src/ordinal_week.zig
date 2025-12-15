@@ -16,8 +16,12 @@ pub const Ordinal_Week = enum (u6) {
         return @intFromEnum(self);
     }
 
+    pub fn from_od(day: Ordinal_Day) Ordinal_Week {
+        return .from_number(@intCast((day.as_unsigned() - 1) / 7 + 1));
+    }
+
     pub fn starting_day(self: Ordinal_Week) Ordinal_Day {
-        return Ordinal_Day.from_number(@intCast((self.as_unsigned() - 1) * 7 + 1));
+        return .from_number(@intCast((self.as_unsigned() - 1) * 7 + 1));
     }
 
     pub fn is_before(self: Ordinal_Week, other: Ordinal_Week) bool {

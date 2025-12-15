@@ -56,6 +56,63 @@ pub const Month = enum (u4) {
         return @intFromEnum(self);
     }
 
+    pub fn from_yod(y: Year, od: Ordinal_Day) Month {
+        return .from_od(od, y.is_leap());
+    }
+
+    pub fn from_yiod(yi: Year.Info, od: Ordinal_Day) Month {
+        return .from_od(od, yi.is_leap);
+    }
+
+    pub fn from_od(od: Ordinal_Day, is_leap_year: bool) Month {
+        const noleap_od = Ordinal_Day.from_md_assume_non_leap_year;
+        var mut_od: Ordinal_Day = od;
+
+        if (mut_od.is_before(comptime noleap_od(.march, .first))) {
+            if (mut_od.is_before(comptime noleap_od(.february, .first))) {
+                return .january;
+            } else {
+                return .february;
+            }
+        } else {
+            if (is_leap_year) {
+                if (mut_od == comptime noleap_od(.march, .first)) {
+                    return .february;
+                } else {
+                    mut_od = Ordinal_Day.from_number(mut_od.as_number() - 1);
+                }
+            }
+
+            if (mut_od.is_before(comptime noleap_od(.june, .first))) {
+                if (mut_od.is_before(comptime noleap_od(.april, .first))) {
+                    return .march;
+                } else if (mut_od.is_before(comptime noleap_od(.may, .first))) {
+                    return .april;
+                } else {
+                    return .may;
+                }
+            } else if (mut_od.is_before(comptime noleap_od(.september, .first))) {
+                if (mut_od.is_before(comptime noleap_od(.july, .first))) {
+                    return .june;
+                } else if (mut_od.is_before(comptime noleap_od(.august, .first))) {
+                    return .july;
+                } else {
+                    return .august;
+                }
+            } else if (mut_od.is_before(comptime noleap_od(.november, .first))) {
+                if (mut_od.is_before(comptime noleap_od(.october, .first))) {
+                    return .september;
+                } else {
+                    return .october;
+                }
+            } else if (mut_od.is_before(comptime noleap_od(.december, .first))) {
+                return .november;
+            } else {
+                return .december;
+            }
+        }
+    }
+
     pub fn days(self: Month, year: Year) u16 {
         const base = self.days_assume_non_leap_year();
         if (self == .february and year.is_leap()) return base + 1;
@@ -149,5 +206,6 @@ test "Month" {
 
 const Date = @import("date.zig").Date;
 const Year = @import("year.zig").Year;
+const Ordinal_Day = @import("Ordinal_Day.zig");
 const formatting = @import("formatting.zig");
 const std = @import("std");
