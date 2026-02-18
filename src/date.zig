@@ -31,6 +31,21 @@ pub const Date = enum (i32) {
         return @enumFromInt(raw);
     }
 
+    pub fn from_ywd(y: Year, week: ISO_Week, weekday: Week_Day) Date {
+        const starting_date = y.starting_date();
+        var offset = week.as_number() * 7;
+        offset += weekday.as_iso();
+        offset -= starting_date.plus_days(3).week_day().as_iso();
+        return starting_date.plus_days(offset - 4);
+    }
+
+    pub fn from_yiwd(yi: Year.Info, week: ISO_Week, weekday: Week_Day) Date {
+        var offset = week.as_number() * 7;
+        offset += weekday.as_iso();
+        offset -= yi.starting_date.plus_days(3).week_day().as_iso();
+        return yi.starting_date.plus_days(offset - 4);
+    }
+
     /// Returns the date corresponding to January 1 of the specified year
     pub fn from_year(y: Year) Date {
         const years: u32 = @intCast(y.as_number() + 14700 * 400 - 1);
@@ -89,6 +104,14 @@ pub const Date = enum (i32) {
         raw = @mod(raw - 1, 7) + 1;
 
         return Week_Day.from_number(raw);
+    }
+
+    pub fn iso_week(self: Date) ISO_Week {
+        return self.iso_week_date().week;
+    }
+
+    pub fn iso_week_date(self: Date) ISO_Week_Date {
+        return .from_date(self);
     }
 
     pub const Info = Date_Info;
@@ -227,30 +250,57 @@ pub const Date = enum (i32) {
 
     pub fn from_string(comptime pattern: []const u8, str: []const u8) !Date {
         var reader = std.io.Reader.fixed(str);
-        const pi = formatting.parse(if (pattern.len == 0) iso8601 else pattern, &reader) catch return error.InvalidPattern;
-        
-        if (pi.timestamp) |ts| {
-            return Date_Time.With_Offset.from_timestamp_ms(ts, null).dt.date;
-        }
-        
-        if (pi.year) |pi_y| {
-            const y = if (pi.negate_year) Year.from_number(-pi_y.as_number()) else pi_y;
+        const pi = formatting.parse(if (pattern.len == 0) iso8601 else pattern, &reader) catch |err| switch (err) {
+            error.InvalidString => return err,
+            error.EndOfStream => return error.InvalidString,
+            error.ReadFailed => unreachable,
+            error.TzdbCacheNotInitialized => return err,
+        };
 
-            if (pi.ordinal_day) |od| return .from_yod(y, od);
-            if (pi.ordinal_week) |ow| {
-                const d: Date = .from_yod(y, ow.starting_day());
-                if (pi.week_day) |wd| {
-                    return d.advance_to_week_day(wd);
-                }
-                return d;
-            }
-            if (pi.month) |m| {
-                if (pi.day) |d| return from_ymd(.{ .year = y, .month = m, .day = d });
-            }
-            return .from_yod(y, .first);
+        const PI = @TypeOf(pi);
+
+        if (@FieldType(PI, "timestamp") != void) {
+            return Date_Time.With_Offset.from_timestamp_ms(pi.timestamp, null).dt.date;
         }
-        
-        return error.InvalidPattern;
+
+        if (@FieldType(PI, "year") != void) {
+            if (@FieldType(PI, "ordinal_day") != void) {
+                return Date.from_yod(pi.year, pi.ordinal_day);
+            }
+            
+            if (@FieldType(PI, "ordinal_week") != void) {
+                var date = Date.from_yod(pi.year, pi.ordinal_week.starting_day());
+                if (@FieldType(PI, "week_day") != void) {
+                    date = date.advance_to_week_day(pi.week_day);
+                }
+                return date;
+            }
+            
+            if (@FieldType(PI, "month") != void) {
+                return Date.from_ymd(.{
+                    .year = pi.year,
+                    .month = pi.month,
+                    .day = if (@FieldType(PI, "day") != void) pi.day else 1,
+                });
+            }
+
+            return Date.from_yod(pi.year, .first);
+        }
+
+        if (@FieldType(PI, "iso_week_year") != void) {
+            var iwd: ISO_Week_Date = .{
+                .year = pi.iso_week_year,
+                .week = .first,
+                .day = .monday,
+            };
+
+            if (@FieldType(PI, "iso_week") != void) iwd.week = pi.iso_week;
+            if (@FieldType(PI, "week_day") != void) iwd.day = pi.week_day;
+
+            return iwd.date();
+        }
+
+        @compileError("Invalid pattern: " ++ pattern);
     }
 
     const civil = if (@sizeOf(usize) < 8) civil32 else civil64;
@@ -285,6 +335,10 @@ pub const Date_Info = struct {
 
     pub fn date(self: Date_Info) Date {
         return @enumFromInt(self.raw);
+    }
+
+    pub fn iso_week_date(self: Date_Info) ISO_Week_Date {
+        return .from_yiodwd(self.year_info(), self.ordinal_day, self.week_day);
     }
 };
 
@@ -437,15 +491,18 @@ test "Date" {
     try std.testing.expectFmt("24 Do 24th", "{f}", .{ date2.fmt("D [Do] Do") });
     try std.testing.expectFmt("359 359th 359", "{f}", .{ date2.fmt("DDD DDDo DDDD") });
     try std.testing.expectFmt("32 32nd 032", "{f}", .{ date1.fmt("DDD DDDo DDDD") });
-    try std.testing.expectFmt("4 4 4th Th Thu Thursday", "{f}", .{ date1.fmt("d e do dd ddd dddd") });
-    try std.testing.expectFmt("5 5th", "{f}", .{ date1.fmt("E Eo") });
+    try std.testing.expectFmt("4 4th Th Thu Thursday", "{f}", .{ date1.fmt("d do dd ddd dddd") });
+    try std.testing.expectFmt("4 4th", "{f}", .{ date1.fmt("E Eo") });
     try std.testing.expectFmt("52 52nd 52", "{f}", .{ date2.fmt("w wo ww") });
     try std.testing.expectFmt("2024 24 2024 2024 +002024", "{f}", .{ date1.fmt("Y YY YYY YYYY YYYYYY") });
     try std.testing.expectFmt("1928 28 1928 1928 +001928", "{f}", .{ date2.fmt("Y YY YYY YYYY YYYYYY") });
     try std.testing.expectFmt("0 00 0 0000 000000", "{f}", .{ date3.fmt("Y YY YYY YYYY YYYYYY") });
     try std.testing.expectFmt("12 12 12 0012 +000012", "{f}", .{ date4.fmt("Y YY YYY YYYY YYYYYY") });
-    try std.testing.expectFmt("-123 -123 -123 -0123 -000123", "{f}", .{ date5.fmt("Y YY YYY YYYY YYYYYY") });
+    try std.testing.expectFmt("-123 23 -123 0123 -000123", "{f}", .{ date5.fmt("Y YY YYY YYYY YYYYYY") });
     try std.testing.expectFmt("AD AD", "{f}", .{ date1.fmt("N NN") });
+
+    try std.testing.expectFmt("0 0th Su Sun Sunday", "{f}", .{ date3.fmt("d do dd ddd dddd") });
+    try std.testing.expectFmt("7 7th", "{f}", .{ date3.fmt("E Eo") });
 
     try std.testing.expectFmt("2000", "{f}", .{ @as(Date, @enumFromInt(0)).fmt("Y") });
     try std.testing.expectFmt("2000", "{f}", .{ Year.from_number(2000).starting_date().fmt("Y") });
@@ -460,7 +517,57 @@ test "Date" {
     try std.testing.expectEqual(date6, (try Date.from_string("YYYY-MM-DD", "1969-12-31")).plus_days(1));
     try std.testing.expectEqual(date6, try Date.from_string("x", "0"));
     try std.testing.expectEqual(date6, try Date.from_string("X", "0"));
-    try std.testing.expectError(error.InvalidPattern, Date.from_string("MM", "12"));
+
+    try std.testing.expectEqual(53, Date.from_ymd(.from_numbers(2005, 1, 1)).iso_week().as_number());
+    try std.testing.expectEqual(6, Date.from_ymd(.from_numbers(2005, 1, 1)).iso_week_date().day.as_iso());
+    try std.testing.expectEqual(2004, Date.from_ymd(.from_numbers(2005, 1, 1)).iso_week_date().year.as_number());
+    try std.testing.expectFmt("2005-01-01", "{f}", .{ Date.from_ymd(.from_numbers(2005, 1, 1)).iso_week_date().fmt("YYYY-MM-DD") });
+    try std.testing.expectFmt("2004-W53-6", "{f}", .{ Date.from_ymd(.from_numbers(2005, 1, 1)).iso_week_date().fmt("GGGG-[W]WW-E") });
+    try std.testing.expectFmt("2004-W53-7", "{f}", .{ Date.from_ymd(.from_numbers(2005, 1, 2)).iso_week_date() });
+    try std.testing.expectFmt("2005-W01-1", "{f}", .{ Date.from_ymd(.from_numbers(2005, 1, 3)).iso_week_date() });
+    try std.testing.expectFmt("2005-W52-6", "{f}", .{ Date.from_ymd(.from_numbers(2005, 12, 31)).iso_week_date() });
+    try std.testing.expectFmt("2005-W52-7", "{f}", .{ Date.from_ymd(.from_numbers(2006, 1, 1)).iso_week_date() });
+    try std.testing.expectFmt("2006-W01-1", "{f}", .{ Date.from_ymd(.from_numbers(2006, 1, 2)).iso_week_date() });
+    try std.testing.expectFmt("2006-W52-7", "{f}", .{ Date.from_ymd(.from_numbers(2006, 12, 31)).iso_week_date() });
+    try std.testing.expectFmt("2007-W01-1", "{f}", .{ Date.from_ymd(.from_numbers(2007, 1, 1)).iso_week_date() });
+    try std.testing.expectFmt("2007-W52-7", "{f}", .{ Date.from_ymd(.from_numbers(2007, 12, 30)).iso_week_date() });
+    try std.testing.expectFmt("2008-W01-1", "{f}", .{ Date.from_ymd(.from_numbers(2007, 12, 31)).iso_week_date() });
+    try std.testing.expectFmt("2008-W01-2", "{f}", .{ Date.from_ymd(.from_numbers(2008, 1, 1)).iso_week_date() });
+    try std.testing.expectFmt("2008-W52-7", "{f}", .{ Date.from_ymd(.from_numbers(2008, 12, 28)).iso_week_date() });
+    try std.testing.expectFmt("2009-W01-1", "{f}", .{ Date.from_ymd(.from_numbers(2008, 12, 29)).iso_week_date() });
+    try std.testing.expectFmt("2009-W01-2", "{f}", .{ Date.from_ymd(.from_numbers(2008, 12, 30)).iso_week_date() });
+    try std.testing.expectFmt("2009-W01-3", "{f}", .{ Date.from_ymd(.from_numbers(2008, 12, 31)).iso_week_date() });
+    try std.testing.expectFmt("2009-W01-4", "{f}", .{ Date.from_ymd(.from_numbers(2009, 1, 1)).iso_week_date() });
+    try std.testing.expectFmt("2009-W53-4", "{f}", .{ Date.from_ymd(.from_numbers(2009, 12, 31)).iso_week_date() });
+    try std.testing.expectFmt("2009-W53-5", "{f}", .{ Date.from_ymd(.from_numbers(2010, 1, 1)).iso_week_date() });
+    try std.testing.expectFmt("2009-W53-6", "{f}", .{ Date.from_ymd(.from_numbers(2010, 1, 2)).iso_week_date() });
+    try std.testing.expectFmt("2009-W53-7", "{f}", .{ Date.from_ymd(.from_numbers(2010, 1, 3)).iso_week_date() });
+
+    try std.testing.expectEqual(try ISO_Week_Date.from_string(ISO_Week_Date.iso8601_week_date, "2004-W53-6"), Date.from_ymd(.from_numbers(2005, 1, 1)).iso_week_date());
+    try std.testing.expectEqual(try ISO_Week_Date.from_string(ISO_Week_Date.iso8601_week_date, "2004-W53-7"), Date.from_ymd(.from_numbers(2005, 1, 2)).iso_week_date());
+    try std.testing.expectEqual(try ISO_Week_Date.from_string(ISO_Week_Date.iso8601_week_date, "2005-W01-1"), Date.from_ymd(.from_numbers(2005, 1, 3)).iso_week_date());
+    try std.testing.expectEqual(try ISO_Week_Date.from_string(ISO_Week_Date.iso8601_week_date, "2005-W52-6"), Date.from_ymd(.from_numbers(2005, 12, 31)).iso_week_date());
+    try std.testing.expectEqual(try ISO_Week_Date.from_string(ISO_Week_Date.iso8601_week_date, "2005-W52-7"), Date.from_ymd(.from_numbers(2006, 1, 1)).iso_week_date());
+    try std.testing.expectEqual(try ISO_Week_Date.from_string(ISO_Week_Date.iso8601_week_date, "2006-W01-1"), Date.from_ymd(.from_numbers(2006, 1, 2)).iso_week_date());
+    try std.testing.expectEqual(try ISO_Week_Date.from_string(ISO_Week_Date.iso8601_week_date, "2006-W52-7"), Date.from_ymd(.from_numbers(2006, 12, 31)).iso_week_date());
+    try std.testing.expectEqual(try ISO_Week_Date.from_string(ISO_Week_Date.iso8601_week_date, "2007-W01-1"), Date.from_ymd(.from_numbers(2007, 1, 1)).iso_week_date());
+    try std.testing.expectEqual(try ISO_Week_Date.from_string(ISO_Week_Date.iso8601_week_date, "2007-W52-7"), Date.from_ymd(.from_numbers(2007, 12, 30)).iso_week_date());
+    try std.testing.expectEqual(try ISO_Week_Date.from_string(ISO_Week_Date.iso8601_week_date, "2008-W01-1"), Date.from_ymd(.from_numbers(2007, 12, 31)).iso_week_date());
+    try std.testing.expectEqual(try ISO_Week_Date.from_string(ISO_Week_Date.iso8601_week_date, "2008-W01-2"), Date.from_ymd(.from_numbers(2008, 1, 1)).iso_week_date());
+    try std.testing.expectEqual(try ISO_Week_Date.from_string(ISO_Week_Date.iso8601_week_date, "2008-W52-7"), Date.from_ymd(.from_numbers(2008, 12, 28)).iso_week_date());
+    try std.testing.expectEqual(try ISO_Week_Date.from_string(ISO_Week_Date.iso8601_week_date, "2009-W01-1"), Date.from_ymd(.from_numbers(2008, 12, 29)).iso_week_date());
+    try std.testing.expectEqual(try ISO_Week_Date.from_string(ISO_Week_Date.iso8601_week_date, "2009-W01-2"), Date.from_ymd(.from_numbers(2008, 12, 30)).iso_week_date());
+    try std.testing.expectEqual(try ISO_Week_Date.from_string(ISO_Week_Date.iso8601_week_date, "2009-W01-3"), Date.from_ymd(.from_numbers(2008, 12, 31)).iso_week_date());
+    try std.testing.expectEqual(try ISO_Week_Date.from_string(ISO_Week_Date.iso8601_week_date, "2009-W01-4"), Date.from_ymd(.from_numbers(2009, 1, 1)).iso_week_date());
+    try std.testing.expectEqual(try ISO_Week_Date.from_string(ISO_Week_Date.iso8601_week_date, "2009-W53-4"), Date.from_ymd(.from_numbers(2009, 12, 31)).iso_week_date());
+    try std.testing.expectEqual(try ISO_Week_Date.from_string(ISO_Week_Date.iso8601_week_date, "2009-W53-5"), Date.from_ymd(.from_numbers(2010, 1, 1)).iso_week_date());
+    try std.testing.expectEqual(try ISO_Week_Date.from_string(ISO_Week_Date.iso8601_week_date, "2009-W53-6"), Date.from_ymd(.from_numbers(2010, 1, 2)).iso_week_date());
+    try std.testing.expectEqual(try ISO_Week_Date.from_string(ISO_Week_Date.iso8601_week_date, "2009-W53-7"), Date.from_ymd(.from_numbers(2010, 1, 3)).iso_week_date());
+
+    try std.testing.expectEqual(date1, try Date.from_string("G W E", "2024 5 4"));
+    try std.testing.expectEqual(date2, try Date.from_string("G W E", "1928 52 1"));
+    try std.testing.expectEqual(date6, try Date.from_string("G W E", "1970 1 4"));
+    try std.testing.expectEqual(date6.plus_days(-1), try Date.from_string("G W E", "1970 1 3"));
 
     var d = Date.from_ymd(.{ .year = .from_number(2000), .month = .january, .day = .first });
     try std.testing.expectEqual(.first, d.ordinal_day());
@@ -708,6 +815,8 @@ const Day = @import("day.zig").Day;
 const Week_Day = @import("week_day.zig").Week_Day;
 const Ordinal_Day = @import("ordinal_day.zig").Ordinal_Day;
 const Ordinal_Week = @import("ordinal_week.zig").Ordinal_Week;
+const ISO_Week_Date = @import("iso_week.zig").ISO_Week_Date;
+const ISO_Week = @import("iso_week.zig").ISO_Week;
 const Date_Time = @import("Date_Time.zig");
 const Time = @import("time.zig").Time;
 const formatting = @import("formatting.zig");

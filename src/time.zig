@@ -172,30 +172,110 @@ pub const Time = enum (i32) {
         }
 
         pub fn from_string_tz(comptime pattern: []const u8, str: []const u8, timezone: ?*const Timezone) !With_Offset {
-            var stream = std.io.fixedBufferStream(str);
-            const pi = formatting.parse(if (pattern.len == 0) iso8601 else fmt, &stream) catch return error.InvalidPattern;
+            var stream = std.io.Reader.fixed(str);
+            const pi = formatting.parse(if (pattern.len == 0) iso8601 else pattern, &stream) catch |err| switch (err) {
+                error.InvalidString => return err,
+                error.EndOfStream => return error.InvalidString,
+                error.ReadFailed => unreachable,
+                error.TzdbCacheNotInitialized => return err,
+            };
 
-            if (pi.timestamp) |ts| {
-                const dto = Date_Time.With_Offset.from_timestamp_ms(ts, timezone);
+            const PI = @TypeOf(pi);
+
+            if (@FieldType(PI, "timestamp") != void) {
+                const dto = Date_Time.With_Offset.from_timestamp_ms(pi.timestamp, timezone);
                 return .{
                     .time = dto.dt.time,
                     .utc_offset_ms = dto.utc_offset_ms,
                     .timezone = dto.timezone,
                 };
-            } else if (pi.hours) |raw_h| {
-                const h = @mod(if (pi.hours_is_pm) raw_h + 12 else raw_h, 24);
-                const m = pi.minutes orelse 0;
-                const s = pi.seconds orelse 0;
-                const milli = pi.ms orelse 0;
+            }
+            
+            if (@FieldType(PI, "hours") != void) {
+                const m = if (@FieldType(PI, "minutes") != void) pi.minutes else 0;
+                const s = if (@FieldType(PI, "seconds") != void) pi.seconds else 0;
+                const milli = if (@FieldType(PI, "ms") != void) pi.ms else 0;
                 return .{
-                    .time = Time.from_hmsm(h, m, s, milli),
-                    .utc_offset_ms = pi.utc_offset_ms orelse if (timezone) |tz| tz.zone_info(std.time.timestamp()).offset * 1000 else 0,
+                    .time = Time.from_hmsm(pi.hours, m, s, milli),
+                    .utc_offset_ms = if (@FieldType(PI, "utc_offset_ms") != void) pi.utc_offset_ms else if (timezone) |tz| tz.zone_info(std.time.timestamp()).offset * 1000 else 0,
                     .timezone = timezone,
                 };
-            } else return error.InvalidPattern;
+            }
+            
+            @compileError("Invalid pattern: " ++ pattern);
         }
     };
 };
+
+
+test "Time" {
+    const t1: Time = .from_hmsm(0, 0, 0, 0);
+    const t2: Time = .from_hmsm(1, 2, 3, 4);
+    const t3: Time = .from_hmsm(23, 59, 59, 999);
+    const t4: Time = .from_hmsm(12, 0, 0, 0);
+    const t5: Time = .from_hmsm(4, 45, 0, 0);
+    const t6: Time = .from_hmsm(20, 15, 0, 0);
+
+    try std.testing.expectFmt("00:00:00.000+00:00", "{f}", .{ t1.with_offset(0) });
+
+    try std.testing.expectFmt("00:00:00.000", "{f}", .{ t1.with_offset(0).fmt(Time.With_Offset.iso8601_local) });
+    try std.testing.expectFmt("01:02:03.004", "{f}", .{ t2.with_offset(0).fmt(Time.With_Offset.iso8601_local) });
+    try std.testing.expectFmt("23:59:59.999", "{f}", .{ t3.with_offset(0).fmt(Time.With_Offset.iso8601_local) });
+    try std.testing.expectFmt("12:00:00.000", "{f}", .{ t4.with_offset(0).fmt(Time.With_Offset.iso8601_local) });
+    try std.testing.expectFmt("04:45:00.000", "{f}", .{ t5.with_offset(0).fmt(Time.With_Offset.iso8601_local) });
+    try std.testing.expectFmt("20:15:00.000", "{f}", .{ t6.with_offset(0).fmt(Time.With_Offset.iso8601_local) });
+
+    try std.testing.expectFmt("12:00:00 am", "{f}", .{ t1.with_offset(0).fmt(Time.With_Offset.hms) });
+    try std.testing.expectFmt("1:02:03 am", "{f}", .{ t2.with_offset(0).fmt(Time.With_Offset.hms) });
+    try std.testing.expectFmt("11:59:59 pm", "{f}", .{ t3.with_offset(0).fmt(Time.With_Offset.hms) });
+    try std.testing.expectFmt("12:00:00 pm", "{f}", .{ t4.with_offset(0).fmt(Time.With_Offset.hms) });
+    try std.testing.expectFmt("4:45:00 am", "{f}", .{ t5.with_offset(0).fmt(Time.With_Offset.hms) });
+    try std.testing.expectFmt("8:15:00 pm", "{f}", .{ t6.with_offset(0).fmt(Time.With_Offset.hms) });
+
+    try std.testing.expectFmt("12:00 am", "{f}", .{ t1.with_offset(0).fmt("kk:mm a") });
+    try std.testing.expectFmt(" 1:02 am", "{f}", .{ t2.with_offset(0).fmt("kk:mm a") });
+    try std.testing.expectFmt("11:59 pm", "{f}", .{ t3.with_offset(0).fmt("kk:mm a") });
+    try std.testing.expectFmt("12:00 pm", "{f}", .{ t4.with_offset(0).fmt("kk:mm a") });
+    try std.testing.expectFmt(" 4:45 am", "{f}", .{ t5.with_offset(0).fmt("kk:mm a") });
+    try std.testing.expectFmt(" 8:15 pm", "{f}", .{ t6.with_offset(0).fmt("kk:mm a") });
+
+    try std.testing.expectFmt(" 0:00", "{f}", .{ t1.with_offset(0).fmt("KK:mm") });
+    try std.testing.expectFmt(" 1:02", "{f}", .{ t2.with_offset(0).fmt("KK:mm") });
+    try std.testing.expectFmt("23:59", "{f}", .{ t3.with_offset(0).fmt("KK:mm") });
+    try std.testing.expectFmt("12:00", "{f}", .{ t4.with_offset(0).fmt("KK:mm") });
+    try std.testing.expectFmt(" 4:45", "{f}", .{ t5.with_offset(0).fmt("KK:mm") });
+    try std.testing.expectFmt("20:15", "{f}", .{ t6.with_offset(0).fmt("KK:mm") });
+
+    try std.testing.expectEqual(Time.With_Offset.from_string(Time.With_Offset.iso8601, "00:00:00.000+00:00"), t1.with_offset(0));
+
+    try std.testing.expectEqual(Time.With_Offset.from_string(Time.With_Offset.iso8601_local, "00:00:00.000"), t1.with_offset(0));
+    try std.testing.expectEqual(Time.With_Offset.from_string(Time.With_Offset.iso8601_local, "01:02:03.004"), t2.with_offset(0));
+    try std.testing.expectEqual(Time.With_Offset.from_string(Time.With_Offset.iso8601_local, "23:59:59.999"), t3.with_offset(0));
+    try std.testing.expectEqual(Time.With_Offset.from_string(Time.With_Offset.iso8601_local, "12:00:00.000"), t4.with_offset(0));
+    try std.testing.expectEqual(Time.With_Offset.from_string(Time.With_Offset.iso8601_local, "04:45:00.000"), t5.with_offset(0));
+    try std.testing.expectEqual(Time.With_Offset.from_string(Time.With_Offset.iso8601_local, "20:15:00.000"), t6.with_offset(0));
+
+    try std.testing.expectEqual(Time.With_Offset.from_string("h:mm:ss.SSS a", "12:00:00.000 am"), t1.with_offset(0));
+    try std.testing.expectEqual(Time.With_Offset.from_string("h:mm:ss.SSS a", "1:02:03.004 am"), t2.with_offset(0));
+    try std.testing.expectEqual(Time.With_Offset.from_string("h:mm:ss.SSS a", "11:59:59.999 pm"), t3.with_offset(0));
+    try std.testing.expectEqual(Time.With_Offset.from_string("h:mm:ss.SSS a", "12:00:00.000 pm"), t4.with_offset(0));
+    try std.testing.expectEqual(Time.With_Offset.from_string("h:mm:ss.SSS a", "4:45:00.000 am"), t5.with_offset(0));
+    try std.testing.expectEqual(Time.With_Offset.from_string("h:mm:ss.SSS a", "8:15:00.000 pm"), t6.with_offset(0));
+
+    try std.testing.expectEqual(Time.With_Offset.from_string("KK:mm:ss.SSS", " 0:00:00.000"), t1.with_offset(0));
+    try std.testing.expectEqual(Time.With_Offset.from_string("KK:mm:ss.SSS", " 1:02:03.004"), t2.with_offset(0));
+    try std.testing.expectEqual(Time.With_Offset.from_string("KK:mm:ss.SSS", "23:59:59.999"), t3.with_offset(0));
+    try std.testing.expectEqual(Time.With_Offset.from_string("KK:mm:ss.SSS", "12:00:00.000"), t4.with_offset(0));
+    try std.testing.expectEqual(Time.With_Offset.from_string("KK:mm:ss.SSS", " 4:45:00.000"), t5.with_offset(0));
+    try std.testing.expectEqual(Time.With_Offset.from_string("KK:mm:ss.SSS", "20:15:00.000"), t6.with_offset(0));
+
+    try std.testing.expectEqual(Time.With_Offset.from_string("kk:mm:ss.SSS a", "12:00:00.000 am"), t1.with_offset(0));
+    try std.testing.expectEqual(Time.With_Offset.from_string("kk:mm:ss.SSS a", " 1:02:03.004 am"), t2.with_offset(0));
+    try std.testing.expectEqual(Time.With_Offset.from_string("kk:mm:ss.SSS a", "11:59:59.999 pm"), t3.with_offset(0));
+    try std.testing.expectEqual(Time.With_Offset.from_string("kk:mm:ss.SSS a", "12:00:00.000 pm"), t4.with_offset(0));
+    try std.testing.expectEqual(Time.With_Offset.from_string("kk:mm:ss.SSS a", " 4:45:00.000 am"), t5.with_offset(0));
+    try std.testing.expectEqual(Time.With_Offset.from_string("kk:mm:ss.SSS a", " 8:15:00.000 pm"), t6.with_offset(0));
+}
 
 const Date_Time = @import("Date_Time.zig");
 const Timezone = @import("Timezone.zig");

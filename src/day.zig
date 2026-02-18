@@ -1,3 +1,5 @@
+//! Day of month
+
 pub const Day = enum(u5) {
     first = 1,
     _,

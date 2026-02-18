@@ -285,7 +285,7 @@ pub const POSIX_TZ = struct {
                         .source = .posix_tz,
                     };
                 } else if (utc < start_dst) {
-                    const prev_yi = Year.from_number(yi.year - 1).info();
+                    const prev_yi = yi.year().plus(-1).info();
                     const prev_end_dst = range.end.to_secs(prev_yi) - self.dst_offset;
                     return .{
                         .designation = self.std_designation,
@@ -296,7 +296,7 @@ pub const POSIX_TZ = struct {
                         .source = .posix_tz,
                     };
                 } else { // utc >= end_dst
-                    const next_yi = Year.from_number(yi.year + 1).info();
+                    const next_yi = yi.year().plus(1).info();
                     const next_start_dst = range.start.to_secs(next_yi) - self.std_offset;
                     return .{
                         .designation = self.std_designation,
@@ -318,7 +318,7 @@ pub const POSIX_TZ = struct {
                         .source = .posix_tz,
                     };
                 } else if (utc < end_dst) {
-                    const prev_yi = Year.from_number(yi.year - 1).info();
+                    const prev_yi = yi.year().plus(-1).info();
                     const prev_start_dst = range.start.to_secs(prev_yi) - self.std_offset;
                     return .{
                         .designation = dst_designation,
@@ -329,7 +329,7 @@ pub const POSIX_TZ = struct {
                         .source = .posix_tz,
                     };
                 } else { // utc >= start_dst
-                    const next_yi = Year.from_number(yi.year + 1).info();
+                    const next_yi = yi.year().plus(1).info();
                     const next_end_dst = range.end.to_secs(next_yi) - self.dst_offset;
                     return .{
                         .designation = dst_designation,

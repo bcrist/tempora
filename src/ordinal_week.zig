@@ -1,12 +1,15 @@
-// N.B. this is not the same as https://en.wikipedia.org/wiki/ISO_week_date
+//! Number of whole weeks that have passed since January 1, plus one
+//! Valid range is from from 1 to 53 for all years
+//! N.B. this is not the same as https://en.wikipedia.org/wiki/ISO_week_date
+
 pub const Ordinal_Week = enum (u6) {
     first = 1,
     _,
 
-    pub fn from_number(day: i32) Ordinal_Week {
-        std.debug.assert(day >= 1);
-        std.debug.assert(day <= 53);
-        return @enumFromInt(day);
+    pub fn from_number(week: i32) Ordinal_Week {
+        std.debug.assert(week >= 1);
+        std.debug.assert(week <= 53);
+        return @enumFromInt(week);
     }
 
     pub fn as_number(self: Ordinal_Week) i32 {

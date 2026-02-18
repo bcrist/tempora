@@ -11,6 +11,10 @@ pub const Week_Day = enum(u3) {
         return @enumFromInt(d);
     }
 
+    pub fn from_iso(d: i32) Week_Day {
+        return if (d == 7) .sunday else .from_number(d + 1);
+    }
+
     pub const From_String_Options = struct {
         trim: []const u8 = formatting.default_from_string_trim,
         allow_long: bool = true,
@@ -39,13 +43,13 @@ pub const Week_Day = enum(u3) {
         }
 
         if (options.allow_numeric) {
-            const numeric = std.fmt.parseInt(u3, trimmed, 10) catch return error.InvalidPattern;
+            const numeric = std.fmt.parseInt(u3, trimmed, 10) catch return error.InvalidString;
             if (numeric >= 1 and numeric <= 7) {
                 return @enumFromInt(numeric);
             }
         }
 
-        return error.InvalidPattern;
+        return error.InvalidString;
     }
 
     pub fn as_number(self: Week_Day) i32 {
@@ -53,6 +57,10 @@ pub const Week_Day = enum(u3) {
     }
     pub fn as_unsigned(self: Week_Day) u32 {
         return @intFromEnum(self);
+    }
+
+    pub fn as_iso(self: Week_Day) u3 {
+        return if (self == .sunday) 7 else @intCast(self.as_unsigned() - 1);
     }
 
     pub fn name(self: Week_Day) []const u8 {
@@ -74,9 +82,9 @@ pub const Week_Day = enum(u3) {
 
 test "Week_Day" {
     try expectEqual(.monday, try Week_Day.from_string("Mon", .{}));
-    try expectError(error.InvalidPattern, Week_Day.from_string("Tues", .{}));
+    try expectError(error.InvalidString, Week_Day.from_string("Tues", .{}));
     try expectEqual(.wednesday, try Week_Day.from_string("wednesday", .{}));
-    try expectError(error.InvalidPattern, Week_Day.from_string("7", .{}));
+    try expectError(error.InvalidString, Week_Day.from_string("7", .{}));
     try expectEqual(.saturday, try Week_Day.from_string("7", .{ .allow_numeric = true }));
 }
 

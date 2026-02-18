@@ -1,4 +1,3 @@
-
 date: Date,
 time: Time,
 
@@ -201,54 +200,71 @@ pub const With_Offset = struct {
 
     pub fn from_string_tz(comptime pattern: []const u8, str: []const u8, timezone: ?*const Timezone) !With_Offset {
         var reader = std.io.Reader.fixed(str);
-        const pi = formatting.parse(if (pattern.len == 0) iso8601 else pattern, &reader) catch return error.InvalidPattern;
+        const pi = formatting.parse(if (pattern.len == 0) iso8601 else pattern, &reader) catch |err| switch (err) {
+            error.InvalidString => return err,
+            error.EndOfStream => return error.InvalidString,
+            error.ReadFailed => unreachable,
+            error.TzdbCacheNotInitialized => return err,
+        };
+
+        const PI = @TypeOf(pi);
 
         var dt: Date_Time = .{
             .date = .epoch,
             .time = .midnight,
         };
 
-        if (pi.timestamp) |ts| {
-            dt = from_timestamp_ms(ts, null).dt;
+        if (@FieldType(PI, "timestamp") != void) {
+            dt = from_timestamp_ms(pi.timestamp, null).dt;
         } else {
-            if (pi.year) |pi_y| {
-                const y = if (pi.negate_year) Year.from_number(-pi_y.as_number()) else pi_y;
-
-                if (pi.ordinal_day) |od| {
-                    dt.date = Date.from_yod(y, od);
-                } else if (pi.ordinal_week) |ow| {
-                    const d = Date.from_yod(y, ow.starting_day());
-                    dt.date = if (pi.week_day) |wd| d.advance_to_week_day(wd) else d;
-                } else if (pi.month) |m| {
-                    dt.date = if (pi.day) |d| Date.from_ymd(.{
-                        .year = y,
-                        .month = m,
-                        .day = d,
-                    }) else Date.from_yod(y, .first);
+            if (@FieldType(PI, "year") != void) {
+                if (@FieldType(PI, "ordinal_day") != void) {
+                    dt.date = Date.from_yod(pi.year, pi.ordinal_day);
+                } else if (@FieldType(PI, "ordinal_week") != void) {
+                    dt.date = Date.from_yod(pi.year, pi.ordinal_week.starting_day());
+                    if (@FieldType(PI, "week_day") != void) {
+                        dt.date = dt.date.advance_to_week_day(pi.week_day);
+                    }
+                } else if (@FieldType(PI, "month") != void) {
+                    dt.date = Date.from_ymd(.{
+                        .year = pi.year,
+                        .month = pi.month,
+                        .day = if (@FieldType(PI, "day") != void) pi.day else 1,
+                    });
                 } else {
-                    dt.date = Date.from_yod(y, .first);
+                    dt.date = Date.from_yod(pi.year, .first);
                 }
-            } else return error.InvalidPattern;
+            } else if (@FieldType(PI, "iso_week_year") != void) {
+                var iwd: ISO_Week_Date = .{
+                    .year = pi.iso_week_year,
+                    .week = .first,
+                    .day = .monday,
+                };
 
-            if (pi.hours) |raw_h| {
-                const h = @mod(if (pi.hours_is_pm) raw_h + 12 else raw_h, 24);
-                const m = pi.minutes orelse 0;
-                const s = pi.seconds orelse 0;
-                const milli = pi.ms orelse 0;
-                dt.time = Time.from_hmsm(h, m, s, milli);
-            } else return error.InvalidPattern;
+                if (@FieldType(PI, "iso_week") != void) iwd.week = pi.iso_week;
+                if (@FieldType(PI, "week_day") != void) iwd.day = pi.week_day;
+
+                dt = iwd.date();
+            } else @compileError("Invalid pattern: " ++ pattern);
+
+            if (@FieldType(PI, "hours") != void) {
+                const m: i32 = if (@FieldType(PI, "minutes") != void) pi.minutes else 0;
+                const s: i32 = if (@FieldType(PI, "seconds") != void) pi.seconds else 0;
+                const milli: i32 = if (@FieldType(PI, "ms") != void) pi.ms else 0;
+                dt.time = Time.from_hmsm(pi.hours, m, s, milli);
+            } else @compileError("Invalid pattern: " ++ pattern);
         }
 
         var dto: With_Offset = .{
             .dt = dt,
-            .utc_offset_ms = pi.utc_offset_ms orelse 0,
+            .utc_offset_ms = if (@FieldType(PI, "utc_offset_ms") != void) pi.utc_offset_ms else 0,
             .timezone = null,
         };
 
         if (timezone) |tz| {
             const tz_utc_offset_ms = tz.zone_info(dto.timestamp_s()).offset * 1000;
-            if (pi.utc_offset_ms) |pi_utc_offset_ms| {
-                if (tz_utc_offset_ms != pi_utc_offset_ms) {
+            if (@FieldType(PI, "utc_offset_ms") != void) {
+                if (tz_utc_offset_ms != pi.utc_offset_ms) {
                     return dto.in_timezone(tz);
                 }
             }
@@ -294,6 +310,7 @@ const Date = @import("date.zig").Date;
 const Time = @import("time.zig").Time;
 const Day = @import("day.zig").Day;
 const Year = @import("year.zig").Year;
+const ISO_Week_Date = @import("iso_week.zig").ISO_Week_Date;
 const Timezone = @import("Timezone.zig");
 const tzdb = @import("tzdb.zig");
 const formatting = @import("formatting.zig");

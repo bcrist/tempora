@@ -40,13 +40,13 @@ pub const Month = enum (u4) {
         }
 
         if (options.allow_numeric) {
-            const numeric = std.fmt.parseInt(u4, trimmed, 10) catch return error.InvalidPattern;
+            const numeric = std.fmt.parseInt(u4, trimmed, 10) catch return error.InvalidString;
             if (numeric >= 1 and numeric <= 12) {
                 return @enumFromInt(numeric);
             }
         }
         
-        return error.InvalidPattern;
+        return error.InvalidString;
     }
 
     pub fn as_number(self: Month) i32 {
@@ -163,18 +163,18 @@ pub const Month = enum (u4) {
 
 test "Month" {
     try std.testing.expectEqual(.january, try Month.from_string("Jan", .{}));
-    try std.testing.expectError(error.InvalidPattern, Month.from_string("Jan", .{ .allow_short = false }));
+    try std.testing.expectError(error.InvalidString, Month.from_string("Jan", .{ .allow_short = false }));
     try std.testing.expectEqual(.february, try Month.from_string("february", .{}));
     try std.testing.expectEqual(.february, try Month.from_string("february", .{ .allow_short = false }));
-    try std.testing.expectError(error.InvalidPattern, Month.from_string("febru", .{}));
+    try std.testing.expectError(error.InvalidString, Month.from_string("febru", .{}));
     try std.testing.expectEqual(.may, try Month.from_string("may", .{}));
     try std.testing.expectEqual(.october, try Month.from_string("OCT", .{}));
     try std.testing.expectEqual(.november, try Month.from_string("NOVembER", .{}));
     try std.testing.expectEqual(.december, try Month.from_string(" 12 ", .{ .allow_short = false, .allow_long = false }));
     try std.testing.expectEqual(.september, try Month.from_string("___9", .{ .allow_long = false }));
-    try std.testing.expectEqual(error.InvalidPattern, Month.from_string("___9", .{ .allow_numeric = false }));
-    try std.testing.expectError(error.InvalidPattern, Month.from_string("00", .{}));
-    try std.testing.expectError(error.InvalidPattern, Month.from_string("13", .{}));
+    try std.testing.expectEqual(error.InvalidString, Month.from_string("___9", .{ .allow_numeric = false }));
+    try std.testing.expectError(error.InvalidString, Month.from_string("00", .{}));
+    try std.testing.expectError(error.InvalidString, Month.from_string("13", .{}));
 
     try std.testing.expectEqual(31, Month.from_number(1).days_assume_non_leap_year());
     try std.testing.expectEqual(28, Month.from_number(2).days_assume_non_leap_year());

@@ -20,7 +20,7 @@ pub const Year = enum (i32) {
     };
     pub fn from_string(y: []const u8, options: From_String_Options) !Year {
         const trimmed = if (options.trim.len > 0) std.mem.trim(u8, y, options.trim) else y;
-        var numeric = std.fmt.parseInt(i32, trimmed, 10) catch return error.InvalidPattern;
+        var numeric = std.fmt.parseInt(i32, trimmed, 10) catch return error.InvalidString;
 
         if (options.allow_two_digit_year and trimmed.len == 2) {
             if (numeric < 50) {
@@ -35,7 +35,7 @@ pub const Year = enum (i32) {
             return from_number(numeric);
         }
 
-        return error.InvalidPattern;
+        return error.InvalidString;
     }
 
     pub fn is_leap(self: Year) bool {
@@ -70,16 +70,69 @@ pub const Year = enum (i32) {
     pub const Info = Year_Info;
     pub fn info(self: Year) Info {
         return .{
-            .year = self.as_number(),
+            .raw = self.as_number(),
             .starting_date = self.starting_date(),
             .is_leap = self.is_leap(),
         };
     }
+
+    pub const Dominical_Letter = enum (u4) {
+        a = Week_Day.sunday.as_unsigned(),
+        b = Week_Day.saturday.as_unsigned(),
+        c = Week_Day.friday.as_unsigned(),
+        d = Week_Day.thursday.as_unsigned(),
+        e = Week_Day.wednesday.as_unsigned(),
+        f = Week_Day.tuesday.as_unsigned(),
+        g = Week_Day.monday.as_unsigned(),
+
+        ag = Week_Day.sunday.as_unsigned() | leap_marker,
+        ba = Week_Day.saturday.as_unsigned() | leap_marker,
+        cb = Week_Day.friday.as_unsigned() | leap_marker,
+        dc = Week_Day.thursday.as_unsigned() | leap_marker,
+        ed = Week_Day.wednesday.as_unsigned() | leap_marker,
+        fe = Week_Day.tuesday.as_unsigned() | leap_marker,
+        gf = Week_Day.monday.as_unsigned() | leap_marker,
+
+        const leap_marker: u4 = 0x8;
+
+        pub fn from_yi(yi: Year_Info) Dominical_Letter {
+            var raw: u32 = yi.starting_date.week_day().as_unsigned();
+            if (yi.is_leap) raw |= leap_marker;
+            return @enumFromInt(raw);
+        }
+
+        pub fn from_number(y: i32) Dominical_Letter {
+            return @enumFromInt(y);
+        }
+
+        pub fn as_number(self: Dominical_Letter) i32 {
+            return @intFromEnum(self);
+        }
+        pub fn as_unsigned(self: Dominical_Letter) u32 {
+            return @intCast(@intFromEnum(self));
+        }
+
+        pub fn is_leap_year(self: Dominical_Letter) bool {
+            return (self.as_unsigned & leap_marker) != 0;
+        }
+    };
+    pub fn dominical_letter(self: Year) Dominical_Letter {
+        return .from_yi(self.info());
+    }
+
+    pub fn plus(self: Year, delta_years: i32) Year {
+        return .from_number(self.as_number() + delta_years);
+    }
 };
+
 pub const Year_Info = struct {
-    year: i32,
+    raw: i32,
     starting_date: Date,
     is_leap: bool,
+
+    pub fn year(self: Year_Info) Year {
+        return .from_number(self.raw);
+    }
 };
 
 test "Year" {
@@ -89,13 +142,13 @@ test "Year" {
     try expectEqual(1999, Year.from_number(1999).as_number());
     try expectEqual(1970, Year.from_number(1970).as_number());
     try expectEqual(Year.from_number(2024), try Year.from_string("2024", .{}));
-    try expectError(error.InvalidPattern, Year.from_string("2024", .{ .allow_non_two_digit_year = false }));
+    try expectError(error.InvalidString, Year.from_string("2024", .{ .allow_non_two_digit_year = false }));
     try expectEqual(Year.from_number(2024), try Year.from_string("'24", .{}));
     try expectEqual(Year.from_number(24), try Year.from_string("'24", .{ .allow_two_digit_year = false }));
     try expectEqual(Year.from_number(1969), try Year.from_string("69", .{}));
     try expectEqual(Year.from_number(123), try Year.from_string("123", .{}));
     try expectEqual(Year.from_number(4), try Year.from_string(" 4 ", .{}));
-    try expectError(error.InvalidPattern, Year.from_string("'24", .{ .allow_two_digit_year = false, .allow_non_two_digit_year = false }));
+    try expectError(error.InvalidString, Year.from_string("'24", .{ .allow_two_digit_year = false, .allow_non_two_digit_year = false }));
 
     try expect(Year.from_number(2000).is_leap());
     try expect(!Year.from_number(2001).is_leap());
@@ -154,6 +207,7 @@ const expect = std.testing.expect;
 const expectEqual = std.testing.expectEqual;
 const expectError = std.testing.expectError;
 
+const Week_Day = @import("week_day.zig").Week_Day;
 const Date = @import("date.zig").Date;
 const formatting = @import("formatting.zig");
 const std = @import("std");

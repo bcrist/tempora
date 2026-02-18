@@ -1,3 +1,4 @@
+// Day of year; January 1 is always ordinal day 1
 
 pub const Ordinal_Day = enum (u9) {
     first = 1,
