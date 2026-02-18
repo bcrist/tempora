@@ -51,6 +51,10 @@ pub fn build(b: *std.Build) void {
     });
     b.installArtifact(dump_exe);
 
+    const dump = b.addRunArtifact(dump_exe);
+    if (b.args) |args| dump.addArgs(args);
+    _ = b.step("dump", "Run dump utility").dependOn(&dump.step);
+
     const run_all_tests = b.step("test", "Run all tests");
 
     const tests = b.addTest(.{

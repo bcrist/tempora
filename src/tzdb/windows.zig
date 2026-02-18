@@ -25,10 +25,10 @@ const TIME_ZONE_ID_INVALID: win.DWORD = 0xffffffff;
 
 extern "kernel32" fn GetDynamicTimeZoneInformation(time_zone_information: *DYNAMIC_TIME_ZONE_INFORMATION) callconv(.winapi) win.DWORD;
 
-fn current_timezone_id_windows() ![]const u8 {
+pub fn current_timezone_id() ![]const u8 {
     var tzinfo: DYNAMIC_TIME_ZONE_INFORMATION = undefined;
     if (GetDynamicTimeZoneInformation(&tzinfo) == TIME_ZONE_ID_INVALID) {
-        return win.unexpectedError(win.kernel32.GetLastError());
+        return win.unexpectedError(win.GetLastError());
     }
 
     const wide = std.mem.sliceTo(&tzinfo.time_zone_key_name, 0);
@@ -219,27 +219,6 @@ fn current_timezone_id_windows() ![]const u8 {
     log.info("Falling back to closest GMT offset: {s}", .{ id });
 
     return id;
-}
-
-fn current_timezone_id_unix() ![]const u8 {
-    var buf: [std.fs.max_path_bytes]u8 = undefined;
-    const raw = try std.fs.cwd().readLink("/etc/localtime", &buf);
-    const prefix = "/usr/share/zoneinfo/";
-
-    if (std.mem.startsWith(u8, raw, prefix)) {
-        return raw[prefix.len..];
-    }
-
-    log.err("Expected /etc/localtime to be a link into {s}; but found {s}", .{ prefix, raw });
-    return error.InvalidTimezone;
-}
-
-pub fn current_timezone_id() ![]const u8 {
-    if (builtin.os.tag == .windows) {
-        return current_timezone_id_windows();
-    } else {
-        return current_timezone_id_unix();
-    }
 }
 
 const log = std.log.scoped(.tempora);

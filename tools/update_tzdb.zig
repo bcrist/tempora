@@ -1,20 +1,18 @@
 
-pub fn main() !void {
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
-    const aa = arena.allocator();
+pub fn main(init: std.process.Init) !void {
+    const aa = init.arena.allocator();
 
     const Sha256 = std.crypto.hash.sha2.Sha256;
     const Digest = [Sha256.digest_length]u8;
 
     var id_to_digest: std.StringHashMapUnmanaged(Digest) = .empty;
-    defer id_to_digest.deinit(gpa);
+    defer id_to_digest.deinit(init.gpa);
 
     var digest_to_data: std.AutoHashMapUnmanaged(Digest, []const u8) = .empty;
-    defer digest_to_data.deinit(gpa);
+    defer digest_to_data.deinit(init.gpa);
 
     var designation_to_offset: std.StringHashMapUnmanaged(i32) = .empty;
-    defer designation_to_offset.deinit(gpa);
+    defer designation_to_offset.deinit(init.gpa);
 
     const designation_override_kvs = .{
         .{ "LMT", null }, // "Local mean time" - not a standard designation
@@ -59,25 +57,74 @@ pub fn main() !void {
 
     const designation_overrides = std.StaticStringMap(?i32).initComptime(designation_override_kvs);
 
-    const zoneinfo = try std.fs.cwd().openDir("/usr/share/zoneinfo", .{ .iterate = true });
-    var walker = try zoneinfo.walk(gpa);
+    const ignored_zones = std.StaticStringMap(void).initComptime(.{
+        .{ "localtime", {} },
+        .{ "leapseconds", {} },
+        .{ "posixrules", {} },
+        .{ "Zulu", .{} },
+        .{ "UCT", .{} },
+        .{ "Universal", .{} },
+        .{ "CET", {} },
+        .{ "CST6CDT", {} },
+        .{ "EET", {} },
+        .{ "EST", {} },
+        .{ "EST5EDT", {} },
+        .{ "Cuba", {} },
+        .{ "Egypt", {} },
+        .{ "Eire", {} },
+        .{ "Factory", .{} },
+        .{ "GB", {} },
+        .{ "GB-Eire", {} },
+        .{ "Greenwich", {} },
+        .{ "HST", {} },
+        .{ "Hongkong", {} },
+        .{ "Iceland", {} },
+        .{ "Iran", {} },
+        .{ "Israel", {} },
+        .{ "Jamaica", {} },
+        .{ "Japan", {} },
+        .{ "Kwajalein", {} },
+        .{ "Libya", {} },
+        .{ "MET", {} },
+        .{ "MST", {} },
+        .{ "MST7MDT", {} },
+        .{ "NZ", {} },
+        .{ "NZ-CHAT", {} },
+        .{ "Navajo", {} },
+        .{ "PRC", {} },
+        .{ "PST8PDT", {} },
+        .{ "Poland", {} },
+        .{ "Portugal", {} },
+        .{ "ROC", {} },
+        .{ "ROK", {} },
+        .{ "Singapore", {} },
+        .{ "Turkey", {} },
+        .{ "W-SU", {} },
+        .{ "WET", {} },
+    });
+
+    const zoneinfo: std.Io.Dir = for (tempora.tzdb.common_tzdata_locations) |tzdata_root| {
+        break std.Io.Dir.openDirAbsolute(init.io, tzdata_root, .{ .iterate = true }) catch continue;
+    } else return error.ZoneinfoNotFound;
+
+    var walker = try zoneinfo.walk(init.gpa);
     defer walker.deinit();
 
-    while (try walker.next()) |entry| {
+    while (try walker.next(init.io)) |entry| {
         if (entry.kind == .file or entry.kind == .sym_link) {
             if (std.mem.startsWith(u8, entry.path, "right/")) continue;
             if (std.mem.startsWith(u8, entry.path, "posix/")) continue;
+            if (std.mem.startsWith(u8, entry.path, "GMT")) continue;
             if (std.fs.path.extension(entry.path).len > 0) continue;
-            if (std.mem.eql(u8, entry.path, "localtime")) continue;
-            if (std.mem.eql(u8, entry.path, "leapseconds")) continue;
+            if (ignored_zones.has(entry.path)) continue;
 
             //std.log.info("{s}", .{ entry.path });
             const id = try aa.dupe(u8, entry.path);
-            const stat = try zoneinfo.statFile(id);
+            const stat = try zoneinfo.statFile(init.io, id, .{ .follow_symlinks = true });
 
-            const data = try zoneinfo.readFileAllocOptions(aa, id, 1_000_000, stat.size, .@"1", null);
+            const data = try zoneinfo.readFileAllocOptions(init.io, id, aa, .limited(1_000_000), .@"1", null);
 
-            var compressed = try std.io.Writer.Allocating.initCapacity(aa, (stat.size / 2) * 3);
+            var compressed = try std.Io.Writer.Allocating.initCapacity(aa, (stat.size / 2) * 3);
             var buf: [flate.max_window_len]u8 = undefined;
             var compressor = try flate.Compress.init(&compressed.writer, &buf, .zlib, .best);
             try compressor.writer.writeAll(data);
@@ -95,7 +142,7 @@ pub fn main() !void {
                 if (std.mem.startsWith(u8, zi.designation, "-")) continue;
                 if (designation_overrides.get(zi.designation)) |_| continue;
 
-                const result = try designation_to_offset.getOrPut(gpa, zi.designation);
+                const result = try designation_to_offset.getOrPut(init.gpa, zi.designation);
                 if (result.found_existing) {
                     if (result.value_ptr.* != zi.offset) {
                         std.log.warn("Multiple offsets found for designation {s}: first saw {}, now {}", .{
@@ -110,33 +157,35 @@ pub fn main() !void {
                 }
             }
 
-            try id_to_digest.put(gpa, id, digest);
-            try digest_to_data.put(gpa, digest, compressed_data);
+            try id_to_digest.put(init.gpa, id, digest);
+            try digest_to_data.put(init.gpa, digest, compressed_data);
         }
     }
 
     inline for (designation_override_kvs) |entry| {
         if (@typeInfo(@TypeOf(entry[1])) != .null) {
-            try designation_to_offset.putNoClobber(gpa, entry[0], entry[1]);
+            try designation_to_offset.putNoClobber(init.gpa, entry[0], entry[1]);
         }
     }
 
-    for (1..13) |neg_utc_offset| {
+    try id_to_digest.put(init.gpa, "GMT", id_to_digest.get("Etc/GMT").?);
+
+    for (0..13) |neg_utc_offset| {
         var buf1: [32]u8 = undefined;
         var buf2: [32]u8 = undefined;
         const src_id = try std.fmt.bufPrint(&buf1, "Etc/GMT+{}", .{ neg_utc_offset });
         const dest_id = try std.fmt.bufPrint(&buf2, "GMT-{}", .{ neg_utc_offset });
         const duped = try aa.dupe(u8, dest_id);
-        try id_to_digest.put(gpa, duped, id_to_digest.get(src_id).?);
+        try id_to_digest.put(init.gpa, duped, id_to_digest.get(src_id).?);
     }
 
-    for (1..15) |utc_offset| {
+    for (0..15) |utc_offset| {
         var buf1: [32]u8 = undefined;
         var buf2: [32]u8 = undefined;
         const src_id = try std.fmt.bufPrint(&buf1, "Etc/GMT-{}", .{ utc_offset });
         const dest_id = try std.fmt.bufPrint(&buf2, "GMT+{}", .{ utc_offset });
         const duped = try aa.dupe(u8, dest_id);
-        try id_to_digest.put(gpa, duped, id_to_digest.get(src_id).?);
+        try id_to_digest.put(init.gpa, duped, id_to_digest.get(src_id).?);
     }
 
     const sorted_designations: [][]const u8 = try aa.alloc([]const u8, designation_to_offset.count());
@@ -164,19 +213,19 @@ pub fn main() !void {
     }
 
 
-    const data_dir = try std.fs.cwd().openDir("src/tzdb/data", .{ .iterate = true });
-    var data_walker = try data_dir.walk(gpa);
+    const data_dir = try std.Io.Dir.cwd().openDir(init.io, "src/tzdb/data", .{ .iterate = true });
+    var data_walker = try data_dir.walk(init.gpa);
     defer data_walker.deinit();
-    while (try data_walker.next()) |entry| {
+    while (try data_walker.next(init.io)) |entry| {
         if (entry.kind == .file) {
-            try data_dir.deleteFile(entry.path);
+            try data_dir.deleteFile(init.io, entry.path);
         }
     }
 
-    var file = try std.fs.cwd().createFile("src/tzdb/data.zig", .{});
-    defer file.close();
+    var file = try std.Io.Dir.cwd().createFile(init.io, "src/tzdb/data.zig", .{});
+    defer file.close(init.io);
     var buf: [16384]u8 = undefined;
-    var file_writer = file.writer(&buf);
+    var file_writer = file.writer(init.io, &buf);
     var writer = &file_writer.interface;
 
     try writer.writeAll(
@@ -261,10 +310,10 @@ pub fn main() !void {
             var hex_buf: [digest.len*2]u8 = undefined;
             const hex = try std.fmt.bufPrint(&hex_buf, "{x}", .{ &digest });
 
-            var dir = try data_dir.makeOpenPath(hex[0..1], .{});
-            defer dir.close();
+            var dir = try data_dir.createDirPathOpen(init.io, hex[0..1], .{});
+            defer dir.close(init.io);
 
-            try std.fs.Dir.writeFile(dir, .{
+            try dir.writeFile(init.io, .{
                 .sub_path = hex,
                 .data = compressed_data,
             });
@@ -299,8 +348,6 @@ pub fn main() !void {
 fn sort_string(_: void, left: []const u8, right: []const u8) bool {
     return std.mem.lessThan(u8, left, right);
 }
-
-const gpa = std.heap.smp_allocator;
 
 const flate = @import("flate.zig");
 const tempora = @import("tempora");

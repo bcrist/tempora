@@ -1,12 +1,13 @@
 .{
     .name = .tempora,
     .fingerprint = 0xb3d860680d9e3c19,
-    .version = "0.4.0",
-    .minimum_zig_version = "0.15.1",
+    .version = "0.5.0",
+    .minimum_zig_version = "0.16.0-dev.2626+0e3c6514a",
     .paths = .{
         "src",
         "build.zig",
         "build.zig.zon",
+        "license",
     },
     .dependencies = .{},
 }

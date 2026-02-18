@@ -231,7 +231,7 @@ pub const Date = enum (i32) {
     pub const uk = "D MMMM Y";
     pub const uk_numeric = "D/M/Y";
 
-    pub fn format(self: Date, writer: *std.io.Writer) !void {
+    pub fn format(self: Date, writer: *std.Io.Writer) !void {
         try formatting.format(self.with_time(.midnight).with_offset(0), iso8601, writer);
     }
 
@@ -242,14 +242,14 @@ pub const Date = enum (i32) {
     pub fn Formatter(comptime pattern: []const u8) type {
         return struct {
             date: Date,
-            pub inline fn format(self: @This(), writer: *std.io.Writer) !void {
+            pub inline fn format(self: @This(), writer: *std.Io.Writer) !void {
                 try formatting.format(self.date.with_time(.midnight).with_offset(0), pattern, writer);
             }
         };
     }
 
     pub fn from_string(comptime pattern: []const u8, str: []const u8) !Date {
-        var reader = std.io.Reader.fixed(str);
+        var reader = std.Io.Reader.fixed(str);
         const pi = formatting.parse(if (pattern.len == 0) iso8601 else pattern, &reader) catch |err| switch (err) {
             error.InvalidString => return err,
             error.EndOfStream => return error.InvalidString,

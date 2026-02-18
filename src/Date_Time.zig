@@ -177,7 +177,7 @@ pub const With_Offset = struct {
     pub const sql = "YYYY-MM-DD HH:mm:ss z";
     pub const sql_local = "YYYY-MM-DD HH:mm:ss";
 
-    pub fn format(self: With_Offset, writer: *std.io.Writer) !void {
+    pub fn format(self: With_Offset, writer: *std.Io.Writer) !void {
         try formatting.format(self, iso8601, writer);
     }
 
@@ -188,7 +188,7 @@ pub const With_Offset = struct {
     pub fn Formatter(comptime pattern: []const u8) type {
         return struct {
             date_time_with_offset: With_Offset,
-            pub fn format(self: @This(), writer: *std.io.Writer) !void {
+            pub fn format(self: @This(), writer: *std.Io.Writer) !void {
                 try formatting.format(self.date_time_with_offset, pattern, writer);
             }
         };
@@ -199,7 +199,7 @@ pub const With_Offset = struct {
     }
 
     pub fn from_string_tz(comptime pattern: []const u8, str: []const u8, timezone: ?*const Timezone) !With_Offset {
-        var reader = std.io.Reader.fixed(str);
+        var reader = std.Io.Reader.fixed(str);
         const pi = formatting.parse(if (pattern.len == 0) iso8601 else pattern, &reader) catch |err| switch (err) {
             error.InvalidString => return err,
             error.EndOfStream => return error.InvalidString,
@@ -278,12 +278,14 @@ pub const With_Offset = struct {
 };
 
 test "Date_Time" {
-    // TODO diagnose leak when using std.testing.allocator for tz cache
-    try tzdb.init_cache(std.heap.smp_allocator);
+    try tzdb.init_cache(.{
+        .gpa = std.testing.allocator,
+        .additional_tzdata_paths = &.{},
+    });
     defer tzdb.deinit_cache();
 
-    const tz = (try tzdb.timezone("America/Chicago")).?;
-    const gmt = (try tzdb.timezone("GMT")).?;
+    const tz = (try tzdb.timezone(std.testing.io, "America/Chicago")).?;
+    const gmt = (try tzdb.timezone(std.testing.io, "GMT")).?;
 
     const dt1 = (Date_Time {
         .date = .from_ymd(.{ .year = .from_number(2024), .month = .february, .day = .first }),
