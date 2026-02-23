@@ -125,8 +125,8 @@ pub fn main(init: std.process.Init) !void {
             const data = try zoneinfo.readFileAllocOptions(init.io, id, aa, .limited(1_000_000), .@"1", null);
 
             var compressed = try std.Io.Writer.Allocating.initCapacity(aa, (stat.size / 2) * 3);
-            var buf: [flate.max_window_len]u8 = undefined;
-            var compressor = try flate.Compress.init(&compressed.writer, &buf, .zlib, .best);
+            var buf: [std.compress.flate.max_window_len]u8 = undefined;
+            var compressor = try std.compress.flate.Compress.init(&compressed.writer, &buf, .zlib, .best);
             try compressor.writer.writeAll(data);
             try compressor.writer.flush();
             const compressed_data = compressed.written();
@@ -349,6 +349,5 @@ fn sort_string(_: void, left: []const u8, right: []const u8) bool {
     return std.mem.lessThan(u8, left, right);
 }
 
-const flate = @import("flate.zig");
 const tempora = @import("tempora");
 const std = @import("std");
