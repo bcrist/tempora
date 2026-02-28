@@ -217,7 +217,7 @@ pub fn current_timezone(io: std.Io) !?*const Timezone {
                 const raw_bytes = try std.Io.Dir.cwd().readLink(io, "/etc/localtime", &buf);
                 var raw = buf[0..raw_bytes];
 
-                var id = "(Current)";
+                var id: []const u8 = "(Current)";
 
                 if (c.tzdata_path.len > 0 and std.mem.startsWith(u8, raw, c.tzdata_path)) {
                     id = try c.arena.allocator().dupe(u8, raw[c.tzdata_path.len..]);
