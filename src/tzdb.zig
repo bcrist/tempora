@@ -214,7 +214,8 @@ pub fn current_timezone(io: std.Io) !?*const Timezone {
             },
             else => {
                 var buf: [std.fs.max_path_bytes]u8 = undefined;
-                const raw = try std.Io.Dir.cwd().readLink(io, "/etc/localtime", &buf);
+                const raw_bytes = try std.Io.Dir.cwd().readLink(io, "/etc/localtime", &buf);
+                var raw = buf[0..raw_bytes];
 
                 var id = "(Current)";
 
