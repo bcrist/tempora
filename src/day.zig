@@ -79,6 +79,6 @@ pub const Day = enum(u5) {
     }
 };
 
-const Year = @import("Year.zig");
-const Ordinal_Day = @import("Ordinal_Day.zig");
+const Year = @import("year.zig");
+const Ordinal_Day = @import("ordinal_day.zig");
 const std = @import("std");
