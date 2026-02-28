@@ -16,4 +16,4 @@ jobs:
         with:
           version: master
       - run: zig build -Dtarget=x86_64-windows
-      - run: zig build test
+      - run: zig build install test
