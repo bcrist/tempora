@@ -189,7 +189,7 @@ pub fn current_timezone(io: std.Io) !?*const Timezone {
                 return tz;
             }
             if (parse_tzif.parse_posix_tz(c.current_tz)) |posix_tz| {
-                var stable_tz = try c.arena.allocator().create(Timezone);
+                const stable_tz = try c.arena.allocator().create(Timezone);
                 stable_tz.* = .{
                     .id = "(Current)",
                     .transitions = .empty,
