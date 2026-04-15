@@ -91,7 +91,7 @@ pub const ISO_Week_Date = struct {
     pub const iso8601_week = "GGGG-[W]WW";
     pub const datecode = "GGWW"; 
 
-    pub fn format(self: ISO_Week_Date, writer: *std.io.Writer) !void {
+    pub fn format(self: ISO_Week_Date, writer: *std.Io.Writer) !void {
         try formatting.format(self.date().with_time(.midnight).with_offset(0), iso8601_week_date, writer);
     }
 
@@ -102,14 +102,14 @@ pub const ISO_Week_Date = struct {
     pub fn Formatter(comptime pattern: []const u8) type {
         return struct {
             date: Date,
-            pub inline fn format(self: @This(), writer: *std.io.Writer) !void {
+            pub inline fn format(self: @This(), writer: *std.Io.Writer) !void {
                 try formatting.format(self.date.with_time(.midnight).with_offset(0), pattern, writer);
             }
         };
     }
 
     pub fn from_string(comptime pattern: []const u8, str: []const u8) !ISO_Week_Date {
-        var reader = std.io.Reader.fixed(str);
+        var reader = std.Io.Reader.fixed(str);
         const pi = formatting.parse(if (pattern.len == 0) iso8601_week_date else pattern, &reader) catch |err| switch (err) {
             error.InvalidString => return err,
             error.EndOfStream => return error.InvalidString,

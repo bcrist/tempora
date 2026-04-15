@@ -30,7 +30,7 @@
 * `tempora.Date.YMD` <=> `zeit.Date`
 * `zeit.Time` and `zeit.Instant` do not have exact equivalents in Tempora, but similar functionality can be achieved with `tempora.Date_Time.With_Offset`, `tempora.Date.YMD`, `tempora.Date.Info`, etc.
 * `zeit.Duration` does not have an equivalent in Tempora.  The closest you can get is converting to timestamps, subtracting, and then constructing a `Time` from the result.
-* Tempora's formatting functionality works out-of-the-box with `std.io.Writer`, while Zeit only has a custom `bufPrint`.
+* Tempora's formatting functionality works out-of-the-box with `std.Io.Writer`, while Zeit only has a custom `bufPrint`.
 * Tempora's string parsing is more generic and uses the same format strings as for output.  Zeit cannot parse arbitrary string formats, only specific RFC-defined formats.
 * Zeit provides a function which closely mirror's C's `strftime` while tempora does not. 
 * Zeit assumes the filesystem will contain a zoneinfo database containing all the standard IANA timezone names (except on windows).  Tempora embeds a database directly in the app, allowing timezone operations to work on freestanding targets.

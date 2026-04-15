@@ -2,7 +2,7 @@ const eval_branch_quota = 100_000;
 
 pub const default_from_string_trim = std.ascii.whitespace ++ "-/,._'";
 
-pub fn format(dto: Date_Time.With_Offset, comptime pattern: []const u8, writer: *std.io.Writer) std.io.Writer.Error!void {
+pub fn format(dto: Date_Time.With_Offset, comptime pattern: []const u8, writer: *std.Io.Writer) std.Io.Writer.Error!void {
     @setEvalBranchQuota(eval_branch_quota);
 
     comptime var iter = Token.iterator(pattern);
@@ -241,7 +241,7 @@ pub fn Parse_Result(comptime pattern: []const u8) type {
     };
 }
 
-pub fn parse(comptime pattern: []const u8, reader: *std.io.Reader) Parse_Error!Parse_Result(pattern) {
+pub fn parse(comptime pattern: []const u8, reader: *std.Io.Reader) Parse_Error!Parse_Result(pattern) {
     var parsed: Parse_Result(pattern) = undefined;
     @setEvalBranchQuota(eval_branch_quota);
 
@@ -805,7 +805,7 @@ const Token = union (enum) {
     };
 };
 
-fn write_ordinal(writer: *std.io.Writer, num: u32) std.io.Writer.Error!void {
+fn write_ordinal(writer: *std.Io.Writer, num: u32) std.Io.Writer.Error!void {
     try writer.print("{d}", .{ num });
     try writer.writeAll(switch(num % 100) {
         11, 12, 13 => "th",
@@ -818,7 +818,7 @@ fn write_ordinal(writer: *std.io.Writer, num: u32) std.io.Writer.Error!void {
     });
 }
 
-fn read_int(comptime T: type, reader: *std.io.Reader) Parse_Error!T {
+fn read_int(comptime T: type, reader: *std.Io.Reader) Parse_Error!T {
     var sign: T = 1;
     var value: T = 0;
 
@@ -852,7 +852,7 @@ fn read_int(comptime T: type, reader: *std.io.Reader) Parse_Error!T {
     return std.math.mul(T, sign, value) catch return error.InvalidString;
 }
 
-fn read_utc_offset(reader: *std.io.Reader, colon: bool) !i32 {
+fn read_utc_offset(reader: *std.Io.Reader, colon: bool) !i32 {
     const mult: i32 = switch (try reader.takeByte()) {
         '+' => 1,
         '-' => -1,

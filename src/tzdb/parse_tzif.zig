@@ -69,7 +69,7 @@ pub const TZif_Header = struct {
     }
 };
 
-pub fn parse_header(reader: *std.io.Reader) !TZif_Header {
+pub fn parse_header(reader: *std.Io.Reader) !TZif_Header {
     var magic_buf: [4]u8 = undefined;
     try reader.readSliceAll(&magic_buf);
     if (!std.mem.eql(u8, "TZif", &magic_buf)) {
@@ -287,7 +287,7 @@ pub fn parse_posix_tz(string: []const u8) !Timezone.POSIX_TZ {
     return result;
 }
 
-pub fn parse(allocator: std.mem.Allocator, reader: *std.io.Reader) !Timezone {
+pub fn parse(allocator: std.mem.Allocator, reader: *std.Io.Reader) !Timezone {
     const v1_header = try parse_header(reader);
     try reader.discardAll(v1_header.data_size(.V1));
 
@@ -426,17 +426,8 @@ pub fn parse(allocator: std.mem.Allocator, reader: *std.io.Reader) !Timezone {
     };
 }
 
-pub fn parse_file(allocator: std.mem.Allocator, path: []const u8) !Timezone {
-    const file = try std.fs.cwd().openFile(path, .{});
-    defer file.close();
-
-    var buf: [8192]u8 = undefined;
-    var reader = file.reader(&buf);
-    return parse(allocator, &reader.interface);
-}
-
 pub fn parse_memory(allocator: std.mem.Allocator, data: []const u8) !Timezone {
-    var reader = std.io.Reader.fixed(data);
+    var reader = std.Io.Reader.fixed(data);
     return parse(allocator, &reader);
 }
 

@@ -150,7 +150,7 @@ pub const Time = enum (i32) {
         pub const hms = "h:mm:ss a";
         pub const hm = "h:mm a";
 
-        pub fn format(self: With_Offset, writer: *std.io.Writer) !void {
+        pub fn format(self: With_Offset, writer: *std.Io.Writer) !void {
             try formatting.format(self.with_date(.epoch), iso8601, writer);
         }
 
@@ -161,7 +161,7 @@ pub const Time = enum (i32) {
         pub fn Formatter(comptime pattern: []const u8) type {
             return struct {
                 time_with_offset: With_Offset,
-                pub fn format(self: @This(), writer: *std.io.Writer) !void {
+                pub fn format(self: @This(), writer: *std.Io.Writer) !void {
                     try formatting.format(self.time_with_offset.with_date(.epoch), pattern, writer);
                 }
             };
@@ -172,7 +172,7 @@ pub const Time = enum (i32) {
         }
 
         pub fn from_string_tz(comptime pattern: []const u8, str: []const u8, timezone: ?*const Timezone) !With_Offset {
-            var stream = std.io.Reader.fixed(str);
+            var stream = std.Io.Reader.fixed(str);
             const pi = formatting.parse(if (pattern.len == 0) iso8601 else pattern, &stream) catch |err| switch (err) {
                 error.InvalidString => return err,
                 error.EndOfStream => return error.InvalidString,
@@ -197,7 +197,7 @@ pub const Time = enum (i32) {
                 const milli = if (@FieldType(PI, "ms") != void) pi.ms else 0;
                 return .{
                     .time = Time.from_hmsm(pi.hours, m, s, milli),
-                    .utc_offset_ms = if (@FieldType(PI, "utc_offset_ms") != void) pi.utc_offset_ms else if (timezone) |tz| tz.zone_info(std.time.timestamp()).offset * 1000 else 0,
+                    .utc_offset_ms = if (@FieldType(PI, "utc_offset_ms") != void) pi.utc_offset_ms else if (timezone) |tz| tz.zone_info(0).offset * 1000 else 0,
                     .timezone = timezone,
                 };
             }

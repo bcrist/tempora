@@ -205,7 +205,7 @@ pub const POSIX_TZ = struct {
             }
         }
 
-        pub fn format(self: Rule, writer: *std.io.Writer) !void {
+        pub fn format(self: Rule, writer: *std.Io.Writer) !void {
             switch (self) {
                 .julian_day => |julian_day| {
                     try writer.print("J{}", .{julian_day.day});
@@ -353,7 +353,7 @@ pub const POSIX_TZ = struct {
         }
     }
 
-    pub fn format(self: POSIX_TZ, writer: *std.io.Writer) !void {
+    pub fn format(self: POSIX_TZ, writer: *std.Io.Writer) !void {
         const should_quote_std_designation = for (self.std_designation) |character| {
             if (!std.ascii.isAlphabetic(character)) {
                 break true;

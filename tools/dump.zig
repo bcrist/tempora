@@ -1,16 +1,11 @@
-pub fn main() !u8 {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
-
-    try tempora.tzdb.init_cache(gpa.allocator());
+pub fn main(init: std.process.Init) !u8 {
+    try tempora.tzdb.init_cache(.init(init));
     defer tempora.tzdb.deinit_cache();
 
-    const args = try std.process.argsAlloc(allocator);
-    defer std.process.argsFree(allocator, args);
+    const args = try init.minimal.args.toSlice(init.arena.allocator());
 
     var stdout_buf: [64]u8 = undefined;
-    var stdout = std.fs.File.stdout().writer(&stdout_buf);
+    var stdout = std.Io.File.stdout().writer(init.io, &stdout_buf);
     var writer = &stdout.interface;
 
     if (args.len < 2) {
@@ -20,12 +15,12 @@ pub fn main() !u8 {
 
     const show_transitions = args.len >= 3 and std.mem.eql(u8, "--transitions", args[2]);
 
-    if (try tempora.tzdb.timezone(args[1])) |tz| {
+    if (try tempora.tzdb.timezone(init.io, args[1])) |tz| {
         if (tz.posix_tz) |ptz| {
             try writer.print("POSIX timezone string: {f}\n", .{ ptz });
         }
 
-        const now = std.time.timestamp();
+        const now = std.Io.Clock.real.now(init.io).toSeconds();
         const zi = tz.zone_info(now);
         try writer.print("Current Time: {f}  offset={}s  dst={}  source={s}\n", .{
             tempora.Date_Time.With_Offset.from_timestamp_s(now, null).in_timezone(tz).fmt("YYYY-MM-DD HH:mm:ss z"),
