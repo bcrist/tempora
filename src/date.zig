@@ -406,15 +406,17 @@ const civil64 = struct {
         // 3. Year-modulo-bitshift for leap years, also revert to forward direction.
         const mod: u32 = @intCast(@mod(years, 4));
         const n: u32 = mod * (16 * scale) + shift - year_part;
-        const raw_month: u32 = n / (2048 * scale);
+        var month: u32 = n / (2048 * scale);
         const raw_day: i32 = @intCast((c3 * (n % (2048 * scale))) >> 64);
+
+        if (scale == 1) {
+            bump = month > 12;
+            if (bump) month -= 12;
+        }
 
         return .{
             .year = .from_number(if (bump) years + 1 else years),
-            .month = .from_number(@intCast(if (scale == 1) month: {
-                bump = raw_month > 12;
-                break :month if (bump) raw_month - 12 else raw_month;
-            } else raw_month)),
+            .month = .from_number(@intCast(month)),
             .day = .from_number (raw_day + 1),
         };
     }
