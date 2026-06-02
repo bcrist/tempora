@@ -78,18 +78,48 @@ pub const Week_Day = enum(u3) {
     pub fn short_name(self: Week_Day) []const u8 {
         return self.name()[0..3];
     }
+
+    pub fn is_before(self: Week_Day, other: Week_Day) bool {
+        return @intFromEnum(self) < @intFromEnum(other);
+    }
+
+    pub fn is_after(self: Week_Day, other: Week_Day) bool {
+        return @intFromEnum(self) > @intFromEnum(other);
+    }
+
+    pub fn plus(self: Week_Day, days: i32) Week_Day {
+        return .from_number(@intCast(@mod(self.as_number() + days - 1, 7) + 1));
+    }
+
+    pub fn prev(self: Week_Day) Week_Day {
+        return self.plus(-1);
+    }
+
+    pub fn next(self: Week_Day) Week_Day {
+        return self.plus(1);
+    }
+
+    /// This may return the same date.
+    /// for the alternative, use Date.next_week_day()
+    pub fn on_or_after(self: Week_Day, date: Date) Date {
+        const current: i32 = date.week_day().as_number();
+        const target: i32 = self.as_number();
+        var delta_days = target - current;
+        if (current > target) delta_days += 7;
+        return date.plus_days(delta_days);
+    }
+
+    /// This may return the same date.
+    /// for the alternative, use Date.prev_week_day()
+    pub fn on_or_before(self: Week_Day, date: Date) Date {
+        const current: i32 = date.week_day().as_number();
+        const target: i32 = self.as_number();
+        var delta_days = target - current;
+        if (current < target) delta_days -= 7;
+        return date.plus_days(delta_days);
+    }
 };
 
-test "Week_Day" {
-    try expectEqual(.monday, try Week_Day.from_string("Mon", .{}));
-    try expectError(error.InvalidString, Week_Day.from_string("Tues", .{}));
-    try expectEqual(.wednesday, try Week_Day.from_string("wednesday", .{}));
-    try expectError(error.InvalidString, Week_Day.from_string("7", .{}));
-    try expectEqual(.saturday, try Week_Day.from_string("7", .{ .allow_numeric = true }));
-}
-
-const expectError = std.testing.expectError;
-const expectEqual = std.testing.expectEqual;
-
+const Date = @import("date.zig").Date;
 const formatting = @import("formatting.zig");
 const std = @import("std");

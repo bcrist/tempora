@@ -22,21 +22,21 @@ pub fn with_offset(self: Date_Time, utc_offset_ms: i32) With_Offset {
 /// This function will always pick the earlier option in these cases.
 pub fn with_timezone(self: Date_Time, timezone: *const Timezone) With_Offset {
     const offset_ts = self.with_offset(0).timestamp_ms();
-    var zi = timezone.zone_info(@divFloor(offset_ts, 1000));
-    var offset = zi.offset * 1000; 
+    var info = timezone.info(@divFloor(offset_ts, 1000));
+    var offset = info.utc_offset_seconds * 1000; 
     var ts = offset_ts - offset;
 
-    if (zi.begin_ts) |begin_ts| {
+    if (info.begin_ts) |begin_ts| {
         if (ts < begin_ts * 1000) {
-            zi = timezone.zone_info(@divFloor(ts, 1000));
-            offset = zi.offset * 1000;
+            info = timezone.info(@divFloor(ts, 1000));
+            offset = info.utc_offset_seconds * 1000;
             ts = offset_ts - offset;
 
-            if (zi.end_ts) |end_ts| {
+            if (info.end_ts) |end_ts| {
                 if (ts >= end_ts * 1000) {
-                    const zi2 = timezone.zone_info(@divFloor(ts, 1000));
-                    const offset2 = zi2.offset * 1000;
-                    const ts2 = offset_ts - offset;
+                    const info2 = timezone.info(@divFloor(ts, 1000));
+                    const offset2 = info2.utc_offset_seconds * 1000;
+                    const ts2 = offset_ts - offset2;
 
                     if (ts2 < ts) {
                         ts = ts2;
@@ -47,23 +47,23 @@ pub fn with_timezone(self: Date_Time, timezone: *const Timezone) With_Offset {
 
             return .{
                 .dt = self,
-                .utc_offset_ms = offset,
+                .utc_offset_ms = offset + Timezone.Leap_Second.get_utc_offset_seconds(timezone.leap_seconds, @divFloor(ts, 1000)) * 1000,
                 .timezone = timezone,
             };
         }
     }
     
-    if (zi.end_ts) |end_ts| {
+    if (info.end_ts) |end_ts| {
         if (ts >= end_ts * 1000) {
-            zi = timezone.zone_info(@divFloor(ts, 1000));
-            offset = zi.offset * 1000;
+            info = timezone.info(@divFloor(ts, 1000));
+            offset = info.utc_offset_seconds * 1000;
             ts = offset_ts - offset;
 
-            if (zi.begin_ts) |begin_ts| {
+            if (info.begin_ts) |begin_ts| {
                 if (ts < begin_ts * 1000) {
-                    const zi2 = timezone.zone_info(@divFloor(ts, 1000));
-                    const offset2 = zi2.offset * 1000;
-                    const ts2 = offset_ts - offset;
+                    const info2 = timezone.info(@divFloor(ts, 1000));
+                    const offset2 = info2.utc_offset_seconds * 1000;
+                    const ts2 = offset_ts - offset2;
 
                     if (ts2 < ts) {
                         ts = ts2;
@@ -76,12 +76,19 @@ pub fn with_timezone(self: Date_Time, timezone: *const Timezone) With_Offset {
 
     return .{
         .dt = self,
-        .utc_offset_ms = offset,
+        .utc_offset_ms = offset + Timezone.Leap_Second.get_utc_offset_seconds(timezone.leap_seconds, @divFloor(ts, 1000)) * 1000,
         .timezone = timezone,
     };
 }
 
-/// N.B. this does not include leap seconds, and assumes both date/times are from the same timezone
+/// N.B. this does not include leap seconds, and assumes both date/times are from the same timezone.
+/// Use Date_Time.With_Offset.duration_since() to avoid these limitations.
+pub fn duration_since(self: Date_Time, past: Date_Time) std.Io.Duration {
+    return .fromMilliseconds(self.ms_since(past));
+}
+
+/// N.B. this does not include leap seconds, and assumes both date/times are from the same timezone.
+/// Use Date_Time.With_Offset.ms_since() to avoid these limitations.
 pub fn ms_since(self: Date_Time, past: Date_Time) i64 {
     const date_diff: i64 = @intFromEnum(self.date) - @intFromEnum(past.date);
     const time_diff: i64 = self.time.ms_since_midnight() - past.time.ms_since_midnight();
@@ -98,6 +105,14 @@ pub fn is_after(self: Date_Time, other: Date_Time) bool {
     if (self.date.is_after(other.date)) return true;
     if (self.date.is_before(other.date)) return false;
     return self.time.is_after(other.time);
+}
+
+pub fn plus_duration(self: Date_Time, duration: std.Io.Duration) Date_Time {
+    return self.plus_days_and_ms(0, duration.toMilliseconds());
+}
+
+pub fn minus_duration(self: Date_Time, duration: std.Io.Duration) Date_Time {
+    return self.plus_days_and_ms(0, -duration.toMilliseconds());
 }
 
 pub fn plus_days_and_ms(self: Date_Time, days: i32, ms: i64) Date_Time {
@@ -123,9 +138,13 @@ pub const With_Offset = struct {
     utc_offset_ms: i32,
     timezone: ?*const Timezone,
 
+    pub fn from_timestamp(ts: std.Io.Timestamp, timezone: ?*const Timezone) With_Offset {
+        return .from_timestamp_ms(ts.toMilliseconds(), timezone);
+    }
+
     pub fn from_timestamp_ms(ts: i64, timezone: ?*const Timezone) With_Offset {
         var utc_offset_ms: i32 = 0;
-        if (timezone) |tz| utc_offset_ms = tz.zone_info(@divFloor(ts, 1000)).offset * 1000;
+        if (timezone) |tz| utc_offset_ms = tz.utc_offset_ms(ts);
         const offset_ts = ts + utc_offset_ms;
 
         const days = @divFloor(offset_ts, std.time.ms_per_day);
@@ -149,6 +168,10 @@ pub const With_Offset = struct {
         return from_timestamp_ms(ts * 1000, timezone);
     }
 
+    pub fn timestamp(self: With_Offset) std.Io.Timestamp {
+        return .fromNanoseconds(self.timestamp_ms() * std.time.ns_per_ms);
+    }
+
     pub fn timestamp_ms(self: With_Offset) i64 {
         const days: i64 = @intFromEnum(self.dt.date) + 10957;
         const ms_since_midnight = self.dt.time.ms_since_midnight();
@@ -163,9 +186,128 @@ pub const With_Offset = struct {
         return from_timestamp_ms(self.timestamp_ms(), timezone);
     }
 
-    /// N.B. this does not include leap seconds
+    /// Returns a Date_Time.With_Offset representing the same timestamp, but ensuring that:
+    ///   * The `dt.time` field is before `.midnight_eod` but not before `.midnight`.
+    ///   * If there is a timezone, the `utc_offset_ms` field is correct for the timestamp.
+    /// Note that all `Date` values are canonical by definition.
+    pub fn canonical(self: With_Offset) With_Offset {
+        var utc_offset_ms = self.utc_offset_ms;
+        var delta_ms: ?i64 = null;
+        if (self.dt.time.is_before(.midnight) or !self.dt.time.is_before(.midnight_eod)) {
+            delta_ms = 0;
+        }
+        if (self.timezone) |tz| {
+            utc_offset_ms = tz.utc_offset_ms(self.timestamp_ms());
+            if (utc_offset_ms != self.utc_offset_ms) {
+                delta_ms = self.utc_offset_ms - utc_offset_ms;
+            }
+        }
+        return .{
+            .dt = if (delta_ms) self.dt.plus_days_and_ms(0, delta_ms) else self.dt,
+            .utc_offset_ms = utc_offset_ms,
+            .timezone = self.timezone,
+        };
+    }
+
+    pub fn duration_since(self: With_Offset, past: With_Offset) std.Io.Duration {
+        return .fromMilliseconds(self.ms_since(past));
+    }
+
     pub fn ms_since(self: With_Offset, past: With_Offset) i64 {
-        return self.timestamp_ms() - past.timestamp_ms();
+        if (self.timezone == &Timezone.tai and past.timezone == &Timezone.tai) {
+            return self.dt.ms_since(past.dt) + past.utc_offset_ms - self.utc_offset_ms;
+        } else {
+            const self_ts = self.timestamp_ms();
+            const past_ts = past.timestamp_ms();
+            const adj = Timezone.tai.utc_offset_ms(past_ts) - Timezone.tai.utc_offset_ms(self_ts);
+            return self_ts - past_ts + adj;
+        }
+    }
+
+    pub fn duration_since_ignore_leap_seconds(self: With_Offset, past: With_Offset) std.Io.Duration {
+        return .fromMilliseconds(self.ms_since_ignore_leap_seconds(past));
+    }
+
+    pub fn ms_since_ignore_leap_seconds(self: With_Offset, past: With_Offset) i64 {
+        return self.dt.ms_since(past.dt) + past.utc_offset_ms - self.utc_offset_ms;
+    }
+
+    pub fn is_before(self: With_Offset, other: With_Offset) bool {
+        if (self.utc_offset_ms == other.utc_offset_ms) {
+            return self.dt.is_before(other.dt);
+        }
+        const self_ts = self.timestamp_ms();
+        const other_ts = other.timestamp_ms();
+        return self_ts < other_ts;
+    }
+
+    pub fn is_after(self: With_Offset, other: With_Offset) bool {
+        if (self.utc_offset_ms == other.utc_offset_ms) {
+            return self.dt.is_after(other.dt);
+        }
+        const self_ts = self.timestamp_ms();
+        const other_ts = other.timestamp_ms();
+        return self_ts > other_ts;
+    }
+
+    pub fn plus_duration(self: With_Offset, duration: std.Io.Duration) With_Offset {
+        return self.plus_days_and_ms(0, duration.toMilliseconds());
+    }
+
+    pub fn minus_duration(self: With_Offset, duration: std.Io.Duration) With_Offset {
+        return self.plus_days_and_ms(0, -duration.toMilliseconds());
+    }
+
+    pub fn plus_days_and_ms(self: With_Offset, days: i32, ms: i64) With_Offset {
+        const leap_seconds = Timezone.tai.leap_seconds;
+        const ts_utc = self.timestamp_ms();
+        const ts_tai_offset_ms = Timezone.tai.utc_offset_ms(ts_utc);
+        const ts_tai = ts_utc + ts_tai_offset_ms;
+        const new_ts_tai = ts_tai + @as(i64, days) * std.time.ms_per_day + ms;
+        const new_ts_tai_offset_seconds = Timezone.Leap_Second.get_utc_offset_seconds_from_tai(leap_seconds, @divFloor(new_ts_tai, 1000));
+        const new_ts_tai_offset_ms = new_ts_tai_offset_seconds * 1000;
+        const new_ts_utc = new_ts_tai - new_ts_tai_offset_ms;
+        var new_utc_offset_ms = self.utc_offset_ms;
+        var dst_delta: i64 = 0;
+        if (self.timezone) |tz| {
+            new_utc_offset_ms = tz.utc_offset_ms(new_ts_utc);
+            dst_delta = self.utc_offset_ms - new_utc_offset_ms;
+            if (tz.leap_seconds.len > 0) |tz_leap_seconds| {
+                dst_delta -= Timezone.Leap_Second.get_utc_offset_seconds(tz_leap_seconds, ts_utc);
+                dst_delta += Timezone.Leap_Second.get_utc_offset_seconds(tz_leap_seconds, new_ts_utc);
+            }
+        }
+        return .{
+            .dt = self.dt.plus_days_and_ms(days, ms - ts_tai_offset_ms + new_ts_tai_offset_ms + dst_delta),
+            .utc_offset_ms = new_utc_offset_ms,
+            .timezone = self.timezone,
+        };
+    }
+
+    pub fn plus_duration_ignore_leap_seconds(self: With_Offset, duration: std.Io.Duration) With_Offset {
+        self.plus_days_and_ms_ignore_leap_seconds(0, duration.toMilliseconds());
+    }
+
+    pub fn minus_duration_ignore_leap_seconds(self: With_Offset, duration: std.Io.Duration) With_Offset {
+        self.plus_days_and_ms_ignore_leap_seconds(0, -duration.toMilliseconds());
+    }
+
+    pub fn plus_days_and_ms_ignore_leap_seconds(self: With_Offset, days: i32, ms: i64) With_Offset {
+        if (self.timezone) |tz| {
+            const ts_utc = self.timestamp_ms();
+            const new_ts_utc = ts_utc + @as(i64, days) * std.time.ms_per_day + ms;
+            const new_utc_offset_ms = tz.utc_offset_ms(new_ts_utc);
+            return .{
+                .dt = self.dt.plus_days_and_ms(days, ms + self.utc_offset_ms - new_utc_offset_ms),
+                .utc_offset_ms = new_utc_offset_ms,
+                .timezone = self.timezone,
+            };
+        }
+        return .{
+            .dt = self.dt.plus_days_and_ms(days, ms),
+            .utc_offset_ms = self.utc_offset_ms,
+            .timezone = null,
+        };
     }
 
     pub const iso8601 = "YYYY-MM-DDTHH:mm:ss.SSSZ";
@@ -198,115 +340,29 @@ pub const With_Offset = struct {
         return from_string_tz(pattern, str, null);
     }
 
-    pub fn from_string_tz(comptime pattern: []const u8, str: []const u8, timezone: ?*const Timezone) !With_Offset {
+    pub fn from_string_tz(comptime pattern: []const u8, str: []const u8, tz: ?*const Timezone) !With_Offset {
         var reader = std.Io.Reader.fixed(str);
-        const pi = formatting.parse(if (pattern.len == 0) iso8601 else pattern, &reader) catch |err| switch (err) {
+        const pi = formatting.parse(if (pattern.len == 0) iso8601 else pattern, &reader, tz, null) catch |err| switch (err) {
             error.InvalidString => return err,
             error.EndOfStream => return error.InvalidString,
             error.ReadFailed => unreachable,
-            error.TzdbCacheNotInitialized => return err,
         };
 
-        const PI = @TypeOf(pi);
+        return pi.date_time(tz);
+    }
 
-        var dt: Date_Time = .{
-            .date = .epoch,
-            .time = .midnight,
+    pub fn from_string_tzdb(comptime pattern: []const u8, str: []const u8, tzdb: ?*const TZDB) !With_Offset {
+        var reader = std.Io.Reader.fixed(str);
+        const timezone = if (tzdb) |db| &db.local else null;
+        const pi = formatting.parse(if (pattern.len == 0) iso8601 else pattern, &reader, timezone, tzdb) catch |err| switch (err) {
+            error.InvalidString => return err,
+            error.EndOfStream => return error.InvalidString,
+            error.ReadFailed => unreachable,
         };
 
-        if (@FieldType(PI, "timestamp") != void) {
-            dt = from_timestamp_ms(pi.timestamp, null).dt;
-        } else {
-            if (@FieldType(PI, "year") != void) {
-                if (@FieldType(PI, "ordinal_day") != void) {
-                    dt.date = Date.from_yod(pi.year, pi.ordinal_day);
-                } else if (@FieldType(PI, "ordinal_week") != void) {
-                    dt.date = Date.from_yod(pi.year, pi.ordinal_week.starting_day());
-                    if (@FieldType(PI, "week_day") != void) {
-                        dt.date = dt.date.advance_to_week_day(pi.week_day);
-                    }
-                } else if (@FieldType(PI, "month") != void) {
-                    dt.date = Date.from_ymd(.{
-                        .year = pi.year,
-                        .month = pi.month,
-                        .day = if (@FieldType(PI, "day") != void) pi.day else 1,
-                    });
-                } else {
-                    dt.date = Date.from_yod(pi.year, .first);
-                }
-            } else if (@FieldType(PI, "iso_week_year") != void) {
-                var iwd: ISO_Week_Date = .{
-                    .year = pi.iso_week_year,
-                    .week = .first,
-                    .day = .monday,
-                };
-
-                if (@FieldType(PI, "iso_week") != void) iwd.week = pi.iso_week;
-                if (@FieldType(PI, "week_day") != void) iwd.day = pi.week_day;
-
-                dt = iwd.date();
-            } else @compileError("Invalid pattern: " ++ pattern);
-
-            if (@FieldType(PI, "hours") != void) {
-                const m: i32 = if (@FieldType(PI, "minutes") != void) pi.minutes else 0;
-                const s: i32 = if (@FieldType(PI, "seconds") != void) pi.seconds else 0;
-                const milli: i32 = if (@FieldType(PI, "ms") != void) pi.ms else 0;
-                dt.time = Time.from_hmsm(pi.hours, m, s, milli);
-            } else @compileError("Invalid pattern: " ++ pattern);
-        }
-
-        var dto: With_Offset = .{
-            .dt = dt,
-            .utc_offset_ms = if (@FieldType(PI, "utc_offset_ms") != void) pi.utc_offset_ms else 0,
-            .timezone = null,
-        };
-
-        if (timezone) |tz| {
-            const tz_utc_offset_ms = tz.zone_info(dto.timestamp_s()).offset * 1000;
-            if (@FieldType(PI, "utc_offset_ms") != void) {
-                if (tz_utc_offset_ms != pi.utc_offset_ms) {
-                    return dto.in_timezone(tz);
-                }
-            }
-
-            dto.utc_offset_ms = tz_utc_offset_ms;
-            dto.timezone = tz;
-        }
-
-        return dto;
+        return pi.date_time(timezone);
     }
 };
-
-test "Date_Time" {
-    try tzdb.init_cache(.{
-        .gpa = std.testing.allocator,
-        .additional_tzdata_paths = &.{},
-    });
-    defer tzdb.deinit_cache();
-
-    const tz = (try tzdb.timezone(std.testing.io, "America/Chicago")).?;
-    const gmt = (try tzdb.timezone(std.testing.io, "GMT")).?;
-
-    const dt1 = (Date_Time {
-        .date = .from_ymd(.{ .year = .from_number(2024), .month = .february, .day = .first }),
-        .time = .from_hmsm(12, 34, 56, 789),
-    }).with_offset(0);
-    const dt2 = (Date_Time {
-        .date = .from_ymd(.from_numbers(1928, 12, 24)),
-        .time = .from_hmsm(0, 30, 0, 0),
-    }).with_offset(0);
-
-    try std.testing.expectFmt("2024-02-01 12:34:56.789 +00:00", "{f}", .{ dt1.fmt(With_Offset.sql_ms) });
-    try std.testing.expectFmt("2024-02-01 12:34:56.789 GMT", "{f}", .{ dt1.in_timezone(gmt).fmt(With_Offset.sql_ms) });
-    try std.testing.expectFmt("2024-02-01 06:34:56.789 CST", "{f}", .{ dt1.in_timezone(tz).fmt(With_Offset.sql_ms) });
-
-    try std.testing.expectFmt("Mon, 24 Dec 1928 00:30:00 +0000", "{f}", .{ dt2.in_timezone(gmt).fmt(With_Offset.rfc2822) });
-    try std.testing.expectFmt("Mon, 24 Dec 1928 00:30:00 GMT", "{f}", .{ dt2.in_timezone(gmt).fmt(With_Offset.http) });
-    try std.testing.expectFmt("1928-12-24T00:30:00.000+00:00", "{f}", .{ dt2.in_timezone(gmt).fmt(With_Offset.iso8601) });
-
-    try std.testing.expectEqual(dt1, try With_Offset.from_string(With_Offset.sql_ms, "2024-02-01 12:34:56.789 +00:00"));
-    try std.testing.expectEqual(dt1, (try With_Offset.from_string(With_Offset.sql_ms, "2024-02-01 06:34:56.789 CST")).in_timezone(null));
-}
 
 const Date = @import("date.zig").Date;
 const Time = @import("time.zig").Time;
@@ -314,6 +370,6 @@ const Day = @import("day.zig").Day;
 const Year = @import("year.zig").Year;
 const ISO_Week_Date = @import("iso_week.zig").ISO_Week_Date;
 const Timezone = @import("Timezone.zig");
-const tzdb = @import("tzdb.zig");
+const TZDB = @import("TZDB.zig");
 const formatting = @import("formatting.zig");
 const std = @import("std");

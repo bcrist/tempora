@@ -34,6 +34,18 @@ pub const Ordinal_Week = enum (u6) {
     pub fn is_after(self: Ordinal_Week, other: Ordinal_Week) bool {
         return @intFromEnum(self) < @intFromEnum(other);
     }
+
+    pub fn plus(self: Ordinal_Week, weeks: i32) Ordinal_Week {
+        return .from_number(self.as_number() + weeks);
+    }
+
+    pub fn prev(self: Ordinal_Week) Ordinal_Week {
+        return self.plus(-1);
+    }
+
+    pub fn next(self: Ordinal_Week) Ordinal_Week {
+        return self.plus(1);
+    }
 };
 
 const Ordinal_Day = @import("ordinal_day.zig").Ordinal_Day;

@@ -78,37 +78,59 @@ pub fn format(dto: Date_Time.With_Offset, comptime pattern: []const u8, writer: 
         } else {
             try writer.print("{d}", .{ iwd.year.as_unsigned() });
         },
-        .GG => try writer.print("{d:0>2}", .{ @as(u32, @intCast(@abs(iwd.year.as_number()) % 100)) }),
-        .GGGG => try writer.print("{d:0>4}", .{ @as(u32, @intCast(@abs(iwd.year.as_number()) % 10000)) }),
+        .GG => try writer.print("{d:0>2}", .{ @as(u32, @intCast(@mod(iwd.year.as_number(), 100))) }),
+        .GGGG => try writer.print("{d:0>4}", .{ @as(u32, @intCast(@mod(iwd.year.as_number(), 10000))) }),
 
-        .y => try writer.print("{d}", .{ @as(u32, @intCast(@abs(ymd.year.as_number()))) }),
-        .YY => try writer.print("{d:0>2}", .{ @as(u32, @intCast(@abs(ymd.year.as_number()) % 100)) }),
-        .YYYY => try writer.print("{d:0>4}", .{ @as(u32, @intCast(@abs(ymd.year.as_number()) % 10000)) }),
+            // Year
+        .YY => try writer.print("{d:0>2}", .{ @as(u32, @intCast(@mod(ymd.year.as_number(), 100))) }),
+        .YYYY => try writer.print("{d:0>4}", .{ @as(u32, @intCast(@mod(ymd.year.as_number(), 10000))) }),
         .Y => if (ymd.year.as_number() > 9999 or ymd.year.as_number() < 0) {
             try writer.print("{d}", .{ ymd.year.as_number() });
         } else {
             try writer.print("{d}", .{ ymd.year.as_unsigned() });
         },
         .YYY => if (ymd.year.as_number() > 9999) {
-            try writer.print("+{d:0>6}", .{ ymd.year.as_unsigned() });
+            try writer.print("+{d}", .{ ymd.year.as_unsigned() });
         } else if (ymd.year.as_number() < 0) {
-            try writer.print("{d}", .{ ymd.year.as_number() });
+            try writer.print("-{d:0>4}", .{ @as(u32, @intCast(-ymd.year.as_number())) });
         } else {
-            try writer.print("{d}", .{ ymd.year.as_unsigned() });
+            try writer.print("{d:0>4}", .{ ymd.year.as_unsigned() });
         },
         .YYYYYY => if (ymd.year.as_number() < 0) {
             try writer.print("-{d:0>6}", .{ @as(u32, @intCast(-ymd.year.as_number())) });
-        } else if (ymd.year.as_number() == 0) {
-            try writer.writeAll("000000");
         } else {
             try writer.print("+{d:0>6}", .{ ymd.year.as_unsigned() });
         },
 
-        .N, .NN => if (ymd.year.as_number() > 0) {
-            try writer.writeAll("AD");
-        } else if (ymd.year.as_number() < 0) {
-            try writer.writeAll("BC");
+        .yy => if (ymd.year.as_number() > 0) {
+            try writer.print("{d:0>2}", .{ ymd.year.as_unsigned() % 100 });
+        } else {
+            try writer.print("{d:0>2}", .{ @as(u32, @intCast(@mod(-ymd.year.as_number() + 1, 100))) });
         },
+        .yyyy => if (ymd.year.as_number() > 0) {
+            try writer.print("{d:0>4}", .{ ymd.year.as_unsigned() % 10000 });
+        } else {
+            try writer.print("{d:0>4}", .{ @as(u32, @intCast(@mod(-ymd.year.as_number() + 1, 10000))) });
+        },
+        .y => if (ymd.year.as_number() > 0) {
+            try writer.print("{d}", .{ ymd.year.as_unsigned() });
+        } else {
+            try writer.print("{d}", .{ @as(u32, @intCast(-ymd.year.as_number() + 1)) });
+        },
+        .yyy => if (ymd.year.as_number() > 9999) {
+            try writer.print("+{d}", .{ ymd.year.as_unsigned() });
+        } else if (ymd.year.as_number() <= 0) {
+            try writer.print("{d:0>4}", .{ @as(u32, @intCast(-ymd.year.as_number() + 1)) });
+        } else {
+            try writer.print("{d:0>4}", .{ ymd.year.as_unsigned() });
+        },
+        .yyyyyy => if (ymd.year.as_number() <= 0) {
+            try writer.print("{d:0>6}", .{ @as(u32, @intCast(-ymd.year.as_number() + 1)) });
+        } else {
+            try writer.print("{d:0>6}", .{ ymd.year.as_unsigned() });
+        },
+
+        .N, .NN =>  try writer.writeAll(if (ymd.year.as_number() > 0) "AD" else "BC"),
 
         .literal => |text| {
             try writer.writeAll(text);
@@ -145,9 +167,9 @@ pub fn format(dto: Date_Time.With_Offset, comptime pattern: []const u8, writer: 
             if (token == .z or token == .zz) {
                 if (dto.timezone) |tz| {
                     const utc = dto.timestamp_ms();
-                    const zi = tz.zone_info(@divFloor(utc, 1000));
-                    if (zi.designation.len > 0) {
-                        try writer.writeAll(zi.designation);
+                    const wall = tz.info(@divFloor(utc, 1000));
+                    if (wall.designation.len > 0) {
+                        try writer.writeAll(wall.designation);
                         break :done;
                     }
                 }
@@ -178,7 +200,6 @@ const Parse_Error = error {
     InvalidString,
     EndOfStream,
     ReadFailed,
-    TzdbCacheNotInitialized,
 };
 
 pub fn Parse_Result(comptime pattern: []const u8) type {
@@ -209,7 +230,8 @@ pub fn Parse_Result(comptime pattern: []const u8) type {
             .d, .do, .dd, .ddd, .dddd, .E, .Eo => has_week_day = true,
             .w, .wo, .ww => has_ordinal_week = true,
             .W, .Wo, .WW => has_iso_week = true,
-            .y, .Y, .YY, .YYY, .YYYY, .YYYYYY => has_year = true,
+            .y, .yy, .yyy, .yyyy, .yyyyyy => has_year = true,
+            .Y, .YY, .YYY, .YYYY, .YYYYYY => has_year = true,
             .G, .GG, .GGGG => has_iso_week_year = true,
             .N, .NN => {},
             .A, .a => {},
@@ -238,16 +260,201 @@ pub fn Parse_Result(comptime pattern: []const u8) type {
         seconds: if (has_seconds) i32 else void,
         ms: if (has_ms) i32 else void,
         utc_offset_ms: if (has_utc_offset_ms) i32 else void,
+
+        const Self = @This();
+
+        pub fn date(self: @This()) Date {
+            if (has_timestamp) {
+                return Date_Time.With_Offset.from_timestamp_ms(self.timestamp, null).dt.date;
+            }
+
+            if (has_year) {
+                if (has_ordinal_day) {
+                    return Date.from_yod(self.year, self.ordinal_day);
+                }
+
+                if (has_ordinal_week) {
+                    var d = Date.from_yod(self.year, self.ordinal_week.starting_day());
+                    if (has_week_day) {
+                        d = self.week_day.on_or_after(d);
+                    }
+                    return d;
+                }
+
+                if (has_month) {
+                    return Date.from_ymd(.{
+                        .year = self.year,
+                        .month = self.month,
+                        .day = if (has_day) self.day else 1,
+                    });
+                }
+
+                return Date.from_yod(self.year, .first);
+            }
+
+            if (has_iso_week_year) {
+                var iwd: ISO_Week_Date = .{
+                    .year = self.iso_week_year,
+                    .week = .first,
+                    .day = .monday,
+                };
+
+                if (has_iso_week) iwd.week = self.iso_week;
+                if (has_week_day) iwd.day = self.week_day;
+
+                return iwd.date();
+            }
+
+            @compileError("Invalid pattern: " ++ pattern);
+        }
+
+        pub fn iso_date(self: @This()) ISO_Week_Date {
+            if (has_timestamp) {
+                return Date_Time.With_Offset.from_timestamp_ms(self.timestamp, null).dt.date.iso_week_date();
+            }
+
+            if (has_year) {
+                if (has_ordinal_day) {
+                    return Date.from_yod(self.year, self.ordinal_day).iso_week_date();
+                }
+                
+                if (has_ordinal_week) {
+                    var d = Date.from_yod(self.year, self.ordinal_week.starting_day());
+                    if (has_week_day) {
+                        d = self.week_day.on_or_after(d);
+                    }
+                    return d.iso_week_date();
+                }
+                
+                if (has_month) {
+                    return Date.from_ymd(.{
+                        .year = self.year,
+                        .month = self.month,
+                        .day = if (has_day) self.day else 1,
+                    }).iso_week_date();
+                }
+
+                return Date.from_yod(self.year, .first).iso_week_date();
+            }
+
+            if (has_iso_week_year) {
+                var iwd: ISO_Week_Date = .{
+                    .year = self.iso_week_year,
+                    .week = .first,
+                    .day = .monday,
+                };
+
+                if (has_iso_week) iwd.week = self.iso_week;
+                if (has_week_day) iwd.day = self.week_day;
+
+                return iwd;
+            }
+
+            @compileError("Invalid pattern: " ++ pattern);
+        }
+
+        pub fn time(self: @This(), timezone: ?*const Timezone) Time.With_Offset {
+            if (has_timestamp) {
+                const dto = Date_Time.With_Offset.from_timestamp_ms(self.timestamp, timezone);
+                return .{
+                    .time = dto.dt.time,
+                    .utc_offset_ms = dto.utc_offset_ms,
+                    .timezone = dto.timezone,
+                };
+            }
+            
+            if (has_hours) {
+                const m = if (has_minutes) self.minutes else 0;
+                const s = if (has_seconds) self.seconds else 0;
+                const milli = if (has_ms) self.ms else 0;
+                return .{
+                    .time = Time.from_hmsm(self.hours, m, s, milli),
+                    .utc_offset_ms = if (has_utc_offset_ms) self.utc_offset_ms else if (timezone) |tz| tz.utc_offset_ms(0) else 0,
+                    .timezone = timezone,
+                };
+            }
+            
+            @compileError("Invalid pattern: " ++ pattern);
+        }
+
+        pub fn date_time(self: @This(), timezone: ?*const Timezone) Date_Time.With_Offset {
+            var dt: Date_Time = .{
+                .date = .epoch,
+                .time = .midnight,
+            };
+
+            if (has_timestamp) {
+                dt = Date_Time.With_Offset.from_timestamp_ms(self.timestamp, null).dt;
+            } else {
+                if (has_year) {
+                    if (has_ordinal_day) {
+                        dt.date = Date.from_yod(self.year, self.ordinal_day);
+                    } else if (has_ordinal_week) {
+                        dt.date = Date.from_yod(self.year, self.ordinal_week.starting_day());
+                        if (has_week_day) {
+                            dt.date = self.week_day.on_or_after(dt.date);
+                        }
+                    } else if (has_month) {
+                        dt.date = Date.from_ymd(.{
+                            .year = self.year,
+                            .month = self.month,
+                            .day = if (has_day) self.day else 1,
+                        });
+                    } else {
+                        dt.date = Date.from_yod(self.year, .first);
+                    }
+                } else if (has_iso_week_year) {
+                    var iwd: ISO_Week_Date = .{
+                        .year = self.iso_week_year,
+                        .week = .first,
+                        .day = .monday,
+                    };
+
+                    if (has_iso_week) iwd.week = self.iso_week;
+                    if (has_week_day) iwd.day = self.week_day;
+
+                    dt = iwd.date();
+                } else @compileError("Invalid pattern: " ++ pattern);
+
+                if (has_hours) {
+                    const m: i32 = if (has_minutes) self.minutes else 0;
+                    const s: i32 = if (has_seconds) self.seconds else 0;
+                    const milli: i32 = if (has_ms) self.ms else 0;
+                    dt.time = Time.from_hmsm(self.hours, m, s, milli);
+                } else @compileError("Invalid pattern: " ++ pattern);
+            }
+
+            var dto: Date_Time.With_Offset = .{
+                .dt = dt,
+                .utc_offset_ms = if (has_utc_offset_ms) self.utc_offset_ms else 0,
+                .timezone = null,
+            };
+
+            if (timezone) |tz| {
+                const tz_utc_offset_ms = tz.utc_offset_ms(dto.timestamp_ms());
+                if (has_utc_offset_ms) {
+                    if (tz_utc_offset_ms != self.utc_offset_ms) {
+                        return dto.in_timezone(tz);
+                    }
+                }
+
+                dto.utc_offset_ms = tz_utc_offset_ms;
+                dto.timezone = tz;
+            }
+
+            return dto;
+        }
     };
 }
 
-pub fn parse(comptime pattern: []const u8, reader: *std.Io.Reader) Parse_Error!Parse_Result(pattern) {
+pub fn parse(comptime pattern: []const u8, reader: *std.Io.Reader, timezone: ?*const Timezone, tzdb: ?*const TZDB) Parse_Error!Parse_Result(pattern) {
     var parsed: Parse_Result(pattern) = undefined;
     @setEvalBranchQuota(eval_branch_quota);
 
-    var negate_year = false;
+    var year_is_bc = false;
     var hours_is_pm = false;
     comptime var has_am_pm = false;
+    var offset_designation: ?[]const u8 = null;
 
     comptime var iter = Token.iterator(pattern);
     inline while (comptime iter.next()) |token| {
@@ -410,24 +617,32 @@ pub fn parse(comptime pattern: []const u8, reader: *std.Io.Reader) Parse_Error!P
                 parsed.iso_week = ISO_Week.from_number(num);
             },
 
-            .y, .Y, .YYY, .YYYYYY => {
+            .y, .yyy, .yyyyyy => {
+                const raw = try read_int(u31, reader);
+                parsed.year = Year.from_number(raw);
+            },
+            .Y, .YYY, .YYYYYY => {
                 const raw = try read_int(i32, reader);
                 parsed.year = Year.from_number(raw);
             },
-            .YY => {
+            .yy, .YY => {
                 var buf: [2]u8 = undefined;
                 try reader.readSliceAll(&buf);
                 parsed.year = try Year.from_string(&buf, .{
                     .trim = "",
+                    .allow_two_digit_year = true,
                     .allow_non_two_digit_year = false,
+                    .allow_era_suffix = false,
                 });
             },
-            .YYYY => {
+            .yyyy, .YYYY => {
                 var buf: [4]u8 = undefined;
                 try reader.readSliceAll(&buf);
                 parsed.year = try Year.from_string(&buf, .{
                     .trim = "",
                     .allow_two_digit_year = false,
+                    .allow_non_two_digit_year = true,
+                    .allow_era_suffix = false,
                 });
             },
 
@@ -455,7 +670,7 @@ pub fn parse(comptime pattern: []const u8, reader: *std.Io.Reader) Parse_Error!P
             .N, .NN => {
                 var buf: [2]u8 = undefined;
                 try reader.readSliceAll(&buf);
-                negate_year = std.ascii.eqlIgnoreCase(&buf, "BC");
+                year_is_bc = std.ascii.eqlIgnoreCase(&buf, "BC");
             },
 
             .A, .a => {
@@ -542,7 +757,7 @@ pub fn parse(comptime pattern: []const u8, reader: *std.Io.Reader) Parse_Error!P
                         else => return err,
                     };
                     
-                    if (std.ascii.isAlphabetic(ch)) {
+                    if (std.ascii.isAlphabetic(ch) or ch > 127) {
                         b.* = ch;
                         reader.toss(1);
                     } else {
@@ -552,8 +767,10 @@ pub fn parse(comptime pattern: []const u8, reader: *std.Io.Reader) Parse_Error!P
 
                 if (designation.len == 0) {
                     parsed.utc_offset_ms = try read_utc_offset(reader, token == .z);
-                } else if (try tzdb.designation_offset_ms(designation)) |offset_ms| {
-                    parsed.utc_offset_ms = offset_ms;
+                } else if (tzdb) |db| {
+                    if (db.designations.getKey(designation)) |key| {
+                        offset_designation = key;
+                    } else return error.InvalidString;
                 } else return error.InvalidString;
             },
 
@@ -576,17 +793,28 @@ pub fn parse(comptime pattern: []const u8, reader: *std.Io.Reader) Parse_Error!P
         }
     }
 
-    if (@FieldType(Parse_Result(pattern), "year") != void and negate_year) {
-        parsed.year = .from_number(-parsed.year.as_number());
+    const Result = Parse_Result(pattern);
+
+    if (@FieldType(Result, "year") != void and year_is_bc) {
+        parsed.year = .from_number(-parsed.year.as_number() + 1);
     }
 
-    if (@FieldType(Parse_Result(pattern), "iso_week_year") != void and negate_year) {
-        parsed.iso_week_year = .from_number(-parsed.iso_week_year.as_number());
-    }
-
-    if (has_am_pm and @FieldType(Parse_Result(pattern), "hours") != void) {
+    if (has_am_pm and @FieldType(Result, "hours") != void) {
         parsed.hours = @mod(parsed.hours, 12);
         if (hours_is_pm) parsed.hours += 12;
+    }
+
+    if (@FieldType(Result, "utc_offset_ms") != void) {
+        if (offset_designation) |designation| {
+            const has_date = @FieldType(Result, "timestamp") != void
+                or @FieldType(Result, "year") != void
+                or @FieldType(Result, "iso_week_year") != void;
+
+            const dto = if (has_date) parsed.date_time(timezone) else Date.epoch.with_time(.midnight).with_offset(0);
+            if (tzdb.?.designation_utc_offset_ms(designation, dto)) |offset| {
+                parsed.utc_offset_ms = offset;
+            }
+        }
     }
 
     return parsed;
@@ -641,12 +869,18 @@ const Token = union (enum) {
     GGGG, // last four digits
 
     // Year
-    y, // 1 2 ... 9999 (absolute value for negative years)
-    Y, // 1 2 ... 9999 +10000 +10001
-    YY, // 01 02 ... 99
-    YYY, // 0001 0002 ... 9999 +010000 +010001
-    YYYY, // 0001 0002 ... 9999
-    YYYYYY, // -000123 ... +002024 (always includes + or - prefix and exactly 6 digits)
+    Y, // ... -999 -998 ... -1 0 1 2 ... 9999 +10000 +10001 ...
+    YY, // ... 01 02 ... 99 00 01 02 ... 99 00 01 ...
+    YYY, // ... -0999 -0998 ... -0001 0000 0001 0002 ... 9999 +10000 +10001 ...
+    YYYY, // ... 0001 0002 ... 9999 0000 0001 0002 ... 9999 0000 0001 ...
+    YYYYYY, // ... -000999 -000998 ... -000001 +000000 +000001 +000002 ... +009999 +010000 +010001
+
+    // Era-aware year
+    y, // ... 1000 999 ... 2 1 1 2 ... 9999 10000 10001 ...
+    yy, // ... 00 99 ... 02 01 01 02 ... 99 00 01 ...
+    yyy, // ... 1000 0999 ... 0002 0001 0001 0002 ... 9999 10000 10001 ...
+    yyyy, // ... 1000 0999 ... 0002 0001 0001 0002 ... 9999 0000 0001 ...
+    yyyyyy, // ... 001000 000999 ... 000002 000001 000001 000002 ... 009999 010000 010001
 
     // Era
     N, // BC AD
@@ -753,7 +987,13 @@ const Token = union (enum) {
                     'W' => .WW,
                     else => .W,
                 } else .W,
-                'y' => .y,
+                'y' => blk: {
+                    if (remaining.len >= 6 and std.mem.eql(u8, remaining[1..6], "yyyyy")) break :blk .yyyyyy;
+                    if (remaining.len >= 4 and std.mem.eql(u8, remaining[1..4], "yyy")) break :blk .yyyy;
+                    if (remaining.len >= 3 and remaining[1] == 'y' and remaining[2] == 'y') break :blk .yyy;
+                    if (remaining.len >= 2 and remaining[1] == 'y') break :blk .yy;
+                    break :blk .y;
+                },
                 'Y' => blk: {
                     if (remaining.len >= 6 and std.mem.eql(u8, remaining[1..6], "YYYYY")) break :blk .YYYYYY;
                     if (remaining.len >= 4 and std.mem.eql(u8, remaining[1..4], "YYY")) break :blk .YYYY;
@@ -890,5 +1130,5 @@ const ISO_Week_Date = @import("iso_week.zig").ISO_Week_Date;
 const ISO_Week = @import("iso_week.zig").ISO_Week;
 const Time = @import("time.zig").Time;
 const Timezone = @import("Timezone.zig");
-const tzdb = @import("tzdb.zig");
+const TZDB = @import("TZDB.zig");
 const std = @import("std");

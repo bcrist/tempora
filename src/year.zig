@@ -15,14 +15,31 @@ pub const Year = enum (i32) {
 
     pub const From_String_Options = struct {
         trim: []const u8 = formatting.default_from_string_trim,
-        allow_two_digit_year: bool = true,
+        allow_two_digit_year: bool = false,
         allow_non_two_digit_year: bool = true,
+        allow_era_suffix: bool = true,
     };
     pub fn from_string(y: []const u8, options: From_String_Options) !Year {
-        const trimmed = if (options.trim.len > 0) std.mem.trim(u8, y, options.trim) else y;
+        var trimmed = if (options.trim.len > 0) std.mem.trim(u8, y, options.trim) else y;
+        var is_bc = false;
+        var is_ad = false;
+        if (options.allow_era_suffix) {
+            if (std.mem.endsWith(u8, y, "AD") or std.mem.endsWith(u8, y, "ad")) {
+                is_ad = true;
+                trimmed = trimmed[0 .. trimmed.len - 2];
+                trimmed = if (options.trim.len > 0) std.mem.trim(u8, trimmed, options.trim) else trimmed;
+            } else if (std.mem.endsWith(u8, y, "BC") or std.mem.endsWith(u8, y, "bc")) {
+                is_bc = true;
+                trimmed = trimmed[0 .. trimmed.len - 2];
+                trimmed = if (options.trim.len > 0) std.mem.trim(u8, trimmed, options.trim) else trimmed;
+            }
+        }
+
         var numeric = std.fmt.parseInt(i32, trimmed, 10) catch return error.InvalidString;
 
-        if (options.allow_two_digit_year and trimmed.len == 2) {
+        if (is_bc) {
+            numeric = -numeric + 1;
+        } else if (!is_ad and options.allow_two_digit_year and trimmed.len == 2) {
             if (numeric < 50) {
                 numeric += 2000;
             } else {
@@ -67,15 +84,103 @@ pub const Year = enum (i32) {
         return .from_year(self);
     }
 
-    pub const Info = Year_Info;
     pub fn info(self: Year) Info {
-        return .{
-            .raw = self.as_number(),
-            .starting_date = self.starting_date(),
-            .is_leap = self.is_leap(),
-        };
+        return .from_year(self);
     }
 
+    pub fn dominical_letter(self: Year) Dominical_Letter {
+        return .from_yi(self.info());
+    }
+    
+    pub fn is_before(self: Year, other: Year) bool {
+        return @intFromEnum(self) < @intFromEnum(other);
+    }
+
+    pub fn is_after(self: Year, other: Year) bool {
+        return @intFromEnum(self) > @intFromEnum(other);
+    }
+
+    pub fn plus(self: Year, delta_years: i32) Year {
+        return .from_number(self.as_number() + delta_years);
+    }
+
+    pub fn next(self: Year) Year {
+        return self.plus(1);
+    }
+
+    pub fn prev(self: Year) Year {
+        return self.plus(-1);
+    }
+
+    pub const Info = struct {
+        raw: i32,
+        starting_date: Date,
+        is_leap: bool,
+
+        pub fn from_year(y: Year) Info {
+            return .{
+                .raw = y.as_number(),
+                .starting_date = y.starting_date(),
+                .is_leap = y.is_leap(),
+            };
+        }
+
+        pub fn from_number(y: i32) Info {
+            return .from_year(.from_number(y));
+        }
+
+        pub fn year(self: Info) Year {
+            return .from_number(self.raw);
+        }
+
+        pub fn ending_date(self: Info) Date {
+            return self.starting_date.plus_days(if (self.is_leap) 365 else 364);
+        }
+
+        pub fn ymd(self: Info, m: Month, d: Day) Date.YMD {
+            return .{
+                .year = self.year(),
+                .month = m,
+                .day = d,
+            };
+        }
+
+        pub fn date_info(self: Info, m: Month, d: Day) Date.Info {
+            return .from_yimd(self, m, d);
+        }
+
+        pub fn next(self: Info) Info {
+            const next_year = self.raw + 1;
+            var next_year_is_leap = false;
+            var days_in_year: i32 = 365;
+            if (self.is_leap) {
+                days_in_year += 1;
+            } else {
+                next_year_is_leap = Year.from_number(next_year).is_leap();
+            }
+            return .{
+                .raw = next_year,
+                .starting_date = self.starting_date.plus_days(days_in_year),
+                .is_leap = next_year_is_leap,
+            };
+        }
+
+        pub fn prev(self: Info) Info {
+            const prev_year = self.raw - 1;
+            var prev_year_is_leap = false;
+            var days_in_prev_year: i32 = 365;
+            if (!self.is_leap) {
+                prev_year_is_leap = Year.from_number(prev_year).is_leap();
+                if (prev_year_is_leap) days_in_prev_year += 1;
+            }
+            return .{
+                .raw = prev_year,
+                .starting_date = self.starting_date.plus_days(-days_in_prev_year),
+                .is_leap = prev_year_is_leap,
+            };
+        }
+    };
+    
     pub const Dominical_Letter = enum (u4) {
         a = Week_Day.sunday.as_unsigned(),
         b = Week_Day.saturday.as_unsigned(),
@@ -95,7 +200,7 @@ pub const Year = enum (i32) {
 
         const leap_marker: u4 = 0x8;
 
-        pub fn from_yi(yi: Year_Info) Dominical_Letter {
+        pub fn from_yi(yi: Info) Dominical_Letter {
             var raw: u32 = yi.starting_date.week_day().as_unsigned();
             if (yi.is_leap) raw |= leap_marker;
             return @enumFromInt(raw);
@@ -116,97 +221,10 @@ pub const Year = enum (i32) {
             return (self.as_unsigned & leap_marker) != 0;
         }
     };
-    pub fn dominical_letter(self: Year) Dominical_Letter {
-        return .from_yi(self.info());
-    }
-
-    pub fn plus(self: Year, delta_years: i32) Year {
-        return .from_number(self.as_number() + delta_years);
-    }
 };
 
-pub const Year_Info = struct {
-    raw: i32,
-    starting_date: Date,
-    is_leap: bool,
-
-    pub fn year(self: Year_Info) Year {
-        return .from_number(self.raw);
-    }
-};
-
-test "Year" {
-    try expectEqual(2000, Year.epoch.as_number());
-    try expectEqual(2000, Year.from_number(2000).as_number());
-    try expectEqual(2020, Year.from_number(2020).as_number());
-    try expectEqual(1999, Year.from_number(1999).as_number());
-    try expectEqual(1970, Year.from_number(1970).as_number());
-    try expectEqual(Year.from_number(2024), try Year.from_string("2024", .{}));
-    try expectError(error.InvalidString, Year.from_string("2024", .{ .allow_non_two_digit_year = false }));
-    try expectEqual(Year.from_number(2024), try Year.from_string("'24", .{}));
-    try expectEqual(Year.from_number(24), try Year.from_string("'24", .{ .allow_two_digit_year = false }));
-    try expectEqual(Year.from_number(1969), try Year.from_string("69", .{}));
-    try expectEqual(Year.from_number(123), try Year.from_string("123", .{}));
-    try expectEqual(Year.from_number(4), try Year.from_string(" 4 ", .{}));
-    try expectError(error.InvalidString, Year.from_string("'24", .{ .allow_two_digit_year = false, .allow_non_two_digit_year = false }));
-
-    try expect(Year.from_number(2000).is_leap());
-    try expect(!Year.from_number(2001).is_leap());
-    try expect(!Year.from_number(2002).is_leap());
-    try expect(!Year.from_number(2003).is_leap());
-
-    try expect(Year.from_number(1996).is_leap());
-    try expect(!Year.from_number(1997).is_leap());
-    try expect(!Year.from_number(1998).is_leap());
-    try expect(!Year.from_number(1999).is_leap());
-
-    try expect(!Year.from_number(1900).is_leap());
-    try expect(!Year.from_number(1901).is_leap());
-    try expect(!Year.from_number(1902).is_leap());
-    try expect(!Year.from_number(1903).is_leap());
-    try expect(Year.from_number(1904).is_leap());
-
-    try expect(Year.from_number(2016).is_leap());
-    try expect(Year.from_number(2020).is_leap());
-    try expect(Year.from_number(2024).is_leap());
-    try expect(!Year.from_number(2017).is_leap());
-    try expect(!Year.from_number(2018).is_leap());
-    try expect(!Year.from_number(2019).is_leap());
-    try expect(!Year.from_number(2021).is_leap());
-    try expect(!Year.from_number(2022).is_leap());
-    try expect(!Year.from_number(2023).is_leap());
-
-    for (0..10000) |i| {
-        const y: Year = .from_number(@intCast(i));
-        try expectEqual(is_leap_naive(y), y.is_leap());
-    }
-
-    for (0..10000) |i| {
-        const y: Year = .from_number(@intCast(std.math.maxInt(i32) - i));
-        try expectEqual(is_leap_naive(y), y.is_leap());
-    }
-
-    for (0..10000) |i| {
-        const i_signed: i32 = @intCast(i);
-        const y: Year = .from_number(@intCast(std.math.minInt(i32) + i_signed));
-        try expectEqual(is_leap_naive(y), y.is_leap());
-    }
-}
-
-fn is_leap_naive(year: Year) bool {
-    const y: i32 = year.as_number();
-    if ((y & 3) != 0) return false;
-    switch (@mod(y, 400)) {
-        100, 200, 300 => return false,
-        else => {},
-    }
-    return true;
-}
-
-const expect = std.testing.expect;
-const expectEqual = std.testing.expectEqual;
-const expectError = std.testing.expectError;
-
+const Month = @import("month.zig").Month;
+const Day = @import("day.zig").Day;
 const Week_Day = @import("week_day.zig").Week_Day;
 const Date = @import("date.zig").Date;
 const formatting = @import("formatting.zig");

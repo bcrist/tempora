@@ -52,39 +52,39 @@ pub const ISO_Week_Date = struct {
     }
 
     pub fn is_before(self: ISO_Week_Date, other: ISO_Week_Date) bool {
-        if (self.year.as_number() != other.year.as_number()) {
-            return self.year.as_number() < other.year.as_number();
-        }
+        if (self.year != other.year) return self.year.is_before(other.year);
 
         std.debug.assert(self.week.as_number() >= 1);
         std.debug.assert(self.week.as_number() <= ISO_Week.last(self.year).as_number());
+        std.debug.assert(other.week.as_number() >= 1);
+        std.debug.assert(other.week.as_number() <= ISO_Week.last(other.year).as_number());
 
-        if (self.week.as_number() != other.week.as_number()) {
-            return self.week.as_number() < other.week.as_number();
-        }
+        if (self.week != other.week) return self.week.is_before(other.week);
 
         std.debug.assert(self.day.as_number() >= 1);
         std.debug.assert(self.day.as_number() <= 7);
+        std.debug.assert(other.day.as_number() >= 1);
+        std.debug.assert(other.day.as_number() <= 7);
 
         return self.day.as_iso() < other.day.as_iso();
     }
 
     pub fn is_after(self: ISO_Week_Date, other: ISO_Week_Date) bool {
-        if (self.year.as_number() != other.year.as_number()) {
-            return self.year.as_number() < other.year.as_number();
-        }
+        if (self.year != other.year) return self.year.is_after(other.year);
 
         std.debug.assert(self.week.as_number() >= 1);
         std.debug.assert(self.week.as_number() <= ISO_Week.last(self.year).as_number());
+        std.debug.assert(other.week.as_number() >= 1);
+        std.debug.assert(other.week.as_number() <= ISO_Week.last(other.year).as_number());
 
-        if (self.week.as_number() != other.week.as_number()) {
-            return self.week.as_number() < other.week.as_number();
-        }
+        if (self.week != other.week) return self.week.is_after(other.week);
 
         std.debug.assert(self.day.as_number() >= 1);
         std.debug.assert(self.day.as_number() <= 7);
+        std.debug.assert(other.day.as_number() >= 1);
+        std.debug.assert(other.day.as_number() <= 7);
 
-        return self.day.as_iso() < other.day.as_iso();
+        return self.day.as_iso() > other.day.as_iso();
     }
 
     pub const iso8601_week_date = "GGGG-[W]WW-E";
@@ -110,57 +110,13 @@ pub const ISO_Week_Date = struct {
 
     pub fn from_string(comptime pattern: []const u8, str: []const u8) !ISO_Week_Date {
         var reader = std.Io.Reader.fixed(str);
-        const pi = formatting.parse(if (pattern.len == 0) iso8601_week_date else pattern, &reader) catch |err| switch (err) {
+        const pi = formatting.parse(if (pattern.len == 0) iso8601_week_date else pattern, &reader, null, null) catch |err| switch (err) {
             error.InvalidString => return err,
             error.EndOfStream => return error.InvalidString,
             error.ReadFailed => unreachable,
-            error.TzdbCacheNotInitialized => return err,
         };
 
-        const PI = @TypeOf(pi);
-
-        if (@FieldType(PI, "timestamp") != void) {
-            return Date_Time.With_Offset.from_timestamp_ms(pi.timestamp, null).dt.date.iso_week_date();
-        }
-
-        if (@FieldType(PI, "year") != void) {
-            if (@FieldType(PI, "ordinal_day") != void) {
-                return Date.from_yod(pi.year, pi.ordinal_day).iso_week_date();
-            }
-            
-            if (@FieldType(PI, "ordinal_week") != void) {
-                var d = Date.from_yod(pi.year, pi.ordinal_week.starting_day());
-                if (@FieldType(PI, "week_day") != void) {
-                    d = d.advance_to_week_day(pi.week_day);
-                }
-                return d.iso_week_date();
-            }
-            
-            if (@FieldType(PI, "month") != void) {
-                return Date.from_ymd(.{
-                    .year = pi.year,
-                    .month = pi.month,
-                    .day = if (@FieldType(PI, "day") != void) pi.day else 1,
-                }).iso_week_date();
-            }
-
-            return Date.from_yod(pi.year, .first).iso_week_date();
-        }
-
-        if (@FieldType(PI, "iso_week_year") != void) {
-            var iwd: ISO_Week_Date = .{
-                .year = pi.iso_week_year,
-                .week = .first,
-                .day = .monday,
-            };
-
-            if (@FieldType(PI, "iso_week") != void) iwd.week = pi.iso_week;
-            if (@FieldType(PI, "week_day") != void) iwd.day = pi.week_day;
-
-            return iwd;
-        }
-
-        @compileError("Invalid pattern: " ++ pattern);
+        return pi.iso_date();        
     }
 };
 
@@ -190,6 +146,26 @@ pub const ISO_Week = enum (u6) {
     }
     pub fn as_unsigned(self: ISO_Week) u32 {
         return @intFromEnum(self);
+    }
+
+    pub fn is_before(self: ISO_Week, other: ISO_Week) bool {
+        return @intFromEnum(self) < @intFromEnum(other);
+    }
+
+    pub fn is_after(self: ISO_Week, other: ISO_Week) bool {
+        return @intFromEnum(self) < @intFromEnum(other);
+    }
+
+    pub fn plus(self: ISO_Week, weeks: i32) ISO_Week {
+        return .from_number(self.as_number() + weeks);
+    }
+
+    pub fn prev(self: ISO_Week) ISO_Week {
+        return self.plus(-1);
+    }
+
+    pub fn next(self: ISO_Week) ISO_Week {
+        return self.plus(1);
     }
 };
 

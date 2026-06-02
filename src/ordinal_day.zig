@@ -2,6 +2,9 @@
 
 pub const Ordinal_Day = enum (u9) {
     first = 1,
+    leap_day = Month.january.days_assume_leap_year() + Month.february.days_assume_leap_year(),
+    last_no_leap = 365,
+    last_leap = 366,
     _,
 
     pub fn from_number(day: i32) Ordinal_Day {
@@ -41,18 +44,7 @@ pub const Ordinal_Day = enum (u9) {
     }
 
     pub fn from_md_assume_non_leap_year(m: Month, d: Day) Ordinal_Day {
-        const day_of_month: i32 = d.as_number();
-        return Ordinal_Day.from_number(switch (m) {
-            .january => day_of_month,
-            .february => Month.january.days_assume_non_leap_year() + day_of_month,
-            inline else => |comptime_month| blk: {
-                comptime var base = 0;
-                inline for (1..comptime_month.as_number()) |prev_month| {
-                    base += comptime Month.from_number(prev_month).days_assume_non_leap_year();
-                }
-                break :blk base + day_of_month;
-            },
-        });
+        return m.starting_ordinal_day_assume_non_leap_year().plus(d.as_number());
     }
 
     pub fn as_number(self: Ordinal_Day) i32 {
@@ -79,6 +71,18 @@ pub const Ordinal_Day = enum (u9) {
 
     pub fn is_after(self: Ordinal_Day, other: Ordinal_Day) bool {
         return @intFromEnum(self) < @intFromEnum(other);
+    }
+
+    pub fn plus(self: Ordinal_Day, days: i32) Ordinal_Day {
+        return .from_number(self.as_number() + days);
+    }
+
+    pub fn prev(self: Ordinal_Day) Ordinal_Day {
+        return self.plus(-1);
+    }
+
+    pub fn next(self: Ordinal_Day) Ordinal_Day {
+        return self.plus(1);
     }
 };
 

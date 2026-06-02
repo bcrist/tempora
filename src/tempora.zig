@@ -10,28 +10,19 @@ pub const Ordinal_Day = @import("ordinal_day.zig").Ordinal_Day;
 pub const ISO_Week_Date = @import("iso_week.zig").ISO_Week_Date;
 pub const ISO_Week = @import("iso_week.zig").ISO_Week;
 pub const Timezone = @import("Timezone.zig");
-pub const tzdb = @import("tzdb.zig");
+pub const TZDB = @import("TZDB.zig");
+pub const tz = Timezone.tzdata;
 
-pub fn now(io: std.Io) Date_Time.With_Offset {
-    return now_tz(io, null);
+pub fn now_utc(io: std.Io) Date_Time.With_Offset {
+    return now(io, &Timezone.utc);
 }
 
-pub fn now_local(io: std.Io) !Date_Time.With_Offset {
-    return now_tz(io, try tzdb.current_timezone());
+pub fn now_local(io: std.Io, tzdb: *const TZDB) Date_Time.With_Offset {
+    return now(io, &tzdb.local);
 }
 
-pub fn now_tz(io: std.Io, tz: ?*const Timezone) Date_Time.With_Offset {
-    const ts = std.Io.Clock.real.now(io);
-    return Date_Time.With_Offset.from_timestamp_ms(ts.toMilliseconds(), tz);
+pub fn now(io: std.Io, timezone: ?*const Timezone) Date_Time.With_Offset {
+    return .from_timestamp(.now(io, .real), timezone);
 }
 
 const std = @import("std");
-
-test {
-    _ = tzdb;
-    _ = Date_Time;
-    _ = @import("date.zig");
-    _ = @import("time.zig");
-
-    try std.testing.expect(now(std.testing.io).dt.date.is_after(.epoch));
-}

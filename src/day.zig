@@ -77,8 +77,107 @@ pub const Day = enum(u5) {
     pub fn as_unsigned(self: Day) u32 {
         return @intFromEnum(self);
     }
+
+    pub fn is_before(self: Day, other: Day) bool {
+        return @intFromEnum(self) < @intFromEnum(other);
+    }
+
+    pub fn is_after(self: Day, other: Day) bool {
+        return @intFromEnum(self) > @intFromEnum(other);
+    }
+
+    pub fn plus(self: Day, days: i32) Day {
+        return .from_number(self.as_number() + days);
+    }
+
+    pub fn prev(self: Day) Day {
+        return self.plus(-1);
+    }
+
+    pub fn next(self: Day) Day {
+        return self.plus(1);
+    }
+
+    /// This may return the same date.
+    /// for the alternative, use Date.next_day_of_month()
+    pub fn on_or_after(self: Day, date: Date) Date {
+        const _ymd = date.ymd();
+        const current = _ymd.day.as_number();
+        const target = self.as_number();
+
+        var delta_days = target - current;
+        if (current > target) delta_days += _ymd.month.days(_ymd.year);
+        return date.plus_days(delta_days);
+    }
+
+    /// This may return the same date.
+    /// for the alternative, use Date.prev_day_of_month()
+    pub fn on_or_before(self: Day, date: Date) Date {
+        const _ymd = date.ymd();
+        const current = _ymd.day.as_number();
+        const target = self.as_number();
+
+        var delta_days = target - current;
+        if (current < target) delta_days -= _ymd.month.prev().days(_ymd.year);
+        return date.plus_days(delta_days);
+    }
+
+    /// This may return the same date.
+    /// for the alternative, use Date.YMD.next_day_of_month()
+    pub fn on_or_after_ymd(self: Day, ymd: Date.YMD) Date.YMD {
+        const target = self.as_number();
+        const current = ymd.day.as_number();
+
+        if (target <= current) {
+            return .{
+                .year = ymd.year,
+                .month = ymd.month,
+                .day = self,
+            };
+        } else if (ymd.month == .december) {
+            return .{
+                .year = ymd.year.next(),
+                .month = .january,
+                .day = self,
+            };
+        } else {
+            return .{
+                .year = ymd.year,
+                .month = ymd.month.next(),
+                .day = self,
+            };
+        }
+    }
+
+    /// This may return the same date.
+    /// for the alternative, use Date.YMD.prev_day_of_month()
+    pub fn on_or_before_ymd(self: Day, ymd: Date.YMD) Date.YMD {
+        const target = self.as_number();
+        const current = ymd.day.as_number();
+
+        if (target >= current) {
+            return .{
+                .year = ymd.year,
+                .month = ymd.month,
+                .day = self,
+            };
+        } else if (ymd.month == .january) {
+            return .{
+                .year = ymd.year.prev(),
+                .month = .december,
+                .day = self,
+            };
+        } else {
+            return .{
+                .year = ymd.year,
+                .month = ymd.month.prev(),
+                .day = self,
+            };
+        }
+    }
 };
 
+const Date = @import("date.zig").Date;
 const Year = @import("year.zig").Year;
 const Ordinal_Day = @import("ordinal_day.zig").Ordinal_Day;
 const std = @import("std");

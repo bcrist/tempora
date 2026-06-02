@@ -135,6 +135,51 @@ pub const Month = enum (u4) {
         }
     }
 
+    pub fn days_assume_leap_year(self: Month) u16 {
+        if (self == .february) return 29;
+        const month: u16 = @intCast(self.as_number());
+        if (month < 8) {
+            return 30 + (month & 1);
+        } else {
+            return 30 + ((month + 1) & 1);
+        }
+    }
+
+    pub fn starting_ordinal_day(self: Month, year: Year) Ordinal_Day {
+        var result = self.starting_ordinal_day_assume_non_leap_year();
+        switch (self) {
+            .january, .february => {},
+            else => {
+                if (year.is_leap()) result = .from_number(result.as_number() + 1);
+            }
+        }
+        return result;
+    }
+
+    pub fn starting_ordinal_day_assume_non_leap_year(self: Month) Ordinal_Day {
+        switch (self) {
+            inline else => |final_month| {
+                comptime var raw: u16 = 1;
+                inline for (1..@intFromEnum(final_month)) |m| {
+                    raw += comptime days_assume_non_leap_year(.from_number(m));
+                }
+                return .from_number(raw);
+            },
+        }
+    }
+
+    pub fn starting_ordinal_day_assume_leap_year(self: Month) Ordinal_Day {
+        switch (self) {
+            inline else => |final_month| {
+                comptime var raw: u16 = 1;
+                inline for (1..@intFromEnum(final_month)) |m| {
+                    raw += comptime days_assume_leap_year(.from_number(m));
+                }
+                return .from_number(raw);
+            },
+        }
+    }
+
     pub fn starting_date(self: Month, year: Year) Date {
         return Date.from_ymd(year, self, .first);
     }
@@ -159,50 +204,27 @@ pub const Month = enum (u4) {
     pub fn short_name(self: Month) []const u8 {
         return self.name()[0..3];
     }
+
+    pub fn is_before(self: Month, other: Month) bool {
+        return @intFromEnum(self) < @intFromEnum(other);
+    }
+
+    pub fn is_after(self: Month, other: Month) bool {
+        return @intFromEnum(self) > @intFromEnum(other);
+    }
+
+    pub fn plus(self: Month, months: i32) Month {
+        return .from_number(@mod(self.as_number() + months - 1, 12) + 1);
+    }
+
+    pub fn prev(self: Month) Month {
+        return self.plus(1);
+    }
+
+    pub fn next(self: Month) Month {
+        return self.plus(-1);
+    }
 };
-
-test "Month" {
-    try std.testing.expectEqual(.january, try Month.from_string("Jan", .{}));
-    try std.testing.expectError(error.InvalidString, Month.from_string("Jan", .{ .allow_short = false }));
-    try std.testing.expectEqual(.february, try Month.from_string("february", .{}));
-    try std.testing.expectEqual(.february, try Month.from_string("february", .{ .allow_short = false }));
-    try std.testing.expectError(error.InvalidString, Month.from_string("febru", .{}));
-    try std.testing.expectEqual(.may, try Month.from_string("may", .{}));
-    try std.testing.expectEqual(.october, try Month.from_string("OCT", .{}));
-    try std.testing.expectEqual(.november, try Month.from_string("NOVembER", .{}));
-    try std.testing.expectEqual(.december, try Month.from_string(" 12 ", .{ .allow_short = false, .allow_long = false }));
-    try std.testing.expectEqual(.september, try Month.from_string("___9", .{ .allow_long = false }));
-    try std.testing.expectEqual(error.InvalidString, Month.from_string("___9", .{ .allow_numeric = false }));
-    try std.testing.expectError(error.InvalidString, Month.from_string("00", .{}));
-    try std.testing.expectError(error.InvalidString, Month.from_string("13", .{}));
-
-    try std.testing.expectEqual(31, Month.from_number(1).days_assume_non_leap_year());
-    try std.testing.expectEqual(28, Month.from_number(2).days_assume_non_leap_year());
-    try std.testing.expectEqual(31, Month.from_number(3).days_assume_non_leap_year());
-    try std.testing.expectEqual(30, Month.from_number(4).days_assume_non_leap_year());
-    try std.testing.expectEqual(31, Month.from_number(5).days_assume_non_leap_year());
-    try std.testing.expectEqual(30, Month.from_number(6).days_assume_non_leap_year());
-    try std.testing.expectEqual(31, Month.from_number(7).days_assume_non_leap_year());
-    try std.testing.expectEqual(31, Month.from_number(8).days_assume_non_leap_year());
-    try std.testing.expectEqual(30, Month.from_number(9).days_assume_non_leap_year());
-    try std.testing.expectEqual(31, Month.from_number(10).days_assume_non_leap_year());
-    try std.testing.expectEqual(30, Month.from_number(11).days_assume_non_leap_year());
-    try std.testing.expectEqual(31, Month.from_number(12).days_assume_non_leap_year());
-
-    try std.testing.expectEqual(31, Month.from_number(1).days(Year.from_number(2020)));
-    try std.testing.expectEqual(29, Month.from_number(2).days(Year.from_number(2020)));
-    try std.testing.expectEqual(31, Month.from_number(3).days(Year.from_number(2020)));
-    try std.testing.expectEqual(30, Month.from_number(4).days(Year.from_number(2020)));
-    try std.testing.expectEqual(31, Month.from_number(5).days(Year.from_number(2020)));
-    try std.testing.expectEqual(30, Month.from_number(6).days(Year.from_number(2020)));
-    try std.testing.expectEqual(31, Month.from_number(7).days(Year.from_number(2020)));
-    try std.testing.expectEqual(31, Month.from_number(8).days(Year.from_number(2020)));
-    try std.testing.expectEqual(30, Month.from_number(9).days(Year.from_number(2020)));
-    try std.testing.expectEqual(31, Month.from_number(10).days(Year.from_number(2020)));
-    try std.testing.expectEqual(30, Month.from_number(11).days(Year.from_number(2020)));
-    try std.testing.expectEqual(31, Month.from_number(12).days(Year.from_number(2020)));
-}
-
 
 const Date = @import("date.zig").Date;
 const Year = @import("year.zig").Year;

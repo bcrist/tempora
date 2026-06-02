@@ -1,7 +1,7 @@
 .{
     .name = .tempora,
     .fingerprint = 0xb3d860680d9e3c19,
-    .version = "0.5.1",
+    .version = "0.6.0",
     .minimum_zig_version = "0.16.0",
     .paths = .{
         "src",
@@ -9,5 +9,31 @@
         "build.zig.zon",
         "license",
     },
-    .dependencies = .{},
+    .dependencies = .{
+        .tzdata = .{
+            .url = "https://www.iana.org/time-zones/repository/tzdata-latest.tar.gz",
+            .hash = "N-V-__8AAJNJFQDnX6y0b6bcdq8THQzo4BwUqggM70wWaz1a",
+            .lazy = true,
+        },
+        .cldr = .{
+            .url = "git+https://github.com/unicode-org/cldr?ref=release-48-2#11299982335beb974c1c63c45265184e759c0f41",
+            .hash = "N-V-__8AALa_ihnH6G94d0T6M_-LgWwn8bCpRS5l4vGxnNOa",
+            .lazy = true,
+        },
+        .xmlread = .{
+            .url = "git+https://codeberg.org/bcrist/xmlread#dbdd9bd143ad908201bfec302d849b4585942443",
+            .hash = "xmlread-0.2.0-Ha9x8bnYAQDAe2YXIOvBodOWWmxZz5KAfufyr9wwSfjg",
+            .lazy = true,
+        },
+        .zbench = .{
+            .url = "git+https://github.com/hendriknielaender/zBench#2a231fc165ab22e5ef0c2b7c8841ee86a445dffa",
+            .hash = "zbench-0.13.0-YTdc71ZAAQCUJ0w9jM6ZyLOBxDlGv2j3CqCEj49l-KcP",
+            .lazy = true,
+        },
+        .console_helper = .{
+            .url = "git+https://codeberg.org/bcrist/zig-consolehelper#446cf88cc8b3551a56643954bf120c6701b48554",
+            .hash = "console_helper-0.4.2-19g4E2VKAAADECN2nMmLE7dQUWXXVMq38EZeVAWxeoWL",
+            .lazy = true,
+        },
+    },
 }
