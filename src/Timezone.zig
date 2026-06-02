@@ -62,7 +62,7 @@ pub fn debug(self: *const Timezone, writer: *std.Io.Writer) !void {
     try writer.print("Timezone {f}:\n", .{ std.zig.fmtString(self.id) });
     try writer.writeAll("    Transitions:\n");
     for (0..self.transition_count, self.transition_timestamps[0..self.transition_count], self.transition_info_indices[0..self.transition_count]) |i, ts, info_idx| {
-        try writer.print("        [{}] {} -> {}\n", .{ i, ts, info_idx });
+        try writer.print("        [{}] {} -> {} ({f})\n", .{ i, ts, info_idx, Date_Time.With_Offset.from_timestamp_s(ts, null).fmt(Date_Time.With_Offset.rfc2822) });
     }
     try writer.writeAll("    Infos:\n");
     for (0.., self.infos) |i, wall| {
@@ -140,4 +140,5 @@ pub const Wall_Time_Info = @import("Timezone/Wall_Time_Info.zig");
 pub const tzif = @import("Timezone/tzif.zig");
 pub const windows = @import("Timezone/windows.zig");
 
+const Date_Time = @import("Date_Time.zig");
 const std = @import("std");

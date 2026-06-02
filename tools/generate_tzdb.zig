@@ -463,7 +463,6 @@ fn compile_zone(alloc: std.mem.Allocator, zone_lines: []Zone, leapsecond_years: 
         } else {
             var year = years.min;
 
-            processed_rules.unsetAll();
             if (processed_rules.bit_length < zone.rules.len) {
                 try processed_rules.resize(alloc, std.mem.alignForward(usize, zone.rules.len + 10, 64), false);
             }
@@ -472,6 +471,8 @@ fn compile_zone(alloc: std.mem.Allocator, zone_lines: []Zone, leapsecond_years: 
                 if (zone.until) |until| {
                     if (year.is_after(until.rule.years.max)) break;
                 }
+
+                processed_rules.unsetAll();
 
                 while (true) {
                     // find the next unprocessed transition rule for this year (chronologically)
