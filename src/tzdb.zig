@@ -122,7 +122,7 @@ pub const Add_Options = struct {
         return .{
             .tzdata_override_search_path = if (maybe_env) |env| env.get("TZDIR") orelse env.get("TZDATA") orelse env.get("ZONEINFO") else null,
             .tzdata_search_paths = &common_zoneinfo_locations,
-            .use_windows = builtin.os.tag == .windows,
+            .use_windows = builtin.os.tag == .windows and !allow_embedded,
             .use_embedded = allow_embedded,
         };
     }
