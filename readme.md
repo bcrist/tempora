@@ -1,5 +1,5 @@
 # Tempora
-### Simple Zig Dates/Times/Timezones
+### Simple Zig Dates, Times, and Timezones
 
 ## Features
 * Efficient storage (32b `Time`, 32b `Date`, 64b `Date_Time`)
@@ -13,17 +13,28 @@
 * Compute duration between two dates/times
     * With or without timezone offset correction
     * With or without leap second correction
-* Embedded IANA timezone database (adds about 100k to binary size when full database is included)
+* String formatting and parsing with custom formats (similar to moment.js and Java's SimpleDateFormat style)
+* Query current timezone on both posix and Windows systems
+* Embedded IANA timezone database (adds about 100k to binary size when the full database is referenced)
     * If only specific timezones or regions are needed, only a subset of the database needs to be embedded
     * Timezones can also be loaded from a filesystem zoneinfo database or the timezone database in the Windows registry
-* Query current timezone on both posix and Windows systems
-* String formatting and parsing with custom formats (similar to moment.js and Java's SimpleDateFormat style)
+    * Regenerating the embedded database does not rely on `zic.c` or any system dependencies (just run `zig build -Dcodegen`)
+* No dependencies
+    * Except when using `zig build -Dcodegen` or `zig build -Dbenchmarks`
 
 ## Limitations
 * Times are only accurate to millisecond resolution
 * It's not possible to store most "out of bounds" dates/times (e.g. Jan 32)
 * Localized month and weekday names are not supported; only English
 * Non-Gregorian calendars are not supported
+
+## Why another zig date/time library?
+There are a bunch of [other zig date/time libraries](readme.md#comparison-with-other-zig-date-time-libraries), so why did I decide to build a new one?  I was motivated to create tempora because the main data structures for other zig date/time libraries generally contain many separate decomposed fields.  In addition to having many opportunities for non-canonical representations, the large memory footprint makes it very hard to stomache using these types inside structs or arrays, particularly when following data-oriented-design principles.
+Instead, I wanted something where the main data structures only provided a slight decomposition over timestamps - just separating the date and time parts.  Any further decomposition can be done on demand, or using auxiliary temporary data structures.  And ideally the solution should not use significantly more memory than a timestamp.
+
+It turns out that "rata die" encoded dates stored in a 32 bit integer have enough range to cover over 10 million years.  Ideally then, I wanted to fit a packed time-of-day representation into a 32 bit integer as well.  Unfortunately, this is a little trickier, and I had to compromise on the resolution.  A nanosecond-resolution time-of-day would require at least 47 bits to span 24 hours.  Even a microsecond-resolution time-of-day would require 37 bits.  While I would have preferred to support resolutions smaller than a millisecond, I think it's probably fine for almost all use cases.  If you need more resolution, it's probably better to just process and store nanosecond timestamps and convert to rounded human-centric types only for display.
+
+My second requirement was good support for timezones, including the ability to embed an IANA timezone database directly into the executable.  Other than tempora, only [zdt](https://codeberg.org/FObersteiner/zdt) comes close to this, but I wanted even more flexibility in deciding how and when to load timezones, and I wanted a pure-zig solution to automatically updating the embedded timezone database.
 
 ## API Documentation/Examples
 
@@ -65,7 +76,7 @@ time = .from_hmsm(hours, minutes, seconds, milliseconds);
 ```zig
 const start_of_day: tempora.Time = .midnight;
 const wakeup: tempora.Time = .@"7am";
-const lunch: tmepora.Time = .noon;
+const lunch: tempora.Time = .noon;
 const bedtime: tempora.Time = .@"10pm";
 const end_of_day: tempora.Time = .midnight_eod;
 ```
@@ -175,8 +186,7 @@ const dto: tempora.Date_Time.With_Offset = est_time.with_date(date);
 ### `Timezone`
 A `Timezone` struct contains all the information required to convert between UTC and local wall clock times for a particular local time zone.
 
-There are two built-in timezone constants, `Timezone.utc` and `Timezone.tai`.  Neither of these "timezones" include any DST rules UTC offset
-information, however `Timezone.tai` includes leap-second adjustment information which is needed when trying to work with durations that are accurate to the second or better (see `Date_Time.With_Offset.duration_since`, `Date_Time.With_Offset.plus_duration`, etc.)
+There are two built-in timezone constants, `Timezone.utc` and `Timezone.tai`.  Neither of these "timezones" include any DST rules or UTC offset information, however `Timezone.tai` includes leap-second adjustment information which is needed when trying to work with durations that are accurate to the second or better (see `Date_Time.With_Offset.duration_since`, `Date_Time.With_Offset.plus_duration`, etc.)
 
 
 ### `TZDB`
@@ -225,10 +235,29 @@ Note that for `add_lazy`, you must pass a pointer to the the add options, and it
 
 You may also want to support lazily loading TZif files from the filesystem that were never specified by `add` or `add_lazy`, to allow usage of new zones that didn't exist when the program was built:
 ```zig
-tzdb.default_lazy_options = &tempora.TZDB.Add_Options.system_or_embedded(init.environ_map);
+tzdb.default_lazy_options = &.system_or_embedded(init.environ_map);
 ```
 Note however, that both of the two above examples have a downside: the `TZDB` can no longer be used concurrently from multiple threads unless external synchronization is provided, or each thread/task has its own separate `TZDB`.
 
+#### Timezone offset designations
+If you want to be able to parse date/time strings that contain colloquial timezone offset designators like PST/PDT, you'll need to initialize these in the `TZDB`:
+```zig
+try tzdb.add_designations(tempora.tz.designations.common);
+```
+In addition to the `common` namespace, there are a variety of other collections:
+   * `nato` (military-style single-letter designations)
+   * `north_america`
+   * `cuba`
+   * `europe`
+   * `africa`
+   * `middle_east`
+   * `asia`
+   * `oceania` (Australia, NZ, and Pacific Islands)
+
+You can add several of these collections, however there are a few designations that have different meanings in different regions, like "IST".  The `common` namespace includes almost everything except those ambiguous designations, and the `nato` collection.
+You can also add custom designations if you like, but you'll have to specify the UTC offset (in seconds) manually.
+
+When parsing, make sure you use `.from_string_tzdb()` instead of `.from_string()` so that the parser can find your designations.
 
 
 ### `Year`
@@ -263,11 +292,20 @@ Note however, that both of the two above examples have a downside: the `TZDB` ca
 ```zig
 ```
 
+## The `dump` tool
+A small demo/tool is provided that prints out the current time in one or more timezones and the last/next time a DST change will happen for that zone:
+```
+$ zig build dump -- America/Chicago Africa/Maputo
+Current Time: 2026-06-02 21:03:49 CDT  offset=-18000s  dst=dst  source=posix_tz
+    DST began: 2026-03-08 03:00:00 CDT
+    DST ends:  2026-11-01 01:00:00 CST
+Current Time: 2026-06-02 28:03:49 CAT  offset=7200s  dst=std  source=posix_tz
+    This timezone has permanent standard time
+    The current time rules for this zone began on 1908-12-31 23:49:42 CAT
+```
+You can pass the `--debug` command line option to additionally print out all the internal timezone data in a format similar to TZif, but human-readable.
 
-
-
-
-
+By default, `dump` will only use it's internal IANA timezone database, but if you use the `--system` command line option it will instead look for a system-provided timezone.
 
 ## Comparison with other Zig date/time libraries
 
@@ -305,9 +343,9 @@ Note however, that both of the two above examples have a downside: the `TZDB` ca
 | Timezone                        | `Timezone`                                                  | `TimeZone`                                                     | `Timezone`                                                                    | `datetime.Timezone`                                       |
 | Timezone Database               | `TZDB`                                                      | -                                                              | internal                                                                      | `timezones`                                               |
 | Current timezone                | `TZDB.local` (Posix via fs, Windows via registry/ntdll.dll) | `local(alloc, io, env)` (Posix via fs, Windows via advapi.dll) | `Timezone.tzLocal(io, alloc)` (Posix via fs, Windows via registry/advapi.dll) | -                                                         |
-| Embedded IANA tzdb?             | yes (optional/configurable)                                 | no                                                             | yes                                                                           | partial (no TZif support)                                 |
-| Filesystem tzdb?                | yes (optional)                                              | yes                                                            | yes                                                                           | no                                                        |
-| Windows tzdb?                   | yes (optional, via registry/ntdll.dll)                      | yes (via advapi.dll)                                           | no                                                                            | no                                                        |
+| Embedded IANA tzdb?             | yes (configurable)                                          | no                                                             | yes                                                                           | partial (no TZif support)                                 |
+| Filesystem tzdb?                | yes                                                         | yes                                                            | yes                                                                           | no                                                        |
+| Windows tzdb?                   | yes (via registry/ntdll.dll)                                | yes (via advapi.dll)                                           | no                                                                            | no                                                        |
 | Leap second database?           | `Timezone.data.leap_seconds`                                | no                                                             | internal                                                                      | no                                                        |
 
 Other zig date/time libraries include:
@@ -315,4 +353,5 @@ Other zig date/time libraries include:
 * [datetime](https://github.com/clickingbuttons/datetime)
 * [tempus](https://github.com/jnordwick/tempus)
 * [chrono-zig](https://codeberg.org/geemili/chrono-zig)
+
 None of these other libraries support zig 0.15.x or newer, so they are excluded from the above comparison.

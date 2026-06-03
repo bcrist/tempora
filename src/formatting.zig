@@ -1,6 +1,6 @@
 const eval_branch_quota = 100_000;
 
-pub const default_from_string_trim = std.ascii.whitespace ++ "-/,._'";
+pub const default_from_string_trim = std.ascii.whitespace ++ "/,._'";
 
 pub fn format(dto: Date_Time.With_Offset, comptime pattern: []const u8, writer: *std.Io.Writer) std.Io.Writer.Error!void {
     @setEvalBranchQuota(eval_branch_quota);
@@ -255,10 +255,10 @@ pub fn Parse_Result(comptime pattern: []const u8) type {
         iso_week: if (has_iso_week) ISO_Week else void,
         iso_week_year: if (has_iso_week_year) Year else void,
         week_day: if (has_week_day) Week_Day else void,
-        hours: if (has_hours) i32 else void,
-        minutes: if (has_minutes) i32 else void,
-        seconds: if (has_seconds) i32 else void,
-        ms: if (has_ms) i32 else void,
+        hours: if (has_hours) u31 else void,
+        minutes: if (has_minutes) u8 else void,
+        seconds: if (has_seconds) u8 else void,
+        ms: if (has_ms) u10 else void,
         utc_offset_ms: if (has_utc_offset_ms) i32 else void,
 
         const Self = @This();
@@ -417,9 +417,9 @@ pub fn Parse_Result(comptime pattern: []const u8) type {
                 } else @compileError("Invalid pattern: " ++ pattern);
 
                 if (has_hours) {
-                    const m: i32 = if (has_minutes) self.minutes else 0;
-                    const s: i32 = if (has_seconds) self.seconds else 0;
-                    const milli: i32 = if (has_ms) self.ms else 0;
+                    const m: u8 = if (has_minutes) self.minutes else 0;
+                    const s: u8 = if (has_seconds) self.seconds else 0;
+                    const milli: u10 = if (has_ms) self.ms else 0;
                     dt.time = Time.from_hmsm(self.hours, m, s, milli);
                 } else @compileError("Invalid pattern: " ++ pattern);
             }

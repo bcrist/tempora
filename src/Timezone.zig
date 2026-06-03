@@ -33,6 +33,28 @@ pub const tai: Timezone = .{
     .leap_seconds = Timezone.tzdata.leap_seconds,
 };
 
+pub fn fixed(comptime hours: i32, comptime minutes: u16) Timezone {
+    const unsigned_hours: u32 = @intCast(@abs(hours));
+    const designator = comptime designator: {
+        if (minutes >= 60) @compileError("Invalid Timezone.fixed() minutes offset!");
+        const sign = if (hours < 0) '-' else '+';
+        if (minutes == 0) {
+            break :designator std.fmt.comptimePrint("{c}{d:0>2}", .{ sign, unsigned_hours });
+        } else {
+            break :designator std.fmt.comptimePrint("{c}{d:0>2}:{d:0>2}", .{ sign, unsigned_hours, minutes });
+        }
+    };
+    const total_seconds: i32 = comptime @as(i32, std.math.sign(hours)) * (unsigned_hours * 3600 + minutes * 60);
+    return .{
+        .id = "",
+        .transition_count = 0,
+        .transition_timestamps = undefined,
+        .transition_info_indices = undefined,
+        .infos = &.{},
+        .posix = .init_standard(designator, total_seconds),
+    };
+}
+
 pub fn clone(self: *const Timezone, arena: std.mem.Allocator) !Timezone {
     const id = try arena.dupe(u8, self.id);
 

@@ -54,6 +54,7 @@ pub fn build(b: *std.Build) void {
     _ = b.step("dump", "Run dump utility").dependOn(&dump.step);
 
     const tempora_tests = b.addTest(.{
+        .name = "tests",
         .root_module = b.createModule(.{
             .root_source_file = b.path("test/main.zig"),
             .target = target,
@@ -65,6 +66,7 @@ pub fn build(b: *std.Build) void {
     });
 
     const civil_tests = b.addTest(.{
+        .name = "civil_tests",
         .root_module = b.createModule(.{
             .root_source_file = b.path("test/civil.zig"),
             .target = target,

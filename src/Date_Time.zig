@@ -3,8 +3,20 @@ time: Time,
 
 const Date_Time = @This();
 
-pub const epoch = Date_Time{
+pub const epoch: Date_Time = .{
     .date = .epoch,
+    .time = .midnight,
+};
+pub const unix_epoch: Date_Time = .{
+    .date = .unix_epoch,
+    .time = .midnight,
+};
+pub const ntp_epoch: Date_Time = .{
+    .date = .ntp_epoch,
+    .time = .midnight,
+};
+pub const ntfs_epoch: Date_Time = .{
+    .date = .ntfs_epoch,
     .time = .midnight,
 };
 
@@ -107,14 +119,21 @@ pub fn is_after(self: Date_Time, other: Date_Time) bool {
     return self.time.is_after(other.time);
 }
 
+/// N.B. this does not adjust for leap seconds.
+/// Use Date_Time.With_Offset.plus_duration() to avoid this limitation.
 pub fn plus_duration(self: Date_Time, duration: std.Io.Duration) Date_Time {
     return self.plus_days_and_ms(0, duration.toMilliseconds());
 }
 
+/// N.B. this does not adjust for leap seconds.
+/// Use Date_Time.With_Offset.minus_duration() to avoid this limitation.
 pub fn minus_duration(self: Date_Time, duration: std.Io.Duration) Date_Time {
     return self.plus_days_and_ms(0, -duration.toMilliseconds());
 }
 
+/// Generally `days` and `ms` should have the same sign, otherwise they will act in opposing directions
+/// N.B. this does not adjust for leap seconds.
+/// Use Date_Time.With_Offset.plus_days_and_ms() to avoid this limitation.
 pub fn plus_days_and_ms(self: Date_Time, days: i32, ms: i64) Date_Time {
     var new_date: i64 = @intFromEnum(self.date) + days;
     var new_time: i64 = self.time.ms_since_midnight() + ms;
@@ -135,8 +154,8 @@ pub fn plus_days_and_ms(self: Date_Time, days: i32, ms: i64) Date_Time {
 
 pub const With_Offset = struct {
     dt: Date_Time,
-    utc_offset_ms: i32,
-    timezone: ?*const Timezone,
+    utc_offset_ms: i32 = 0,
+    timezone: ?*const Timezone = null,
 
     pub fn from_timestamp(ts: std.Io.Timestamp, timezone: ?*const Timezone) With_Offset {
         return .from_timestamp_ms(ts.toMilliseconds(), timezone);
@@ -203,7 +222,7 @@ pub const With_Offset = struct {
             }
         }
         return .{
-            .dt = if (delta_ms) self.dt.plus_days_and_ms(0, delta_ms) else self.dt,
+            .dt = if (delta_ms) |delta| self.dt.plus_days_and_ms(0, delta) else self.dt,
             .utc_offset_ms = utc_offset_ms,
             .timezone = self.timezone,
         };
@@ -219,7 +238,7 @@ pub const With_Offset = struct {
         } else {
             const self_ts = self.timestamp_ms();
             const past_ts = past.timestamp_ms();
-            const adj = Timezone.tai.utc_offset_ms(past_ts) - Timezone.tai.utc_offset_ms(self_ts);
+            const adj = Timezone.tai.utc_offset_ms(self_ts) - Timezone.tai.utc_offset_ms(past_ts);
             return self_ts - past_ts + adj;
         }
     }
@@ -258,6 +277,7 @@ pub const With_Offset = struct {
         return self.plus_days_and_ms(0, -duration.toMilliseconds());
     }
 
+    /// Generally `days` and `ms` should have the same sign, otherwise they will act in opposing directions
     pub fn plus_days_and_ms(self: With_Offset, days: i32, ms: i64) With_Offset {
         const leap_seconds = Timezone.tai.leap_seconds;
         const ts_utc = self.timestamp_ms();
@@ -272,24 +292,24 @@ pub const With_Offset = struct {
         if (self.timezone) |tz| {
             new_utc_offset_ms = tz.utc_offset_ms(new_ts_utc);
             dst_delta = self.utc_offset_ms - new_utc_offset_ms;
-            if (tz.leap_seconds.len > 0) |tz_leap_seconds| {
-                dst_delta -= Timezone.Leap_Second.get_utc_offset_seconds(tz_leap_seconds, ts_utc);
-                dst_delta += Timezone.Leap_Second.get_utc_offset_seconds(tz_leap_seconds, new_ts_utc);
+            if (tz.leap_seconds.len > 0) {
+                dst_delta -= Timezone.Leap_Second.get_utc_offset_seconds(tz.leap_seconds, ts_utc);
+                dst_delta += Timezone.Leap_Second.get_utc_offset_seconds(tz.leap_seconds, new_ts_utc);
             }
         }
         return .{
-            .dt = self.dt.plus_days_and_ms(days, ms - ts_tai_offset_ms + new_ts_tai_offset_ms + dst_delta),
+            .dt = self.dt.plus_days_and_ms(days, ms + ts_tai_offset_ms - new_ts_tai_offset_ms + dst_delta),
             .utc_offset_ms = new_utc_offset_ms,
             .timezone = self.timezone,
         };
     }
 
     pub fn plus_duration_ignore_leap_seconds(self: With_Offset, duration: std.Io.Duration) With_Offset {
-        self.plus_days_and_ms_ignore_leap_seconds(0, duration.toMilliseconds());
+        return self.plus_days_and_ms_ignore_leap_seconds(0, duration.toMilliseconds());
     }
 
     pub fn minus_duration_ignore_leap_seconds(self: With_Offset, duration: std.Io.Duration) With_Offset {
-        self.plus_days_and_ms_ignore_leap_seconds(0, -duration.toMilliseconds());
+        return self.plus_days_and_ms_ignore_leap_seconds(0, -duration.toMilliseconds());
     }
 
     pub fn plus_days_and_ms_ignore_leap_seconds(self: With_Offset, days: i32, ms: i64) With_Offset {

@@ -71,6 +71,28 @@ const REG_TZI_FORMAT = extern struct {
     pub fn dst_offset_seconds(self: *const REG_TZI_FORMAT) i32 {
         return -(self.Bias + self.DaylightBias) * std.time.s_per_min;
     }
+
+    pub fn std_transition(self: *const REG_TZI_FORMAT) Timezone.Posix.Transition {
+        return .{
+            .date = .{ .month_week_day = .{
+                .month = .from_number(self.StandardDate.Month),
+                .week = @enumFromInt(self.StandardDate.Day - 1),
+                .day = .from_number(self.StandardDate.DayOfWeek + 1),
+            }},
+            .time = self.StandardDate.time(),
+        };
+    }
+
+    pub fn dst_transition(self: *const REG_TZI_FORMAT) Timezone.Posix.Transition {
+        return .{
+            .date = .{ .month_week_day = .{
+                .month = .from_number(self.DaylightDate.Month),
+                .week = @enumFromInt(self.DaylightDate.Day - 1),
+                .day = .from_number(self.DaylightDate.DayOfWeek + 1),
+            }},
+            .time = self.DaylightDate.time(),
+        };
+    }
 };
 
 const SYSTEMTIME = extern struct {
@@ -84,7 +106,7 @@ const SYSTEMTIME = extern struct {
     Milliseconds: WORD,
 
     pub fn start_of_year(self: SYSTEMTIME) Date_Time {
-        return Year.from_number(self.Year).starting_date().with_time(.from_hmsm(self.Hour, self.Minute, 0, 0));
+        return Year.from_number(self.Year).starting_date().with_time(self.time());
     }
 
     pub fn transition_dt(self: SYSTEMTIME) Date_Time {
@@ -98,7 +120,16 @@ const SYSTEMTIME = extern struct {
                 date = next;
             }
         }
-        return date.with_time(.from_hmsm(self.Hour, self.Minute, 0, 0));
+        return date.with_time(self.time());
+    }
+
+    pub fn time(self: SYSTEMTIME) Time {
+        return .from_hmsm(
+            self.Hour,
+            @intCast(self.Minute),
+            @intCast(self.Second),
+            @intCast(self.Milliseconds),
+        );
     }
 };
 
@@ -267,34 +298,11 @@ pub fn timezone(temp: std.mem.Allocator, arena: std.mem.Allocator, id: []const u
         .default_end,
     );
 
-    if (tzi.DaylightDate.Month != 0) {
-        if (tzi.StandardDate.Month != 0) {
-            posix.dst.?.start = .{
-                .date = .{ .month_week_day = .{
-                    .month = .from_number(tzi.DaylightDate.Month),
-                    .week = @enumFromInt(tzi.DaylightDate.Day - 1),
-                    .day = .from_number(tzi.DaylightDate.DayOfWeek + 1),
-                }},
-                .time = Time.from_hmsm(tzi.DaylightDate.Hour, tzi.DaylightDate.Minute, 0, 0),
-            };
-            posix.dst.?.end = .{
-                .date = .{ .month_week_day = .{
-                    .month = .from_number(tzi.StandardDate.Month),
-                    .week = @enumFromInt(tzi.StandardDate.Day - 1),
-                    .day = .from_number(tzi.StandardDate.DayOfWeek + 1),
-                }},
-                .time = Time.from_hmsm(tzi.StandardDate.Hour, tzi.StandardDate.Minute, 0, 0),
-            };
-        } else {
-            posix.dst.?.start = .{
-                .date = .{ .ordinal_day_no_leap = .first },
-                .time = .midnight,
-            };
-            posix.dst.?.end = .{
-                .date = .{ .ordinal_day_no_leap = .last_no_leap },
-                .time = .midnight_eod,
-            };
-        }
+    if (tzi.StandardBias == tzi.DaylightBias or tzi.DaylightDate.Month == 0 or tzi.StandardDate.Month == 0) {
+        posix.dst = null;
+    } else {
+        posix.dst.?.start = tzi.dst_transition();
+        posix.dst.?.end = tzi.std_transition();
     }
 
     var dynamic_tzis: std.ArrayList(REG_TZI_FORMAT) = .empty;
@@ -345,7 +353,7 @@ pub fn timezone(temp: std.mem.Allocator, arena: std.mem.Allocator, id: []const u
         defer builder.deinit();
 
         for (dynamic_tzis.items) |dynamic_tzi| {
-            if (dynamic_tzi.DaylightDate.Month == 0 or dynamic_tzi.StandardDate.Month == 0) {
+            if (dynamic_tzi.DaylightBias == dynamic_tzi.StandardBias or dynamic_tzi.DaylightDate.Month == 0 or dynamic_tzi.StandardDate.Month == 0) {
                 try builder.add_transition(dynamic_tzi.StandardDate.start_of_year().with_offset(dynamic_tzi.std_offset_seconds()), .std, &dynamic_tzi);
             } else if (dynamic_tzi.DaylightDate.Month < dynamic_tzi.StandardDate.Month) {
                 try builder.add_transition(dynamic_tzi.DaylightDate.transition_dt().with_offset(dynamic_tzi.std_offset_seconds()), .dst, &dynamic_tzi);

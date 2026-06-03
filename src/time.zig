@@ -29,14 +29,32 @@ pub const Time = enum (i32) {
     pub const @"12am": Time = .midnight;
     pub const @"12pm": Time = .noon;
 
+    pub fn from_ms(milli: i32) Time {
+        return @enumFromInt(milli);
+    }
 
-    pub fn from_hmsm(h: i32, m: i32, s: i32, milli: i32) Time {
-        const mm = h * 60 + m;
-        const ss = mm * 60 + s;
-        const msms = ss * 1000 + milli;
-        std.debug.assert(msms >= 0);
-        std.debug.assert(msms < @intFromEnum(Time.midnight_eod));
-        return @enumFromInt(msms);
+    pub fn from_seconds(s: i32) Time {
+        return @enumFromInt(s * 1000);
+    }
+
+    pub fn from_minutes(m: i32) Time {
+        return @enumFromInt(m * 60_000);
+    }
+
+    pub fn from_hours(h: i32) Time {
+        return @enumFromInt(h * 3600_000);
+    }
+
+    pub fn from_hmsm(h: u31, m: u8, s: u8, milli: u10) Time {
+        std.debug.assert(h < 24);
+        std.debug.assert(m < 60);
+        std.debug.assert(s < 60);
+        std.debug.assert(milli < 1000);
+
+        const hms = h * 3600_000;
+        const mms = @as(u31, m) * 60_000;
+        const sms = @as(u31, s) * 1_000;
+        return @enumFromInt(hms + mms + sms + milli);
     }
 
     pub fn with_date(self: Time, date: Date) Date_Time {
@@ -132,8 +150,8 @@ pub const Time = enum (i32) {
 
     pub const With_Offset = struct {
         time: Time,
-        utc_offset_ms: i32,
-        timezone: ?*const Timezone,
+        utc_offset_ms: i32 = 0,
+        timezone: ?*const Timezone = null,
 
         pub fn with_date(self: With_Offset, date: Date) Date_Time.With_Offset {
             return .{

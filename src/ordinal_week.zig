@@ -15,6 +15,7 @@ pub const Ordinal_Week = enum (u6) {
     pub fn as_number(self: Ordinal_Week) i32 {
         return @intFromEnum(self);
     }
+
     pub fn as_unsigned(self: Ordinal_Week) u32 {
         return @intFromEnum(self);
     }
@@ -32,7 +33,7 @@ pub const Ordinal_Week = enum (u6) {
     }
 
     pub fn is_after(self: Ordinal_Week, other: Ordinal_Week) bool {
-        return @intFromEnum(self) < @intFromEnum(other);
+        return @intFromEnum(self) > @intFromEnum(other);
     }
 
     pub fn plus(self: Ordinal_Week, weeks: i32) Ordinal_Week {

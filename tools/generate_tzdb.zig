@@ -1080,7 +1080,7 @@ const Zone = struct {
             var letter_writer = std.Io.Writer.fixed(&buf);
 
             const offset_signed = self.std_offset_seconds + dst_save_seconds;
-            letter_writer.writeByte(if (offset_signed < 0) '+' else '-') catch unreachable;
+            letter_writer.writeByte(if (offset_signed < 0) '-' else '+') catch unreachable;
 
             var offset_abs: u32 = @intCast(@abs(offset_signed));
             const seconds = offset_abs % 60;

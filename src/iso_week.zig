@@ -87,6 +87,40 @@ pub const ISO_Week_Date = struct {
         return self.day.as_iso() > other.day.as_iso();
     }
 
+    pub fn plus_days(self: ISO_Week_Date, days: i32) ISO_Week_Date {
+        if (@abs(days) > 700) {
+            // likely faster converting to a linear date and back:
+            return .from_date(self.date().plus_days(days));
+        }
+        const new_day_index = self.day.as_iso() + days - 1;
+        var new_week_index = self.week.as_number() - 1 + @divFloor(new_day_index, 7);
+        var new_year = self.year;
+        while (new_week_index < 0) {
+            new_year = new_year.prev();
+            new_week_index += ISO_Week.last(new_year).as_number();
+        }
+        while (new_week_index >= 52) {
+            const last_week_of_year = ISO_Week.last(new_year).as_number();
+            if (new_week_index >= last_week_of_year) {
+                new_week_index -= last_week_of_year;
+                new_year = new_year.next();
+            } else break;
+        }
+        return .{
+            .year = new_year,
+            .week = .from_number(new_week_index + 1),
+            .day = self.day.plus(days),
+        };
+    }
+
+    pub fn prev(self: ISO_Week_Date) ISO_Week_Date {
+        return self.plus_days(-1);
+    }
+
+    pub fn next(self: ISO_Week_Date) ISO_Week_Date {
+        return self.plus_days(1);
+    }
+
     pub const iso8601_week_date = "GGGG-[W]WW-E";
     pub const iso8601_week = "GGGG-[W]WW";
     pub const datecode = "GGWW"; 
@@ -153,7 +187,7 @@ pub const ISO_Week = enum (u6) {
     }
 
     pub fn is_after(self: ISO_Week, other: ISO_Week) bool {
-        return @intFromEnum(self) < @intFromEnum(other);
+        return @intFromEnum(self) > @intFromEnum(other);
     }
 
     pub fn plus(self: ISO_Week, weeks: i32) ISO_Week {

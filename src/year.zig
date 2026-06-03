@@ -1,5 +1,10 @@
 pub const Year = enum (i32) {
-    epoch = Date.epoch_year,
+    min = -5_877_610, // lowest year where .starting_date() and .ending_date() are both valid
+    ntfs_epoch = 1601, // e.g. Windows FILETIME
+    ntp_epoch = 1900,
+    unix_epoch = 1970,
+    epoch = 2000,
+    max =  5_881_609, // highest year where .starting_date() and .ending_date() are both valid
     _,
 
     pub fn from_number(y: i32) Year {
@@ -80,8 +85,28 @@ pub const Year = enum (i32) {
         return 0 == (y & @as(i32, if (low < cen_cutoff) 0xF else 0x3));
     }
 
+    pub fn ymd(self: Year, m: Month, d: Day) Date.YMD {
+        return .{
+            .year = self,
+            .month = m,
+            .day = d,
+        };
+    }
+
+    pub fn date(self: Year, m: Month, d: Day) Date {
+        return .from_ymd(self.ymd(m, d));
+    }
+
+    pub fn date_info(self: Year, m: Month, d: Day) Date.Info {
+        return .from_ymd(self.ymd(m, d));
+    }
+
     pub fn starting_date(self: Year) Date {
         return .from_year(self);
+    }
+
+    pub fn ending_date(self: Year) Date {
+        return self.info().ending_date();
     }
 
     pub fn info(self: Year) Info {
@@ -143,6 +168,10 @@ pub const Year = enum (i32) {
                 .month = m,
                 .day = d,
             };
+        }
+
+        pub fn date(self: Info, m: Month, d: Day) Date {
+            return .from_ymd(self.ymd(m, d));
         }
 
         pub fn date_info(self: Info, m: Month, d: Day) Date.Info {
@@ -218,7 +247,7 @@ pub const Year = enum (i32) {
         }
 
         pub fn is_leap_year(self: Dominical_Letter) bool {
-            return (self.as_unsigned & leap_marker) != 0;
+            return (self.as_unsigned() & leap_marker) != 0;
         }
     };
 };

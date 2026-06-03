@@ -44,7 +44,7 @@ pub const Ordinal_Day = enum (u9) {
     }
 
     pub fn from_md_assume_non_leap_year(m: Month, d: Day) Ordinal_Day {
-        return m.starting_ordinal_day_assume_non_leap_year().plus(d.as_number());
+        return m.starting_ordinal_day_assume_non_leap_year().plus(d.as_number() - 1);
     }
 
     pub fn as_number(self: Ordinal_Day) i32 {
@@ -70,7 +70,7 @@ pub const Ordinal_Day = enum (u9) {
     }
 
     pub fn is_after(self: Ordinal_Day, other: Ordinal_Day) bool {
-        return @intFromEnum(self) < @intFromEnum(other);
+        return @intFromEnum(self) > @intFromEnum(other);
     }
 
     pub fn plus(self: Ordinal_Day, days: i32) Ordinal_Day {

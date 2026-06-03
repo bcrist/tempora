@@ -1,8 +1,9 @@
 pub const Date = enum(i32) {
-    epoch = 0,
+    ntfs_epoch = civil.year_to_days(Year.ntfs_epoch.as_number()), // e.g. Windows FILETIME
+    ntp_epoch = civil.year_to_days(Year.ntp_epoch.as_number()),
+    unix_epoch = civil.year_to_days(Year.unix_epoch.as_number()),
+    epoch = civil.year_to_days(Year.epoch.as_number()), // 0
     _,
-
-    pub const epoch_year = 2000;
 
     pub fn from_ymd(d: YMD) Date {
         return @enumFromInt(civil.ymd_to_days(d.year.as_number(), d.month.as_unsigned(), d.day.as_number()));
@@ -286,12 +287,8 @@ pub const Date = enum(i32) {
             return .from_numbers(raw.y, raw.m, raw.d);
         }
 
-        pub fn year_info(self: Info) Year.Info {
-            return .{
-                .year = self.year.as_number(),
-                .starting_date = self.start_of_year,
-                .is_leap = self.is_leap_year,
-            };
+        pub fn year_info(self: YMD) Year.Info {
+            return self.year.info();
         }
 
         pub fn date(self: YMD) Date {
@@ -379,18 +376,22 @@ pub const Date = enum(i32) {
                     .month = self.month,
                     .day = .from_number(d - 1),
                 };
-            } else if (self.month != .january) {
-                return .{
-                    .year = self.year,
-                    .month = self.month.prev(),
-                    .day = .first,
-                };
             } else {
-                return .{
-                    .year = self.year.prev(),
-                    .month = .december,
-                    .day = .from_number(31),
-                };
+                const prev_month = self.month.prev();
+                if (self.month != .january) {
+                    return .{
+                        .year = self.year,
+                        .month = prev_month,
+                        .day = .from_number(prev_month.days(self.year)),
+                    };
+                } else {
+                    const prev_year = self.year.prev();
+                    return .{
+                        .year = prev_year,
+                        .month = prev_month,
+                        .day = .from_number(prev_month.days(prev_year)),
+                    };
+                }
             }
         }
 
@@ -400,7 +401,7 @@ pub const Date = enum(i32) {
             const target = d.as_number();
             const current = self.day.as_number();
 
-            if (target < current) {
+            if (target > current) {
                 return .{
                     .year = self.year,
                     .month = self.month,
@@ -427,7 +428,7 @@ pub const Date = enum(i32) {
             const target = d.as_number();
             const current = self.day.as_number();
 
-            if (target > current) {
+            if (target < current) {
                 return .{
                     .year = self.year,
                     .month = self.month,
@@ -466,34 +467,18 @@ pub const Date = enum(i32) {
 
         /// This will always return a different date.
         /// for the alternative, use .next().prev_month_and_day()
-        pub fn prev_month_and_day(self: Date, m: Month, d: Day) Date {
-            const _ymd = self.ymd();
-
+        pub fn prev_month_and_day(self: YMD, m: Month, d: Day) YMD {
             const target_month = m.as_number();
-            const current_month = _ymd.month.as_number();
+            const current_month = self.month.as_number();
 
             const target_day = d.as_number();
-            const current_day = _ymd.day.as_number();
+            const current_day = self.day.as_number();
 
-            if (target_month < current_month) {
-                var delta_days = target_day - current_day;
-                if (_ymd.month == .february or !_ymd.year.is_leap()) {
-                    delta_days += m.starting_ordinal_day_assume_non_leap_year().as_number();
-                    delta_days -= _ymd.month.starting_ordinal_day_assume_non_leap_year().as_number();
-                } else {
-                    delta_days += m.starting_ordinal_day_assume_leap_year().as_number();
-                    delta_days -= _ymd.month.starting_ordinal_day_assume_leap_year().as_number();
-                }
-                return self.plus_days(delta_days);
-            } else if (target_month == current_month and target_day < current_day) {
-                return self.plus_days(target_day - current_day);
-            } else {
-                return .from_ymd(.{
-                    .year = _ymd.year.prev(),
-                    .month = m,
-                    .day = d,
-                });
-            }
+            return .{
+                .year = if (target_month < current_month or target_month == current_month and target_day < current_day) self.year else self.year.prev(),
+                .month = m,
+                .day = d,
+            };
         }
     };
 
@@ -530,7 +515,7 @@ pub const Date = enum(i32) {
 
         pub fn from_ymd(_ymd: YMD) Info {
             const d = _ymd.date();
-            const raw = @intFromEnum(date);
+            const raw = @intFromEnum(d);
             const weekday = d.week_day();
             const leap = _ymd.year.is_leap();
             const start_of_month_raw = raw - _ymd.day.as_number() + 1;
@@ -541,11 +526,33 @@ pub const Date = enum(i32) {
                 .year = _ymd.year,
                 .month = _ymd.month,
                 .day = _ymd.day,
-                .start_of_year = .from_number(start_of_year_raw),
+                .start_of_year = @enumFromInt(start_of_year_raw),
                 .is_leap_year = leap,
                 .week_day = weekday,
                 .ordinal_day = .from_number(raw - start_of_year_raw + 1),
-                .start_of_month = .from_number(start_of_month_raw),
+                .start_of_month = @enumFromInt(start_of_month_raw),
+                .start_of_week = @enumFromInt(raw - weekday.as_number() + 1),
+            };
+        }
+
+        pub fn from_yimd(yi: Year.Info, m_: Month, d_: Day) Info {
+            const d: Date = .from_ymd(.init(yi.year(), m_, d_));
+            const raw = @intFromEnum(d);
+            const weekday = d.week_day();
+            const leap = yi.is_leap;
+            const start_of_month_raw = raw - d_.as_number() + 1;
+            const start_of_month_od = if (leap) m_.starting_ordinal_day_assume_leap_year() else m_.starting_ordinal_day_assume_non_leap_year();
+            const start_of_year_raw = start_of_month_raw - start_of_month_od.as_number() + 1;
+            return .{
+                .raw = raw,
+                .year = yi.year(),
+                .month = m_,
+                .day = d_,
+                .start_of_year = @enumFromInt(start_of_year_raw),
+                .is_leap_year = leap,
+                .week_day = weekday,
+                .ordinal_day = .from_number(raw - start_of_year_raw + 1),
+                .start_of_month = @enumFromInt(start_of_month_raw),
                 .start_of_week = @enumFromInt(raw - weekday.as_number() + 1),
             };
         }

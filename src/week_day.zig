@@ -24,20 +24,21 @@ pub const Week_Day = enum(u3) {
     pub fn from_string(d: []const u8, options: From_String_Options) !Week_Day {
         const trimmed = if (options.trim.len > 0) std.mem.trim(u8, d, options.trim) else d;
 
-        if (options.allow_short and trimmed.len >= 2 or options.allow_long and trimmed.len >= 3) {
-            inline for (std.meta.fields(Week_Day)) |day| {
-                if (std.ascii.eqlIgnoreCase(trimmed[0..2], day.name[0..2])) {
-                    if (options.allow_short) {
-                        if (trimmed.len == 2) {
-                            return @enumFromInt(day.value);
-                        } else if (trimmed.len == 3 and trimmed[2] == day.name[2]) {
-                            return @enumFromInt(day.value);
-                        }
-                    }
+        if (trimmed.len == 0) return error.InvalidString;
 
-                    if (options.allow_long and std.ascii.eqlIgnoreCase(trimmed[2..], day.name[2..])) {
-                        return @enumFromInt(day.value);
-                    }
+        if (options.allow_short or options.allow_long) {
+            const info = @typeInfo(Week_Day).@"enum";
+            inline for (info.fields) |field| {
+                if (trimmed[0] | 0x20 == field.name[0]) {
+                    const day: Week_Day = @enumFromInt(field.value);
+                    if (switch (trimmed.len) {
+                        1 => options.allow_short and day == .monday or day == .wednesday or day == .friday,
+                        2 => options.allow_short and trimmed[1] | 0x20 == field.name[1],
+                        3 => options.allow_short and trimmed[1] | 0x20 == field.name[1] and trimmed[2] | 0x20 == field.name[2],
+                        4 => options.allow_short and day == .tuesday and std.ascii.eqlIgnoreCase(trimmed, "tues"),
+                        5 => options.allow_short and day == .thursday and std.ascii.eqlIgnoreCase(trimmed, "thurs"),
+                        else => options.allow_long and std.ascii.eqlIgnoreCase(trimmed, field.name),
+                    }) return day;
                 }
             }
         }

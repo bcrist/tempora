@@ -181,7 +181,7 @@ pub const Month = enum (u4) {
     }
 
     pub fn starting_date(self: Month, year: Year) Date {
-        return Date.from_ymd(year, self, .first);
+        return Date.from_ymd(.init(year, self, .first));
     }
 
     pub fn name(self: Month) []const u8 {
@@ -218,11 +218,11 @@ pub const Month = enum (u4) {
     }
 
     pub fn prev(self: Month) Month {
-        return self.plus(1);
+        return self.plus(-1);
     }
 
     pub fn next(self: Month) Month {
-        return self.plus(-1);
+        return self.plus(1);
     }
 };
 
