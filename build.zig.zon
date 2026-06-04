@@ -21,7 +21,7 @@
             .lazy = true,
         },
         .xmlread = .{
-            .url = "git+https://codeberg.org/bcrist/xmlread#dbdd9bd143ad908201bfec302d849b4585942443",
+            .url = "git+https://codeberg.org/kudu/xmlread#c725fc443c9bc42134ca72d8c0a117af31036da0",
             .hash = "xmlread-0.2.0-Ha9x8bnYAQDAe2YXIOvBodOWWmxZz5KAfufyr9wwSfjg",
             .lazy = true,
         },
