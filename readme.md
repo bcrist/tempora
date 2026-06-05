@@ -36,17 +36,194 @@ It turns out that "rata die" encoded dates stored in a 32 bit integer have enoug
 
 My second requirement was good support for timezones, including the ability to embed an IANA timezone database directly into the executable.  Other than tempora, only [zdt](https://codeberg.org/FObersteiner/zdt) comes close to this, but I wanted even more flexibility in deciding how and when to load timezones, and I wanted a pure-zig solution to automatically updating the embedded timezone database.
 
-## API Documentation/Examples
+## API/Examples
 
 ### `Date`
-Dates are represented as a signed 32b number of days since 1 January 2000.  This type of representation is sometimes referred to as "rata die" (although that name usually connotes a different epoch date) and it makes it impossible to represent invalid dates like January 32 or November 31.
+Dates are represented as a signed 32b number of days since 1 January 2000, embedded in an enum for type safety.  This type of representation is sometimes referred to as "rata die" (although that name usually connotes a different epoch date) and it makes it impossible to represent invalid dates like January 32 or November 31.
 
 Using this packed representation makes composition and decomposition slower, but greatly simplifies most other operations on dates, like modification and comparison.
 
-### `Date.YMD`
-This struct represents a decomposed date, consisting of a year, month, and day of the month.  In some cases it may be more convenient or efficient to use this over `Date`, but some operations are not defined for this struct (e.g. day-of-week extraction).
-
+#### Construction
 ```zig
+const y: i32 = 1984
+const m: i32 = 3
+const d: i32 = 1
+const date: Date = .from_ymd_numbers(y, m, d);
+```
+```zig
+const ymd: Date.YMD = .from_numbers(1984, 3, 1);
+const date: Date = .from_ymd(ymd);
+```
+```zig
+const y: Year = .epoch;
+const od: Ordinal_Day = .first;
+const date: Date = .from_yod(y, od);
+```
+```zig
+const yi: Year.Info = .from_year(.epoch);
+const od: Ordinal_Day = .first;
+const date: Date = .from_yiod(yi, od);
+```
+```zig
+const y: Year = .epoch;
+const iw: ISO_Week = .first;
+const wd: Week_Day = .sunday;
+const date: Date = .from_ywd(y, iw, wd);
+```
+```zig
+const yi: Year.Info = .from_year(.epoch);
+const iw: ISO_Week = .first;
+const wd: Week_Day = .sunday;
+const date: Date = .from_yiwd(yi, iw, wd);
+```
+```zig
+const y: Year = .epoch;
+const starting_date: Date = .from_year(y);
+```
+
+#### Convenience Decls
+```zig
+var d: Date = .epoch; // 2000-01-01
+d = .unix_epoch; // 1970-01-01
+d = .ntp_epoch; // 1900-01-01
+d = .ntfs_epoch; // 1601-01-01
+```
+
+#### Decomposition & Conversion
+```zig
+const date: Date = .epoch;
+
+const y: Year = date.year();
+const yi: Year_Info = date.year_info();
+const m: Month = date.month();
+const d: Day = date.day();
+const od: Ordinal_Day = date.ordinal_day();
+const ow: Ordinal_Week = date.ordinal_week();
+const wd: Week_Day = date.week_day();
+const iw: ISO_Week = date.iso_week();
+const iwd: ISO_Week_Date = date.iso_week_date();
+const di: Date.Info = date.info();
+const ymd: Date.YMD = date.ymd();
+
+const time: Time = .midnight;
+const dt: Date_Time = date.with_time(time);
+```
+
+#### Comparison
+```zig
+const date1: Date = .epoch;
+const date2: Date = Date.next(.epoch);
+
+std.debug.assert(date1.is_before(date2));
+std.debug.assert(!date1.is_before(date1));
+std.debug.assert(date2.is_after(date1));
+std.debug.assert(!date2.is_after(date2));
+```
+
+#### Modification
+```zig
+var date: Date = .epoch;
+
+const days: i32 = 10;
+date = date.plus_days(days);
+
+date = date.next();
+date = date.prev();
+
+const wd: Week_Day = .sunday;
+date = date.next_week_day(wd);
+date = date.prev_week_day(wd);
+
+const d: Day = .@"15";
+date = date.next_day_of_month(d);
+date = date.prev_day_of_month(d);
+
+const m: Month = .january;
+date = date.next_month_and_day(m, d);
+date = date.prev_month_and_day(m, d);
+```
+
+#### Formatting
+```zig
+const date: Date = Date.next(.epoch);
+
+writer.print("{f}", .{ date.fmt(Date.iso8601) });       // 2000-01-02
+writer.print("{f}", .{ date.fmt(Date.rfc2822) });       // Sun, 02 Jan 2000
+writer.print("{f}", .{ date.fmt(Date.us) });            // January 2, 2000
+writer.print("{f}", .{ date.fmt(Date.uk) });            // 2 January 2000
+writer.print("{f}", .{ date.fmt(Date.us_numeric) });    // 1/2/2000
+writer.print("{f}", .{ date.fmt(Date.uk_numeric) });    // 2/1/2000
+writer.print("{f}", .{ date.fmt("MMMM YYYY") });        // January 2000
+writer.print("{f}", .{ date.fmt("YY") });               // 00
+```
+
+#### Parsing
+```zig
+var date: Date = undefined;
+
+date = try .from_string(Date.iso8601, "2025-10-01");
+date = try .from_string("YYYY", "2025"); // 2025-01-01
+```
+
+### `Date.YMD`
+This struct represents a decomposed date, consisting of a year, month, and day of the month.  In some cases it may be more convenient or efficient to use this over `Date`, but it requires twice as much memory, and some operations are not defined for this struct.
+
+#### Construction
+```zig
+const y: i32 = 1984
+const m: i32 = 3
+const d: i32 = 1
+const ymd: Date.YMD = .from_numbers(y, m, d);
+```
+```zig
+const y: Year = .epoch;
+const m: Month = .january;
+const d: Day = .first;
+const ymd: Date.YMD = .init(y, m, d);
+```
+```zig
+const date: Date = .epoch;
+const ymd: Date.YMD = .from_date(date);
+```
+
+#### Decomposition/Conversion
+```zig
+const ymd: Date.YMD = .from_date(.epoch);
+
+const y: Year = ymd.year;
+const m: Month = ymd.month;
+const d: Day = ymd.day;
+const yi: Year.Info = ymd.year_info();
+const date: Date = ymd.date();
+const di: Date.Info = ymd.info();
+const iwd: ISO_Week_Date = ymd.iso_week_date();
+```
+
+#### Comparison
+```zig
+const ymd1: Date.YMD = .from_date(.epoch);
+const ymd2: Date.YMD = .from_date(.next(.epoch));
+
+std.debug.assert(ymd1.is_before(ymd2));
+std.debug.assert(!ymd1.is_before(ymd1));
+std.debug.assert(ymd2.is_after(ymd1));
+std.debug.assert(!ymd2.is_after(ymd2));
+```
+
+#### Modification
+```zig
+var ymd: Date.YMD = .from_date(.epoch);
+
+ymd = ymd.next();
+ymd = ymd.prev();
+
+const d: Day = .@"15";
+ymd = ymd.next_day_of_month(d);
+ymd = ymd.prev_day_of_month(d);
+
+const m: Month = .january;
+ymd = ymd.next_month_and_day(m, d);
+ymd = ymd.prev_month_and_day(m, d);
 ```
 
 ### `Date.Info`
@@ -58,129 +235,347 @@ This struct is similar to `Date.YMD`, but also includes some more decomposed inf
     * A `Date` representing the start of the current week
     * A `Date` representing the start of the current month
     * A `Date` representing the start of the current year
-```zig
-```
-
-### `Time`
-The `Time` enum represents a millisecond-resolution offset from midnight (the start of an arbitrary day).  It is backed by `i32` which provides a range of around +/- 24 days, but canonical `Time` values (especially when combined with a `Date`) should be between 0 and 85_399_999.
-
-A `Time` value may represent a time under the [UTC](https://en.wikipedia.org/wiki/Coordinated_Universal_Time) or [TAI](https://en.wikipedia.org/wiki/International_Atomic_Time) standards, a fixed offset from UTC, or a wall-clock time in a specific local timezone.  If this information cannot be inferred from context, you should use `Time.With_Offset` instead.
 
 #### Construction
 ```zig
-var time: tempora.Time = @enumFromInt(1234); // milliseconds since midnight
-time = .from_hmsm(hours, minutes, seconds, milliseconds);
+const date: Date = .epoch;
+const di: Date.Info = .from_date(date);
+```
+```zig
+const ymd: Date.YMD = .from_date(.epoch);
+const di: Date.Info = .from_ymd(ymd);
+```
+```zig
+const yi: Year.Info = .from_year(.epoch);
+const m: Month = .january;
+const d: Day = .first;
+const di: Date.Info = .from_yimd(yi, m, d);
 ```
 
-#### Hourly convenience decls
+#### Decomposition/Conversion
 ```zig
-const start_of_day: tempora.Time = .midnight;
-const wakeup: tempora.Time = .@"7am";
-const lunch: tempora.Time = .noon;
-const bedtime: tempora.Time = .@"10pm";
-const end_of_day: tempora.Time = .midnight_eod;
+const di: Date.Info = .from_date(.epoch);
+
+const raw: i32 = di.raw;
+const start_of_year: Date = di.start_of_year;
+const start_of_month: Date = di.start_of_month;
+const start_of_week: Date = di.start_of_week;
+const is_leap_year: bool = di.is_leap_year;
+const year: Year = di.year;
+const month: Month = di.month;
+const day: Day = di.day;
+const week_day: Week_Day = di.week_day;
+const ordinal_day: Ordinal_Day = di.ordinal_day;
+const yi: Year.Info = di.year_info();
+const ymd: Date.YMD = di.ymd();
+const date: Date = di.date();
+const iwd: ISO_Week_Date = di.iso_week_date();
 ```
 
-#### Decomposition
+### `Time`
+The `Time` enum represents a millisecond-resolution offset from midnight (the start of an arbitrary day).  It is backed by `i32` which provides a range of around +/- 24 days, but canonical `Time` values (especially when combined with a `Date`) should be between 0 and 85,399,999.
+
+A `Time` value may represent a time under the [UTC](https://en.wikipedia.org/wiki/Coordinated_Universal_Time) or [TAI](https://en.wikipedia.org/wiki/International_Atomic_Time) standards, a fixed offset from UTC, or a wall-clock time in a specific local timezone.  If this information cannot be inferred from context, you may want to use `Time.With_Offset` instead.
+
+#### Construction
 ```zig
-const whole_hours_since_midnight = time.hours();
-const whole_minutes_since_hour = time.minutes();
-const whole_seconds_since_minute = time.seconds();
-const milliseconds_since_second = time.ms();
-const whole_minutes_since_midnight = time.minutes_since_midnight();
-const whole_seconds_since_midnight = time.seconds_since_midnight();
-const milliseconds_since_midnight = time.ms_since_midnight();
+const ms: i32 = 1234;
+const t: Time = .from_ms(ms); // 1.234 seconds after midnight
+```
+```zig
+const s: i32 = 1234;
+const t: Time = .from_seconds(s); // 20 minutes and 34 seconds after midnight
+```
+```zig
+const m: i32 = -2;
+const t: Time = .from_minutes(m); // 2 minutes before midnight (non-canonical time; refers to the previous day)
+```
+```zig
+const h: i32 = 12;
+const t: Time = .from_hours(h); // noon
+```
+```zig
+const h: u31 = 20;
+const m: u8 = 30;
+const s: u8 = 0;
+const ms: u10 = 0;
+const t: Time = .from_hmsm(h, m, s, ms); // 8:30 pm
+```
+
+#### Hourly Convenience Decls
+```zig
+const start_of_day: Time = .midnight;
+const wakeup: Time = .@"7am";
+const lunch: Time = .noon;
+const bedtime: Time = .@"10pm";
+const end_of_day: Time = .midnight_eod;
+```
+
+#### Decomposition & Conversion
+```zig
+const t: Time = .@"1pm";
+
+const whole_hours_since_midnight: i32 = t.hours();
+const whole_minutes_since_hour: i32 = t.minutes();
+const whole_seconds_since_minute: i32 = t.seconds();
+const milliseconds_since_second: i32 = t.ms();
+const whole_minutes_since_midnight: i32 = t.minutes_since_midnight();
+const whole_seconds_since_midnight: i32 = t.seconds_since_midnight();
+const milliseconds_since_midnight: i32 = t.ms_since_midnight();
+const dt: Date_Time = time.with_date(date);
+const to1: Time.With_Offset = time.with_offset(utc_offset_ms);
+const to2: Time.With_Offset = time.with_timezone(tz, utc_offset_ms);
 ```
 
 #### Comparison
 ```zig
+const t1: Time = .noon;
+const t2: Time = .@"1pm";
 // assuming times from the same date:
-if (time.is_after(.noon)) work_hard();
-if (time.is_before(bedtime)) goof_off();
+std.debug.assert(t1.is_before(t2));
+std.debug.assert(!t1.is_before(t1));
+std.debug.assert(t2.is_after(t1));
+std.debug.assert(!t2.is_after(t2));
 ```
 
 #### Modification
 ```zig
-time = time.plus_ms(milliseconds);
-time = time.plus_seconds(seconds);
-time = time.plus_minutes(minutes);
-time = time.plus_hours(hours);
-time = time.plus_duration(std.Io.Duration.fromNanoseconds(1_0000_0000_0000));
-time = time.minus_duration(std.Io.Duration.fromNanoseconds(1_0000_0000_0000));
-```
+var t: Time = .noon;
 
-#### Conversion to other types
-```zig
-const dt: tempora.Date_Time = time.with_date(date);
-const to1: tempora.Time.With_Offset = time.with_offset(utc_offset_ms);
-const to2: tempora.Time.With_Offset = time.with_timezone(tz, utc_offset_ms);
+const duration: std.Io.Duration = .fromSeconds(1);
+t = t.plus_duration(duration);
+t = t.minus_duration(duration);
+
+const ms: i32 = 1234;
+t = t.plus_ms(ms);
+
+const s: i32 = 1;
+t = t.plus_seconds(s);
+
+const m: i32 = 12
+t = t.plus_minutes(m);
+
+const h: i32 = -3;
+t = t.plus_hours(h);
 ```
 
 ### `Date_Time`
+This struct simply combines a `Date` and `Time`, representing a single instant, but without specifying whether that date and time is based on UTC, TAI, or some local time zone (see `Date_Time.With_Offset` for that).
+
+#### Convenience Decls
 ```zig
+var dt: Date_Time = .epoch; // 2000-01-01T00:00:00.000
+dt = .unix_epoch; // 1970-01-01T00:00:00.000
+dt = .ntp_epoch; // 1900-01-01T00:00:00.000
+dt = .ntfs_epoch; // 1601-01-01T00:00:00.000
 ```
 
-
-#### Current date/time
+#### Decomposition & Conversion
 ```zig
+const dt: Date_Time = .epoch;
 
+const date: Date = dt.date;
+const t: Time = dt.time;
+
+const utc_offset_ms: i32 = 0;
+const dto1: Date_Time.With_Offset = dt.with_offset(utc_offset_ms);
+
+const tz: *const Timezone = &Timezone.utc;
+const dto2: Date_Time.With_Offset = dt.with_timezone(tz);
+```
+
+#### Comparison
+```zig
+const dt1: Date_Time = .epoch;
+const dt2: Date_Time = Date_Time.next(.epoch);
+
+std.debug.assert(dt1.is_before(dt2));
+std.debug.assert(!dt1.is_before(dt1));
+std.debug.assert(dt2.is_after(dt1));
+std.debug.assert(!dt2.is_after(dt2));
+
+// These do not account for leap seconds; see `Date_Time.With_Offset` versions of these functions
+const duration: std.Io.Duration = dt2.duration_since(dt1);
+const ms: i32 = dt2.ms_since(dt1);
+```
+
+#### Modification
+```zig
+var dt: Date_Time = .epoch;
+
+// This does not account for leap seconds; see `Date_Time.With_Offset` versions of these functions
+const days: i32 = 10;
+const ms: i32 = 1234;
+dt = dt.plus_days_and_ms(days, ms);
+
+// This does not account for leap seconds; see `Date_Time.With_Offset` versions of these functions
+const duration: std.Io.Duration = .fromSeconds(60);
+dt = dt.plus_duration(duration);
+dt = dt.minus_duration(duration);
 ```
 
 ### `Date_Time.With_Offset`
 This struct combines a `Date_Time` with a UTC offset, allowing for conversions to/from unix timestamps.  Optionally, it can also include a pointer to a `Timezone`, which can be helpful when formatting, parsing, and modifying the instant.
+
+#### Construction
 ```zig
+const io: std.Io = ...
+const dto: Date_Time.With_Offset = tempora.now_utc(io);
+```
+```zig
+const io: std.Io = ...
+const tzdb: *const TZDB = ...
+const dto: Date_Time.With_Offset = tempora.now_local(io, tzdb);
+```
+```zig
+const io: std.Io = ...
+const tz: *const Timezone = &Timezone.utc;
+const dto: Date_Time.With_Offset = tempora.now(io, tz);
+```
+```zig
+const ts: std.Io.Timestamp = .fromNanoseconds(0);
+const tz: ?*const Timezone = null;
+const dto: Date_Time.With_Offset = .from_timestamp(ts, tz);
+```
+```zig
+const ts: i64 = 0;
+const tz: ?*const Timezone = null;
+const dto: Date_Time.With_Offset = .from_timestamp_ms(ts, tz);
+```
+```zig
+const ts: i64 = 0;
+const tz: ?*const Timezone = null;
+const dto: Date_Time.With_Offset = .from_timestamp_s(ts, tz);
+```
+
+#### Decomposition/Conversion
+```zig
+const io: std.Io = ...
+const dto: Date_Time.With_Offset = tempora.now_utc(io);
+
+const ts: std.Io.Timestamp = dto.timestamp();
+const ts_ms: i64 = dto.timestamp_ms();
+const ts_s: i64 = dto.timestamp_s();
+```
+
+#### Conversion Between Timezones
+```zig
+const io: std.Io = ...
+var dto: Date_Time.With_Offset = tempora.now_utc(io);
+
+const other_tz: Timezone = .fixed(1, 0);
+dto = dto.in_timezone(&other_tz);
+```
+
+#### Comparison
+```zig
+const dto1: Date_Time.With_Offset = .from_timestamp_s(0, null);
+const dto2: Date_Time.With_Offset = .from_timestamp_s(1, null);
+std.debug.assert(dto1.is_before(dto2));
+std.debug.assert(!dto1.is_before(dto1));
+std.debug.assert(dto2.is_after(dto1));
+std.debug.assert(!dto2.is_after(dto2));
+
+// These *do* provide accurate durations across leap second discontinuities in UTC:
+const duration: std.Io.Duration = dto2.duration_since(dto1);
+const ms: i32 = dto2.ms_since(dto1);
+
+// These *do not* provide accurate durations across leap second discontinuities in UTC:
+const duration: std.Io.Duration = dto2.duration_since_ignore_leap_seconds(dto1);
+const ms: i32 = dto2.ms_since_ignore_leap_seconds(dto1);
+```
+
+#### Modification
+```zig
+var dto: Date_Time.With_Offset = .from_timestamp_s(0, null);
+
+dto.dt.time = dto.dt.time.plus_hours(25);
+dto = dto.canonical();
+
+// This *does* account for leap second discontinuities in UTC:
+const days: i32 = 10;
+const ms: i32 = 1234;
+dto = dto.plus_days_and_ms(days, ms);
+
+// This *does* account for leap second discontinuities in UTC:
+const duration: std.Io.Duration = .fromSeconds(60);
+dto = dto.plus_duration(duration);
+dto = dto.minus_duration(duration);
+
+// This *does not* account for leap second discontinuities in UTC:
+const days: i32 = 10;
+const ms: i32 = 1234;
+dto = dto.plus_days_and_ms_ignore_leap_seconds(days, ms);
+
+// This *does not* account for leap second discontinuities in UTC:
+const duration: std.Io.Duration = .fromSeconds(60);
+dto = dto.plus_duration_ignore_leap_seconds(duration);
+dto = dto.minus_duration_ignore_leap_seconds(duration);
+```
+
+#### Formatting
+```zig
+const dto: Date_Time.With_Offset = .from_timestamp_s(0, &Timezone.utc);
+
+writer.print("{f}", .{ dto.fmt(Date_Time.With_Offset.iso8601) });           // 1970-01-01T00:00:00.000+00:00
+writer.print("{f}", .{ dto.fmt(Date_Time.With_Offset.iso8601_local) });     // 1970-01-01T00:00:00.000
+writer.print("{f}", .{ dto.fmt(Date_Time.With_Offset.rfc2822) });           // Thu, 01 Jan 1970 00:00:00 +0000
+writer.print("{f}", .{ dto.fmt(Date_Time.With_Offset.http) });              // Thu, 01 Jan 1970 00:00:00 GMT
+writer.print("{f}", .{ dto.fmt(Date_Time.With_Offset.sql_ms) });            // 1970-01-01 00:00:00.000 UTC
+writer.print("{f}", .{ dto.fmt(Date_Time.With_Offset.sql_ms_local) });      // 1970-01-01 00:00:00.000
+writer.print("{f}", .{ dto.fmt(Date_Time.With_Offset.sql) });               // 1970-01-01 00:00:00 UTC
+writer.print("{f}", .{ dto.fmt(Date_Time.With_Offset.sql_local) });         // 1970-01-01 00:00:00
+```
+
+#### Parsing
+```zig
+var dto: Date_Time.With_Offset = undefined;
+
+dto = try .from_string(Date.iso8601, "2025-10-01T12:12:12.000+00:00");
+dto = try .from_string("YYYY", "2025"); // 2025-01-01T00:00:00.000+00:00
+
+const tz: Timezone = Timezone.fixed(-1, 0);
+dto = try .from_string_tz(Date.iso8601_local, "2025-10-01T12:12:12.000", &tz);
+
+const tzdb: *const TZDB = ...
+dto = try .from_string_tzdb("YYYY-MM-DD HH:mm:ss z", "2025-10-01 12:12:12 CDT", tzdb);
 ```
 
 ### `Time.With_Offset`
 This struct is like `Date_Time.With_Offset` except without any `Date`.  It is mostly only useful for formatting and parsing strings that do not contain date information.  Otherwise you should prefer to work with `Date_Time.With_Offset` instead.
 
-#### Construction
+#### Conversion Between Timezones
 ```zig
-const time: tempora.Time = .from_hmsm(23, 59, 59, 999);
+const to: Time.With_Offset = (Time.midnight).with_offset(0);
 
-const cst_time = time.with_offset(-6 * std.time.ms_per_hour);
+const other_tz: Timezone = .fixed(1, 0);
+to = to.in_timezone(&other_tz);
+```
 
-const tz = tzdb.timezone(tempora.tz.america.chicago.id);
-const ct_time = time.with_timezone(tz, -6 * std.time.ms_per_hour);
+#### Decomposition/Conversion
+```zig
+const to: Time.With_Offset = (Time.midnight).with_offset(0);
+
+const date: Date = .epoch;
+const dto: Date_Time.With_Offset = to.with_date(date);
 ```
 
 #### Formatting
 ```zig
-// 23:59:59.999-06:00";
-writer.print("{f}", .{ cst.fmt(tempora.Time.With_Offset.iso8601) });
+const to: Time.With_Offset = (Time.midnight).with_offset(0);
 
-// 23:59:59.999";
-writer.print("{f}", .{ cst.fmt(tempora.Time.With_Offset.iso8601_local) });
-
-// 23:59:59 -0600
-writer.print("{f}", .{ cst.fmt(tempora.Time.With_Offset.rfc2822) });
-
-// Note the offset designation printed here is based on the timezone's designation on 2000-01-01,
-// which happens to match the offset we're using here, but generally you should prefer to use
-// Date_Time.With_Offset when using the `z` or `zz` format specifiers.
-// 23:59:59 CST
-writer.print("{f}", .{ ct.fmt("HH:mm:ss z") });
-
-// 11:59 pm
-writer.print("{f}", .{ ct.fmt("h:mm a") });
+writer.print("{f}", .{ cst.fmt(Time.With_Offset.iso8601) });        // 00:00:00.000-00:00
+writer.print("{f}", .{ cst.fmt(Time.With_Offset.iso8601_local) });  // 00:00:00.000
+writer.print("{f}", .{ cst.fmt(Time.With_Offset.rfc2822) });        // 00:00:00 +0000
+writer.print("{f}", .{ ct.fmt("h:mm a") });                         // 00:00 am
 ```
 
 #### Parsing
 ```zig
-var parsed_time: tempora.Time.With_Offset = try .from_string("h:mm a", "1:00 pm");
-parsed_time = try .from_string_tz(tempora.Time.With_Offset.iso8601, "13:00:00.000-06:00", tz);
+var parsed_time: Time.With_Offset = undefined;
+parsed_time = try .from_string("h:mm a", "1:00 pm");
+parsed_time = try .from_string_tz(Time.With_Offset.iso8601, "13:00:00.000-06:00", tz);
 parsed_time = try .from_string_tzdb("05:05:05 CDT", tzdb);
-```
-
-#### Conversion to another timezone
-```zig
-// With a known wall time in Central Time, what is the equivalent wall time in Eastern Time?
-const est_time = cst_time.in_timezone(null, -5 * std.time.ms_per_hour);
-```
-
-#### Conversion to other types
-```zig
-const dto: tempora.Date_Time.With_Offset = est_time.with_date(date);
 ```
 
 ### `Timezone`
@@ -261,34 +656,42 @@ When parsing, make sure you use `.from_string_tzdb()` instead of `.from_string()
 
 
 ### `Year`
+TODO: Document me!
 ```zig
 ```
 
 ### `Month`
+TODO: Document me!
 ```zig
 ```
 
 ### `Day` of month
+TODO: Document me!
 ```zig
 ```
 
 ### `Week_Day`
+TODO: Document me!
 ```zig
 ```
 
 ### `Ordinal_Day` of year
+TODO: Document me!
 ```zig
 ```
 
 ### `Ordinal_Week` of year
+TODO: Document me!
 ```zig
 ```
 
 ### `ISO_Week`
+TODO: Document me!
 ```zig
 ```
 
 ### `ISO_Week_Date`
+TODO: Document me!
 ```zig
 ```
 

@@ -5,6 +5,10 @@ pub const Date = enum(i32) {
     epoch = civil.year_to_days(Year.epoch.as_number()), // 0
     _,
 
+    pub fn from_ymd_numbers(y: i32, m: i32, d: i32) Date {
+        return @enumFromInt(civil.ymd_to_days(y, @intCast(m), d));
+    }
+
     pub fn from_ymd(d: YMD) Date {
         return @enumFromInt(civil.ymd_to_days(d.year.as_number(), d.month.as_unsigned(), d.day.as_number()));
     }
