@@ -611,7 +611,6 @@ const TZDB = @This();
 const log = std.log.scoped(.tempora);
 
 const Date_Time = @import("Date_Time.zig");
-const Date = @import("Date.zig");
 const Timezone = @import("Timezone.zig");
 const builtin = @import("builtin");
 const std = @import("std");
