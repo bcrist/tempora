@@ -656,43 +656,522 @@ When parsing, make sure you use `.from_string_tzdb()` instead of `.from_string()
 
 
 ### `Year`
-TODO: Document me!
+A non-exhaustive enum for representing a year number in a type-safe way.  The underlying integer value directly corresponds to years in the AD era.
+
+`Year.Info` is a struct with mostly the same capabilities as `Year`, except that the starting date and leap year status is precomputed and stored as fields.  This can be useful for performance optimization if these would otherwise end up being recomputed multiple times.
+
+`Year.Dominical_Letter` is used internally for ISO Week Date computations, but is exposed publicly in case it's useful for [other purposes](https://en.wikipedia.org/wiki/Dominical_letter).
+
+#### Construction
 ```zig
+const y: i32 = 1970;
+const year: Year = .from_number(y);
+```
+
+#### Convenience Decls
+```zig
+var y: Year = .epoch; // 2000
+y = .unix_epoch; // 1970
+y = .ntp_epoch; // 1900
+y = .ntfs_epoch; // 1601
+y = .min; // -5877610 -- lowest value where `.starting_date()` and `.ending_date()` are both valid
+y = .max; // 5881609 -- highest year where .starting_date() and .ending_date() are both valid
+```
+
+#### Parsing
+```zig
+var year: Year = undefined;
+year = .from_string("1968", .{});
+year = .from_string("68", .{ .allow_two_digit_year = true }); // 1968
+year = .from_string("49", .{ .allow_two_digit_year = true }); // 2049
+year = .from_string("168 AD", .{}); // 168
+year = .from_string("1 BC", .{}); // 0
+year = .from_string("10000 BC", .{}); // -9999
+```
+
+#### Decomposition/Conversion
+```zig
+const year: Year = .epoch;
+
+const y_i32: i32 = year.as_number();
+const y_u32: u32 = year.as_unsigned();
+const leap: bool = year.is_leap();
+const yi: Year.Info = year.info();
+const dc: Year.Dominical_Letter = year.dominical_letter();
+const starting_date: Date = year.starting_date();
+const ending_date: Date = year.ending_date();
+
+const m: Month = .january;
+const d: Day = .@"10";
+const date: Date = year.date(m, d);
+const di: Date.Info = year.date_info(m, d);
+consy ymd: Date.YMD = year.ymd(m, d);
+```
+
+#### Comparison
+```zig
+const y1: Year = .epoch;
+const y2: Year = .from_number(2001);
+std.debug.assert(y1.is_before(y2));
+std.debug.assert(!y1.is_before(y1));
+std.debug.assert(y2.is_after(y1));
+std.debug.assert(!y2.is_after(y2));
+```
+
+#### Modification
+```zig
+var y: Year = .epoch;
+
+const years: i32 = 12;
+y = y.plus(years);
+
+y = y.next();
+y = y.prev();
 ```
 
 ### `Month`
-TODO: Document me!
+An enum representing each of the months in the gregorian calendar.  Underlying integer values correspond to the traditional 1-based counting where January is 1 and December is 12.
+
+#### Construction
 ```zig
+const month: Month = .january;
+```
+```zig
+const m: i32 = 12;
+const month: Month = .from_number(m);
+```
+```zig
+const y: Year = .epoch;
+const od: Ordinal_Day = .from_number(60);
+const month: Month = .from_yod(y, od);
+```
+```zig
+const yi: Year.Info = .from_number(2020);
+const od: Ordinal_Day = .from_number(60);
+const month: Month = .from_yiod(yi, od);
+```
+```zig
+const od: Ordinal_Day = .from_number(60);
+const is_leap_year = true;
+const month: Month = .from_od(od, is_leap_year);
+```
+
+#### Parsing
+```zig
+var month: Month = undefined;
+month = .from_string("January", .{});
+month = .from_string("Jan", .{});
+month = .from_string("1", .{});
+```
+
+#### Decomposition/Conversion
+```zig
+const month: Month = .march;
+
+const m_i32: i32 = month.as_number();
+const m_u32: u32 = month.as_unsigned();
+const name: []const u8 = month.name();
+const short: []const u8 = month.short_name();
+
+const y: Year = .epoch;
+const yi: Year.Info = year.info();
+var days: u16 = month.days(y);
+days = month.days_from_yi(yi);
+days = month.days_assume_non_leap_year();
+days = month.days_assume_leap_year();
+var od: Ordinal_Day = month.starting_ordinal_day(y);
+od = month.starting_ordinal_day_assume_non_leap_year();
+od = month.starting_ordinal_day_assume_leap_year();
+const starting_date: Date = month.starting_date(y);
+```
+
+#### Comparison
+```zig
+const m1: Month = .january;
+const m2: Month = .february;
+std.debug.assert(m1.is_before(m2));
+std.debug.assert(!m1.is_before(m1));
+std.debug.assert(m2.is_after(m1));
+std.debug.assert(!m2.is_after(m2));
+```
+
+#### Modification
+```zig
+var m: Month = .june;
+
+const months: i32 = 3;
+m = m.plus(months);
+
+m = m.next();
+m = m.prev();
 ```
 
 ### `Day` of month
-TODO: Document me!
+A non-exhaustive enum representing a day-of-the-month.  Underlying integer values correspond to the traditional 1-based counting where each month starts with day 1 and ends with day 28-31.
+
+#### Construction
 ```zig
+const d: Day = .first;
+```
+```zig
+const d: i32 = 11;
+const day: Day = .from_number(d);
+```
+```zig
+const y: Year = .epoch;
+const od: Ordinal_Day = .from_number(60);
+const day: Day = .from_yod(y, od);
+```
+```zig
+const yi: Year.Info = .from_number(2020);
+const od: Ordinal_Day = .from_number(60);
+const day: Day = .from_yiod(yi, od);
+```
+```zig
+const od: Ordinal_Day = .from_number(60);
+const is_leap_year = true;
+const day: Day = .from_od(od, is_leap_year);
+```
+
+#### Convenience Decls
+```zig
+var d: Day = .@"1";
+d = .@"2";
+d = .@"3";
+d = .@"4";
+d = .@"5";
+//...
+d = .@"28";
+d = .@"29";
+d = .@"30";
+d = .@"31";
+```
+
+#### Decomposition/Conversion
+```zig
+const day: Day = .@"15";
+
+const d_i32: i32 = day.as_number();
+const d_u32: u32 = day.as_unsigned();
+
+const date: Date = .epoch;
+var new_date: Date = day.on_or_after(date);
+new_date = day.on_or_before(date);
+
+const ymd: Date.YMD = .from_numbers(1234, 11, 1);
+new_date = day.on_or_after_ymd(ymd);
+new_date = day.on_or_before_ymd(ymd);
+```
+
+#### Comparison
+```zig
+const d1: Day = .first;
+const d2: Day = .@"2";
+std.debug.assert(d1.is_before(d2));
+std.debug.assert(!d1.is_before(d1));
+std.debug.assert(d2.is_after(d1));
+std.debug.assert(!d2.is_after(d2));
+```
+
+#### Modification
+```zig
+var d: Day = .first;
+
+const days: i32 = 3;
+d = d.plus(days);
+
+d = d.next();
+d = d.prev();
 ```
 
 ### `Week_Day`
-TODO: Document me!
+An enum representing each of the days of the week.
+
+#### Construction
 ```zig
+const wd: Week_Day = .sunday;
+```
+```zig
+const num: i32 = 7;
+const wd: Week_Day = .from_number(num); // sunday = 1, saturday = 7
+const wd: Week_Day = .from_iso(num); // monday = 1, sunday = 7
+```
+
+#### Parsing
+```zig
+var wd: Week_Day = undefined;
+wd = .from_string("Tuesday", .{});
+wd = .from_string("Tue", .{});
+wd = .from_string("Tu", .{});
+wd = .from_string("3", .{});
+```
+
+#### Decomposition/Conversion
+```zig
+const wd: Week_Day = .march;
+
+const wd_i32: i32 = wd.as_number();
+const wd_u32: u32 = wd.as_unsigned();
+const iso: u3 = wd.as_iso();
+const name: []const u8 = wd.name();
+const short: []const u8 = wd.short_name();
+
+const date: Date = .epoch;
+var new_date: Date = wd.on_or_after(date);
+new_date = wd.on_or_before(date);
+```
+
+#### Comparison
+```zig
+const wd1: Week_Day = .thursday;
+const wd2: Week_Day = .friday;
+std.debug.assert(wd1.is_before(wd2));
+std.debug.assert(!wd1.is_before(wd1));
+std.debug.assert(wd2.is_after(wd1));
+std.debug.assert(!wd2.is_after(wd2));
+```
+
+#### Modification
+```zig
+var wd: Week_Day = .monday;
+
+const days: i32 = 3;
+wd = wd.plus(days);
+
+wd = wd.next();
+wd = wd.prev();
 ```
 
 ### `Ordinal_Day` of year
-TODO: Document me!
+A non-exhaustive enum corresponding to the day-of-the-year.  When combined with a year, it forms what is sometimes [colloquially called a "Julian date"](https://en.wikipedia.org/wiki/Ordinal_date#Nomenclature).
+
+#### Construction
 ```zig
+const od: Ordinal_Day = .first;
+```
+```zig
+const d: i32 = 11;
+const od: Ordinal_Day = .from_number(d);
+```
+```zig
+const ymd: Date.YMD = .from_date(.epoch);
+const od: Ordinal_Day = .from_ymd(ymd);
+```
+```zig
+const yi: Year.Info = .from_number(2020);
+const m: Month = .february;
+const d: Day = .@"5";
+const od: Ordinal_Day = .from_yimd(yi, m, d);
+```
+```zig
+const m: Month = .february;
+const d: Day = .@"5";
+const od: Ordinal_Day = .from_md_assume_non_leap_year(m, d);
+```
+
+#### Convenience Decls
+```zig
+var od: Ordinal_Day = .first;   // 1
+od = .leap_day;                 // 60
+od = .last_no_leap;             // 365
+od = .last_leap;                // 366
+```
+
+#### Decomposition/Conversion
+```zig
+const od: Ordinal_Day = .@"15";
+
+const od_i32: i32 = od.as_number();
+const od_u32: u32 = od.as_unsigned();
+const ow: Ordinal_Week = od.ordinal_week();
+
+const y: Year = .epoch;
+var date: Date = od.date_from_year(y);
+
+const yi: Year.Info = .from_number(1999);
+date = od.date_from_yi(yi);
+```
+
+#### Comparison
+```zig
+const od1: Ordinal_Day = .first;
+const od2: Ordinal_Day = .@"2";
+std.debug.assert(od1.is_before(od2));
+std.debug.assert(!od1.is_before(od1));
+std.debug.assert(od2.is_after(od1));
+std.debug.assert(!od2.is_after(od2));
+```
+
+#### Modification
+```zig
+var od: Ordinal_Day = .first;
+
+const days: i32 = 3;
+od = od.plus(days);
+
+od = od.next();
+od = od.prev();
 ```
 
 ### `Ordinal_Week` of year
-TODO: Document me!
+This non-exhaustive enum corresponds to the number of full or partial weeks that have passed since the start of the calendar year.  Note that this is _not_ the same as the [ISO week number](https://en.wikipedia.org/wiki/ISO_week_date) and it is not necessarily aligned with the Sunday-Saturday or Monday-Sunday calendar weeks; rather the 1st through 7th of January is always in ordinal week 1, the 8th through 14th is always ordinal week 2, etc.
+
+#### Construction
 ```zig
+const ow: Ordinal_Week = .first;
+```
+```zig
+const w: i32 = 11;
+const ow: Ordinal_Week = .from_number(w);
+```
+```zig
+const od: Ordinal_Day = .first;
+const ow: Ordinal_Week = .from_od(od);
+```
+
+#### Decomposition/Conversion
+```zig
+const ow: Ordinal_Week = .first;
+
+const w_i32: i32 = ow.as_number();
+const w_u32: u32 = ow.as_unsigned();
+const od: Ordinal_Day = ow.starting_day();
+```
+
+#### Comparison
+```zig
+const ow1: Ordinal_Week = .from_number(3);
+const ow2: Ordinal_Week = .from_number(4);
+std.debug.assert(ow1.is_before(ow2));
+std.debug.assert(!ow1.is_before(ow1));
+std.debug.assert(ow2.is_after(ow1));
+std.debug.assert(!ow2.is_after(ow2));
+```
+
+#### Modification
+```zig
+var ow: Ordinal_Week = .first;
+
+const weeks: i32 = 3;
+ow = ow.plus(weeks);
+
+ow = ow.next();
+ow = ow.prev();
 ```
 
 ### `ISO_Week`
-TODO: Document me!
+A non-exhaustive enum which corresponds to the [ISO week number](https://en.wikipedia.org/wiki/ISO_week_date)
+
+#### Construction
 ```zig
+const iw: ISO_Week = .first;
+```
+```zig
+const w: i32 = 11;
+const iw: ISO_Week = .from_number(w);
+```
+```zig
+const y: Year = .epoch;
+const iw: ISO_Week = .last(y); // the last valid ISO week in a particular year; either the 52nd 53rd week
+```
+```zig
+const dc: Year.Dominical_Letter = .a;
+const iw: ISO_Week = .last_from_dc(dc);
+```
+
+#### Decomposition/Conversion
+```zig
+const iw: ISO_Week = .first;
+
+const w_i32: i32 = iw.as_number();
+const w_u32: u32 = iw.as_unsigned();
+```
+
+#### Comparison
+```zig
+const iw1: ISO_Week = .from_number(3);
+const iw2: ISO_Week = .from_number(4);
+std.debug.assert(iw1.is_before(iw2));
+std.debug.assert(!iw1.is_before(iw1));
+std.debug.assert(iw2.is_after(iw1));
+std.debug.assert(!iw2.is_after(iw2));
+```
+
+#### Modification
+```zig
+var iw: ISO_Week = .first;
+
+const weeks: i32 = 3;
+iw = iw.plus(weeks);
+
+iw = iw.next();
+iw = iw.prev();
 ```
 
 ### `ISO_Week_Date`
-TODO: Document me!
+A decomposed date (like Date.YMD) that uses the ISO year, week number, and day-of-week instead of year, month, and day-of-month.  Note that while the years in this struct use the same `Year` type as normal calendar dates, the ISO year
+begins on the monday of W01 and ends on the sunday of W52 or W53, so the corresponding calendar year may be different at the beginning/end of year.
+
+#### Construction
 ```zig
+const date: Date = .epoch;
+const iwd: ISO_Week_Date = .from_date(date);
+```
+```zig
+const yi: Year.Info = .from_number(2005);
+const od: Ordinal_Day = .first;
+const wd: Week_Day = .saturday; // note this is assumed to be the correct day-of-week for the given year/OD
+const iwd: ISO_Week_Date = .from_yiodwd(yi, od, wd);
+```
+
+#### Decomposition/Conversion
+```zig
+const iwd: ISO_Week_Date = .from_date(date);
+
+const y: Year = iwd.year;
+const iw: ISO_Week = iwd.week;
+const wd: Week_Day = iwd.day;
+const date: Date = iwd.date();
+```
+
+#### Comparison
+```zig
+const iwd1: ISO_Week_Date = .from_date(.epoch);
+const iwd2: ISO_Week_Date = .from_date(.next(.epoch));
+
+std.debug.assert(iwd1.is_before(iwd2));
+std.debug.assert(!iwd1.is_before(iwd1));
+std.debug.assert(iwd2.is_after(iwd1));
+std.debug.assert(!iwd2.is_after(iwd2));
+```
+
+#### Modification
+```zig
+var iwd: ISO_Week_Date = .from_date(.epoch);
+
+const days: i32 = 3;
+iwd = iwd.plus_days(days);
+
+iwd = iwd.next();
+iwd = iwd.prev();
+```
+
+#### Formatting
+```zig
+const iwd: ISO_Week_Date = .from_date(.from_year(2005));
+
+writer.print("{f}", .{ iwd.fmt(ISO_Week_Date.iso8601_week_date) }); // 2004-W53-6
+writer.print("{f}", .{ iwd.fmt(ISO_Week_Date.iso8601_week) });      // 2004-W53
+writer.print("{f}", .{ iwd.fmt(ISO_Week_Date.datecode) });          // 0453
+```
+
+#### Parsing
+```zig
+var iwd: ISO_Week_Date = undefined;
+
+iwd = try .from_string(ISO_Week_Date.iso8601_week_date, "2004-W53-6");
+iwd = try .from_string(ISO_Week_Date.iso8601_week, "2000-W01");
+iwd = try .from_string(ISO_Week_Date.datecode, "2511");
 ```
 
 ## The `dump` tool
