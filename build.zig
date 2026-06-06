@@ -82,9 +82,26 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+    const current_timezone_tests = b.addTest(.{
+        .name = "current_timezone_tests",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("test/current_timezone.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "tempora", .module = module },
+            },
+        }),
+    });
+
     const test_step = b.step("test", "Run all tests");
     test_step.dependOn(&b.addRunArtifact(tempora_tests).step);
     test_step.dependOn(&b.addRunArtifact(civil_tests).step);
+    test_step.dependOn(&b.addRunArtifact(current_timezone_tests).step);
+
+    const citest_step = b.step("citest", "Run all CI tests");
+    citest_step.dependOn(&b.addRunArtifact(tempora_tests).step);
+    citest_step.dependOn(&b.addRunArtifact(civil_tests).step);
 }
 
 fn codegen(b: *std.Build, tempora_module: *std.Build.Module) void {
