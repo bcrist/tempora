@@ -143,29 +143,29 @@ pub fn add(self: *TZDB, io: std.Io, comptime what: anytype, options: Add_Options
         return;
     } else if (T == type) {
         switch (@typeInfo(what)) {
-            .@"struct" => |info| inline for (info.decls) |decl| {
-                try self.add(io, @field(what, decl.name), options);
+            .@"struct" => |info| inline for (info.decl_names) |decl| {
+                try self.add(io, @field(what, decl), options);
             },
-            .@"enum" => |info| inline for (info.decls) |decl| {
-                try self.add(io, @field(what, decl.name), options);
+            .@"enum" => |info| inline for (info.decl_names) |decl| {
+                try self.add(io, @field(what, decl), options);
             },
             else => @compileError(std.fmt.comptimePrint("Invalid timezone spec: {any} is {s}", .{ what, @tagName(@typeInfo(what)) })),
         }
     } else switch (@typeInfo(T)) {
         .@"struct" => |info| {
-            inline for (info.fields) |field| {
-                try self.add(io, @field(what, field.name), options);
+            inline for (info.field_names) |field| {
+                try self.add(io, @field(what, field), options);
             }
-            inline for (info.decls) |decl| {
-                try self.add(io, @field(T, decl.name), options);
+            inline for (info.decl_names) |decl| {
+                try self.add(io, @field(T, decl), options);
             }
         },
         .@"enum" => |info| {
-            inline for (info.fields) |field| {
-                try self.add(io, field.name, options);
+            inline for (info.field_names) |field| {
+                try self.add(io, field, options);
             }
-            inline for (info.decls) |decl| {
-                try self.add(io, @field(T, decl.name), options);
+            inline for (info.decl_names) |decl| {
+                try self.add(io, @field(T, decl), options);
             }
         },
         .pointer => |info| {
@@ -216,29 +216,29 @@ pub fn add_lazy(self: *TZDB, comptime what: anytype, options: *const Add_Options
         @compileError("Use TZDB.add() if you want to add a Timezone instance directly");
     } else if (T == type) {
         switch (@typeInfo(what)) {
-            .@"struct" => |info| inline for (info.decls) |decl| {
-                try self.add_lazy(&@field(what, decl.name), options);
+            .@"struct" => |info| inline for (info.decl_names) |decl| {
+                try self.add_lazy(&@field(what, decl), options);
             },
-            .@"enum" => |info| inline for (info.decls) |decl| {
-                try self.add_lazy(&@field(what, decl.name), options);
+            .@"enum" => |info| inline for (info.decl_names) |decl| {
+                try self.add_lazy(&@field(what, decl), options);
             },
             else => @compileError(std.fmt.comptimePrint("Invalid timezone spec: {any} is {s}", .{ what, @tagName(@typeInfo(what)) })),
         }
     } else switch (@typeInfo(T)) {
         .@"struct" => |info| {
-            inline for (info.fields) |field| {
-                try self.add_lazy(&@field(what, field.name), options);
+            inline for (info.field_names) |field| {
+                try self.add_lazy(&@field(what, field), options);
             }
-            inline for (info.decls) |decl| {
-                try self.add_lazy(&@field(T, decl.name), options);
+            inline for (info.decl_names) |decl| {
+                try self.add_lazy(&@field(T, decl), options);
             }
         },
         .@"enum" => |info| {
-            inline for (info.fields) |field| {
-                try self.add_lazy(field.name, options);
+            inline for (info.field_names) |field| {
+                try self.add_lazy(field, options);
             }
-            inline for (info.decls) |decl| {
-                try self.add_lazy(&@field(T, decl.name), options);
+            inline for (info.decl_names) |decl| {
+                try self.add_lazy(&@field(T, decl), options);
             }
         },
         .pointer => |info| {
@@ -428,23 +428,23 @@ pub fn add_designation(self: *TZDB, designation: []const u8, utc_offset_seconds:
 pub fn add_designations(self: *TZDB, what: anytype) std.mem.Allocator.Error!void {
     const T = @TypeOf(what);
     if (T == type) {
-        const decls = @typeInfo(what).@"struct".decls;
+        const decls = @typeInfo(what).@"struct".decl_names;
         inline for (decls) |decl| {
-            const val = @field(what, decl.name);
+            const val = @field(what, decl);
             switch (@typeInfo(@TypeOf(val))) {
                 .@"struct" => {
-                    try self.add_designations(@field(what, decl.name));
+                    try self.add_designations(@field(what, decl));
                 },
                 else => {
-                    try self.add_designation_owned(decl.name, val, &.{});
+                    try self.add_designation_owned(decl, val, &.{});
                 },
             }
         }
     } else switch (@typeInfo(T)) {
         .@"struct" => |info| {
             try self.add_designations(T);
-            inline for (info.fields) |field| {
-                try self.add_designation_owned(field.name, @field(what, field.name), &.{});
+            inline for (info.field_names) |field| {
+                try self.add_designation_owned(field, @field(what, field), &.{});
             }
         },
         else => @compileError(std.fmt.comptimePrint("Invalid designation spec: {any} is {s}", .{ what, @tagName(@typeInfo(T)) })),

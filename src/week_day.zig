@@ -28,16 +28,16 @@ pub const Week_Day = enum(u3) {
 
         if (options.allow_short or options.allow_long) {
             const info = @typeInfo(Week_Day).@"enum";
-            inline for (info.fields) |field| {
-                if (trimmed[0] | 0x20 == field.name[0]) {
-                    const day: Week_Day = @enumFromInt(field.value);
+            inline for (info.field_names, info.field_values) |field_name, field_value| {
+                if (trimmed[0] | 0x20 == field_name[0]) {
+                    const day: Week_Day = @enumFromInt(field_value);
                     if (switch (trimmed.len) {
                         1 => options.allow_short and day == .monday or day == .wednesday or day == .friday,
-                        2 => options.allow_short and trimmed[1] | 0x20 == field.name[1],
-                        3 => options.allow_short and trimmed[1] | 0x20 == field.name[1] and trimmed[2] | 0x20 == field.name[2],
+                        2 => options.allow_short and trimmed[1] | 0x20 == field_name[1],
+                        3 => options.allow_short and trimmed[1] | 0x20 == field_name[1] and trimmed[2] | 0x20 == field_name[2],
                         4 => options.allow_short and day == .tuesday and std.ascii.eqlIgnoreCase(trimmed, "tues"),
                         5 => options.allow_short and day == .thursday and std.ascii.eqlIgnoreCase(trimmed, "thurs"),
-                        else => options.allow_long and std.ascii.eqlIgnoreCase(trimmed, field.name),
+                        else => options.allow_long and std.ascii.eqlIgnoreCase(trimmed, field_name),
                     }) return day;
                 }
             }

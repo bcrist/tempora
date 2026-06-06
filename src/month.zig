@@ -26,14 +26,15 @@ pub const Month = enum (u4) {
         const trimmed = if (options.trim.len > 0) std.mem.trim(u8, m, options.trim) else m;
 
         if (options.allow_short and trimmed.len == 3 or options.allow_long and trimmed.len >= 3) {
-            inline for (std.meta.fields(Month)) |month| {
-                if (std.ascii.eqlIgnoreCase(trimmed[0..3], month.name[0..3])) {
+            const info = @typeInfo(Month).@"enum";
+            inline for (info.field_names, info.field_values) |month_name, month_value| {
+                if (std.ascii.eqlIgnoreCase(trimmed[0..3], month_name[0..3])) {
                     if (options.allow_short and trimmed.len == 3) {
-                        return @enumFromInt(month.value);
+                        return @enumFromInt(month_value);
                     }
 
-                    if (options.allow_long and std.ascii.eqlIgnoreCase(trimmed[3..], month.name[3..])) {
-                        return @enumFromInt(month.value);
+                    if (options.allow_long and std.ascii.eqlIgnoreCase(trimmed[3..], month_name[3..])) {
+                        return @enumFromInt(month_value);
                     }
                 }
             }
