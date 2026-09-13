@@ -1,7 +1,7 @@
 .{
     .name = .tempora,
     .fingerprint = 0xb3d860680d9e3c19,
-    .version = "0.6.3",
+    .version = "0.6.4",
     .minimum_zig_version = "0.16.0",
     .paths = .{
         "src",
@@ -12,7 +12,7 @@
     .dependencies = .{
         .tzdata = .{
             .url = "https://www.iana.org/time-zones/repository/tzdata-latest.tar.gz",
-            .hash = "N-V-__8AANpVFQC_1B4XtOlpRUfO6ZFsDlp3KppGU6Xal5yI",
+            .hash = "N-V-__8AAFiAFQDNovBNmFwF3hznlSfpY7KwAN3Jy7rhie29",
             .lazy = true,
         },
         .cldr = .{
