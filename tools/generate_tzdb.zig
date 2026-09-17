@@ -228,7 +228,7 @@ pub fn main(init: std.process.Init) !void {
         \\
         \\pub const version = "{f}";
         \\
-        , .{ std.zig.fmtString(version) }
+        , .{ fmt_string(version) }
     );
 
     try db.write_zig(w);
@@ -781,11 +781,11 @@ const Rule = struct {
     pub fn parse_fields(arena: std.mem.Allocator, name: []const u8, from: []const u8, to: []const u8, in: []const u8, on: []const u8, at: []const u8, save: []const u8, letters: []const u8) !Rule {
         // note "minimum" keyword is deprecated and doesn't appear in current tzdata files, so we're not checking for it
         const low_year: Year = y: {
-            errdefer log.info("low year: \"{f}\"", .{ std.zig.fmtString(from) });
+            errdefer log.info("low year: \"{f}\"", .{ fmt_string(from) });
             break :y .from_number(try std.fmt.parseInt(i32, from, 10));
         };
         const high_year: Year = y: {
-            errdefer log.info("high year: \"{f}\"", .{ std.zig.fmtString(to) });
+            errdefer log.info("high year: \"{f}\"", .{ fmt_string(to) });
             if (std.mem.eql(u8, to, "only")) break :y low_year;
             if (std.mem.eql(u8, to, "max")) break :y .from_number(std.math.maxInt(i32));
             break :y .from_number(try std.fmt.parseInt(i32, to, 10));
@@ -1020,9 +1020,9 @@ const Zone = struct {
         const format = iter.next() orelse return error.ExpectedZoneFormat;
 
         errdefer log.info("std_offset: \"{f}\"  rule: \"{f}\"  format: \"{f}\"", .{
-            std.zig.fmtString(std_offset_str),
-            std.zig.fmtString(rule),
-            std.zig.fmtString(format),
+            fmt_string(std_offset_str),
+            fmt_string(rule),
+            fmt_string(format),
         });
         
         var until: ?Until = null;
@@ -1147,7 +1147,7 @@ const Link = struct {
         } else {
             try w.print("pub const {f}: TZIF_Data = .init_link(\"{f}\", &{s}", .{
                 fmt_id_lower(name),
-                std.zig.fmtString(self.source),
+                fmt_string(self.source),
                 prefix,
             });
         }
@@ -1555,8 +1555,8 @@ const DB = struct {
                     try w.splatBytesAll("    ", indent);
                     try w.print("pub const {f}: TZIF_Data = .init_compressed(\"{f}\", \"{f}\");", .{
                         fmt_id_lower(last_part(zone_name)),
-                        std.zig.fmtString(zone_name),
-                        std.zig.fmtString(compressed_tzif_bytes),
+                        fmt_string(zone_name),
+                        fmt_string(compressed_tzif_bytes),
                     });
                 } else {
                     try Link.write_zig(.{
@@ -1577,8 +1577,8 @@ const DB = struct {
                 try w.splatBytesAll("    ", indent);
                 try w.print("pub const {f}: TZIF_Data = .init(\"{f}\", \"{f}\");", .{
                     fmt_id_lower(last_part(zone_name)),
-                    std.zig.fmtString(zone_name),
-                    std.zig.fmtString(tzif_bytes),
+                    fmt_string(zone_name),
+                    fmt_string(tzif_bytes),
                 });
             },
             .all, .without_links => {
@@ -1730,7 +1730,7 @@ const Year_Range = struct {
 };
 
 fn parse_hms(str: []const u8) !Time {
-    errdefer log.info("Parsing hms: \"{f}\"", .{ std.zig.fmtString(str) });
+    errdefer log.info("Parsing hms: \"{f}\"", .{ fmt_string(str) });
     const negative = std.mem.startsWith(u8, str, "-");
     const abs_str = if (negative) str[1..] else str;
     var seconds: i32 = 0;
@@ -1780,7 +1780,7 @@ const Format_Identifier_Lowercase = struct {
             return;
         }
         try writer.writeAll("@\"");
-        try string_escape(bytes, writer);
+        try string_escape_lower(bytes, writer);
         try writer.writeByte('"');
     }
 
@@ -1796,7 +1796,7 @@ const Format_Identifier_Lowercase = struct {
         return std.zig.Token.getKeyword(bytes) == null;
     }
 
-    pub fn string_escape(bytes: []const u8, w: *std.Io.Writer) std.Io.Writer.Error!void {
+    pub fn string_escape_lower(bytes: []const u8, w: *std.Io.Writer) std.Io.Writer.Error!void {
         for (bytes) |byte| switch (byte) {
             '\n' => try w.writeAll("\\n"),
             '\r' => try w.writeAll("\\r"),
@@ -1813,6 +1813,24 @@ const Format_Identifier_Lowercase = struct {
     }
 
 };
+
+fn fmt_string(bytes: []const u8) std.fmt.Alt([]const u8, string_escape) {
+    return .{ .data = bytes };
+}
+fn string_escape(bytes: []const u8, w: *std.Io.Writer) std.Io.Writer.Error!void {
+    for (bytes) |byte| switch (byte) {
+        '\n' => try w.writeAll("\\n"),
+        '\r' => try w.writeAll("\\r"),
+        '\t' => try w.writeAll("\\t"),
+        '\\' => try w.writeAll("\\\\"),
+        '"' => try w.writeAll("\\\""),
+        ' ', '\'', '!', '#'...'&', '('...'[', ']'...'~' => try w.writeByte(byte),
+        else => {
+            try w.writeAll("\\x");
+            try w.printInt(byte, 16, .lower, .{ .width = 2, .fill = '0' });
+        },
+    };
+}
 
 const log = std.log.scoped(.generate_tzdb);
 
