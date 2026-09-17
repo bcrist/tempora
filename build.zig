@@ -82,6 +82,23 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+    const wd_tests = b.addTest(.{
+        .name = "wd_tests",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("test/week_day_impl.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{
+                    .name = "week_day",
+                    .module = b.createModule(.{
+                        .root_source_file = b.path("src/week_day.zig"),
+                    }),
+                },
+            },
+        }),
+    });
+
     const current_timezone_tests = b.addTest(.{
         .name = "current_timezone_tests",
         .root_module = b.createModule(.{
@@ -97,11 +114,19 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run all tests");
     test_step.dependOn(&b.addRunArtifact(tempora_tests).step);
     test_step.dependOn(&b.addRunArtifact(civil_tests).step);
+    test_step.dependOn(&b.addRunArtifact(wd_tests).step);
     test_step.dependOn(&b.addRunArtifact(current_timezone_tests).step);
 
-    const citest_step = b.step("citest", "Run all CI tests");
+    const citest_step = b.step("citest", "Run all CI tests (excludes current timezone tests)");
     citest_step.dependOn(&b.addRunArtifact(tempora_tests).step);
     citest_step.dependOn(&b.addRunArtifact(civil_tests).step);
+    citest_step.dependOn(&b.addRunArtifact(wd_tests).step);
+
+    const civiltest_step = b.step("civiltest", "Run civil conversion tests");
+    civiltest_step.dependOn(&b.addRunArtifact(civil_tests).step);
+
+    const wdtest_step = b.step("wdtest", "Run weekday tests");
+    wdtest_step.dependOn(&b.addRunArtifact(wd_tests).step);
 }
 
 fn codegen(b: *std.Build, tempora_module: *std.Build.Module) void {
@@ -183,6 +208,9 @@ fn build_benchmarks(b: *std.Build, tempora_module: *std.Build.Module) void {
         const civil_module = b.createModule(.{
             .root_source_file = b.path("src/civil.zig"),
         });
+        const week_day_module = b.createModule(.{
+            .root_source_file = b.path("src/week_day.zig"),
+        });
 
         inline for ([_]std.builtin.OptimizeMode { .Debug, .ReleaseSafe, .ReleaseFast }) |optimize| {
             const civil_bench = b.addExecutable(.{
@@ -199,6 +227,21 @@ fn build_benchmarks(b: *std.Build, tempora_module: *std.Build.Module) void {
                 }),
             });
             b.installArtifact(civil_bench);
+
+            const week_day_bench = b.addExecutable(.{
+                .name = "benchmark_wd_" ++ @tagName(optimize),
+                .root_module = b.createModule(.{
+                    .root_source_file = b.path("bench/week_day.zig"),
+                    .target = b.graph.host,
+                    .optimize = optimize,
+                    .imports = &.{
+                        .{ .name = "console", .module = console_helper_dep.?.module("console") },
+                        .{ .name = "zbench", .module = zbench_dep.module("zbench") },
+                        .{ .name = "week_day", .module = week_day_module },
+                    },
+                }),
+            });
+            b.installArtifact(week_day_bench);
         }
     }
 }

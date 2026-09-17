@@ -1,8 +1,10 @@
 pub const Date = enum(i32) {
+    min = std.math.minInt(i32),
     ntfs_epoch = civil.year_to_days(Year.ntfs_epoch.as_number()), // e.g. Windows FILETIME
     ntp_epoch = civil.year_to_days(Year.ntp_epoch.as_number()),
     unix_epoch = civil.year_to_days(Year.unix_epoch.as_number()),
     epoch = civil.year_to_days(Year.epoch.as_number()), // 0
+    max = std.math.maxInt(i32),
     _,
 
     pub fn from_ymd_numbers(y: i32, m: i32, d: i32) Date {
@@ -68,13 +70,11 @@ pub const Date = enum(i32) {
     }
 
     pub fn week_day(self: Date) Week_Day {
-        // epoch (2000-01-01) was a saturday (7).
-
-        var raw: i32 = @intFromEnum(self);
-        if (raw < 0) raw += 7; // prevent underflow for std.math.minInt(i32)
-        raw = @mod(raw - 1, 7) + 1;
-
-        return Week_Day.from_number(raw);
+        if (@bitSizeOf(usize) >= 64) {
+            return wd.joffe_64b(self);
+         } else {
+            return wd.joffe_shift(self);
+         }
     }
 
     pub fn iso_week(self: Date) ISO_Week {
@@ -592,7 +592,8 @@ const civil = if (@sizeOf(usize) < 8) @import("civil.zig").civil32 else @import(
 const Year = @import("year.zig").Year;
 const Month = @import("month.zig").Month;
 const Day = @import("day.zig").Day;
-const Week_Day = @import("week_day.zig").Week_Day;
+const Week_Day = wd.Week_Day;
+const wd = @import("week_day.zig");
 const Ordinal_Day = @import("ordinal_day.zig").Ordinal_Day;
 const Ordinal_Week = @import("ordinal_week.zig").Ordinal_Week;
 const ISO_Week_Date = @import("iso_week.zig").ISO_Week_Date;
