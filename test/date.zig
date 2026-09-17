@@ -78,6 +78,7 @@ test "date.ordinal_week" {
 }
 
 test "date.week_day" {
+    try std.testing.expectEqual(Week_Day.thursday, Date.from_ymd(.from_numbers(1970, 1, 1)).week_day());
     try std.testing.expectEqual(Week_Day.thursday, Date.from_ymd(.from_numbers(2024, 2, 1)).week_day());
     try std.testing.expectEqual(Week_Day.monday, Date.from_ymd(.from_numbers(1928, 12, 24)).week_day());
     try std.testing.expectEqual(Week_Day.sunday, Date.from_ymd(.from_numbers(0, 12, 24)).week_day());
