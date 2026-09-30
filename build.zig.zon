@@ -11,8 +11,8 @@
     },
     .dependencies = .{
         .tzdata = .{
-            .url = "https://www.iana.org/time-zones/repository/tzdata-latest.tar.gz",
-            .hash = "N-V-__8AAFiAFQDNovBNmFwF3hznlSfpY7KwAN3Jy7rhie29",
+            .url = "https://www.iana.org/time-zones/repository/releases/tzdata2026e.tar.gz",
+            .hash = "N-V-__8AAPyeFQAGki29JMlDTaQoGWTK7OjwSQa3HbVU5wAq",
             .lazy = true,
         },
         .cldr = .{

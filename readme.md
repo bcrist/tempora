@@ -228,13 +228,13 @@ ymd = ymd.prev_month_and_day(m, d);
 
 ### `Date.Info`
 This struct is similar to `Date.YMD`, but also includes some more decomposed information:
-    * The raw date as an integer, i.e. `@intFromEnum(date)`
-    * The day of the week
-    * The ordinal day (day of year)
-    * Whether or not the current year is a leap year
-    * A `Date` representing the start of the current week
-    * A `Date` representing the start of the current month
-    * A `Date` representing the start of the current year
+* The raw date as an integer, i.e. `@intFromEnum(date)`
+* The day of the week
+* The ordinal day (day of year)
+* Whether or not the current year is a leap year
+* A `Date` representing the start of the current week
+* A `Date` representing the start of the current month
+* A `Date` representing the start of the current year
 
 #### Construction
 ```zig
