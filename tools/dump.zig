@@ -28,7 +28,7 @@ pub fn main(init: std.process.Init) !void {
             continue;
         }
         if (std.mem.startsWith(u8, arg, "--")) {
-            cli_log.err("Unrecognized option: {s}", .{ arg });
+            cli_log.err("Unrecognized option: {s}", .{arg});
         }
     }
 
@@ -45,7 +45,7 @@ pub fn main(init: std.process.Init) !void {
         if (tzdb.timezone(arg)) |tz| {
             try dump_zone(tz, now, debug, writer);
         } else {
-            cli_log.warn("No timezone found with name {s}", .{ arg });
+            cli_log.warn("No timezone found with name {s}", .{arg});
             exit_code = 1;
         }
     }
@@ -74,16 +74,16 @@ fn dump_zone(tz: *const tempora.Timezone, now: i64, show_debug: bool, writer: *s
             const begin_dt = tempora.Date_Time.With_Offset.from_timestamp_s(begin_ts, null).in_timezone(tz);
 
             if (wall.dst == .dst) {
-                try writer.print("    DST began: {f}\n", .{ begin_dt.fmt("YYYY-MM-DD HH:mm:ss z") });
-                try writer.print("    DST ends:  {f}\n", .{ end_dt.fmt("YYYY-MM-DD HH:mm:ss z") });
+                try writer.print("    DST began: {f}\n", .{begin_dt.fmt("YYYY-MM-DD HH:mm:ss z")});
+                try writer.print("    DST ends:  {f}\n", .{end_dt.fmt("YYYY-MM-DD HH:mm:ss z")});
             } else {
-                try writer.print("    DST ended:  {f}\n", .{ begin_dt.fmt("YYYY-MM-DD HH:mm:ss z") });
-                try writer.print("    DST begins: {f}\n", .{ end_dt.fmt("YYYY-MM-DD HH:mm:ss z") });
+                try writer.print("    DST ended:  {f}\n", .{begin_dt.fmt("YYYY-MM-DD HH:mm:ss z")});
+                try writer.print("    DST begins: {f}\n", .{end_dt.fmt("YYYY-MM-DD HH:mm:ss z")});
             }
         } else if (wall.dst == .dst) {
-            try writer.print("    DST ends:  {f}\n", .{ end_dt.fmt("YYYY-MM-DD HH:mm:ss z") });
+            try writer.print("    DST ends:  {f}\n", .{end_dt.fmt("YYYY-MM-DD HH:mm:ss z")});
         } else {
-            try writer.print("    DST begins: {f}\n", .{ end_dt.fmt("YYYY-MM-DD HH:mm:ss z") });
+            try writer.print("    DST begins: {f}\n", .{end_dt.fmt("YYYY-MM-DD HH:mm:ss z")});
         }
     } else if (wall.begin_ts) |begin_ts| {
         const begin_dt = tempora.Date_Time.With_Offset.from_timestamp_s(begin_ts, null).in_timezone(tz);
@@ -92,7 +92,7 @@ fn dump_zone(tz: *const tempora.Timezone, now: i64, show_debug: bool, writer: *s
         } else {
             try writer.print("    This timezone has permanent standard time\n", .{});
         }
-        try writer.print("    The current time rules for this zone began on {f}\n", .{ begin_dt.fmt("YYYY-MM-DD HH:mm:ss z") });
+        try writer.print("    The current time rules for this zone began on {f}\n", .{begin_dt.fmt("YYYY-MM-DD HH:mm:ss z")});
     } else {
         if (wall.dst == .dst) {
             try writer.print("    This timezone has permanent daylight time\n", .{});

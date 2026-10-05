@@ -65,9 +65,9 @@ pub fn parse(str: []const u8) !Posix {
 }
 
 pub fn format(self: Posix, w: *std.Io.Writer) std.Io.Writer.Error!void {
-    try w.print("{f}", .{ self.standard.fmt(&self, null) });
+    try w.print("{f}", .{self.standard.fmt(&self, null)});
     if (self.dst) |dst| {
-        try w.print("{f}", .{ dst.info.fmt(&self, self.standard.utc_offset_seconds + std.time.s_per_hour) });
+        try w.print("{f}", .{dst.info.fmt(&self, self.standard.utc_offset_seconds + std.time.s_per_hour)});
         if (!std.meta.eql(dst.start, Transition.default_start) or !std.meta.eql(dst.end, Transition.default_end)) {
             try w.print(",{f},{f}", .{ dst.start, dst.end });
         }
@@ -107,7 +107,7 @@ pub fn info(self: *const Posix, timestamp_utc_seconds: i64, last_transition_ts: 
             }
         }
     }
-    
+
     return self.make_info(.std, last_transition_ts, null);
 }
 
@@ -214,13 +214,13 @@ pub const Transition = struct {
         .month = .march,
         .week = .second,
         .day = .sunday,
-    }}};
+    } } };
 
     pub const default_end: Transition = .{ .date = .{ .month_week_day = .{
         .month = .november,
         .week = .first,
         .day = .sunday,
-    }}};
+    } } };
 
     pub fn parse(r: *std.Io.Reader) !Transition {
         const date: Transition_Date = try .parse(r);
@@ -228,7 +228,7 @@ pub const Transition = struct {
         if (try peek_byte_or_default(r, 0) == '/') {
             r.toss(1);
             const seconds = try parse_hms(r) orelse return error.MissingTransitionTime;
-            time = @enumFromInt(1000 * seconds);
+            time = @fromBackingInt(@intCast(1000 * seconds));
         }
         return .{
             .date = date,
@@ -273,7 +273,7 @@ pub const Transition = struct {
     }
 };
 
-pub const Transition_Date = union (enum) {
+pub const Transition_Date = union(enum) {
     ordinal_day: Ordinal_Day,
     ordinal_day_no_leap: Ordinal_Day, // Feb 29 is not counted, even if it exists
     month_week_day: struct {
@@ -298,9 +298,9 @@ pub const Transition_Date = union (enum) {
                 if (dow > 6) return error.InvalidDayOfWeek;
                 return .{ .month_week_day = .{
                     .month = .from_number(month),
-                    .week = @enumFromInt(week - 1),
+                    .week = @fromBackingInt(@intCast(week - 1)),
                     .day = .from_number(dow + 1),
-                }};
+                } };
             },
             'J' => {
                 r.toss(1);
@@ -318,11 +318,11 @@ pub const Transition_Date = union (enum) {
 
     pub fn format(self: Transition_Date, w: *std.Io.Writer) std.Io.Writer.Error!void {
         switch (self) {
-            .ordinal_day => |od| try w.print("{d}", .{ od.as_unsigned() - 1 }),
-            .ordinal_day_no_leap => |od| try w.print("J{d}", .{ od.as_unsigned() }),
+            .ordinal_day => |od| try w.print("{d}", .{od.as_unsigned() - 1}),
+            .ordinal_day_no_leap => |od| try w.print("J{d}", .{od.as_unsigned()}),
             .month_week_day => |mwd| try w.print("M{d}.{d}.{d}", .{
                 mwd.month.as_unsigned(),
-                @intFromEnum(mwd.week) + 1,
+                @backingInt(mwd.week) + 1,
                 mwd.day.as_unsigned() - 1,
             }),
         }
@@ -362,7 +362,7 @@ pub const Transition_Date = union (enum) {
     }
 };
 
-pub const Week_Index = enum (u3) {
+pub const Week_Index = enum(u3) {
     first = 0,
     second = 1,
     third = 2,
@@ -370,7 +370,7 @@ pub const Week_Index = enum (u3) {
     last = 4,
 
     pub fn offset_days(self: Week_Index) i32 {
-        return @as(i32, @intFromEnum(self)) * 7;
+        return @as(i32, @backingInt(self)) * 7;
     }
 };
 
@@ -389,12 +389,12 @@ fn format_hms(offset: i32, w: *std.Io.Writer) std.Io.Writer.Error!void {
     remaining /= 60;
     const hours = remaining;
 
-    try w.print("{d}", .{ hours });
+    try w.print("{d}", .{hours});
     if (minutes != 0 or seconds != 0) {
-        try w.print(":{d:0>2}", .{ minutes });
+        try w.print(":{d:0>2}", .{minutes});
     }
     if (seconds != 0) {
-        try w.print(":{d:0>2}", .{ seconds });
+        try w.print(":{d:0>2}", .{seconds});
     }
 }
 

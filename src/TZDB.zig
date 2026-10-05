@@ -75,7 +75,6 @@ pub fn timezone(self: *TZDB, id: []const u8) ?*const Timezone {
             log.warn("Failed to lazy-load timezone {s}: {s}", .{ id, @errorName(err) });
             return null;
         } orelse return null;
-
     } else return null;
 
     _ = self.lazy_lookup.remove(id);
@@ -129,7 +128,7 @@ pub const Add_Options = struct {
 };
 /// Loads and adds one or more timezones to this TZDB, if no timezone with that ID already exists.
 ///     * You can pass a string or @EnumLiteral containing an IANA timezone ID (e.g. 'America/Chicago') to load from the system (subject to the passed `options`)
-///     * You can pass a Timezone.TZIF_Data struct to either load an IANA timezone from the system or from embedded TZif data (subject to the passed `options`) 
+///     * You can pass a Timezone.TZIF_Data struct to either load an IANA timezone from the system or from embedded TZif data (subject to the passed `options`)
 ///     * If you pass a Timezone struct, a cloned version of it will be added which is owned by this TZDB (`options` is ignored in this case)
 ///     * If you pass a tuple, struct, or enum, all fields and decls will be recursively added
 ///     * If you pass an array or slice, all items within will be recursively added
@@ -187,7 +186,7 @@ pub fn add(self: *TZDB, io: std.Io, comptime what: anytype, options: Add_Options
                 .one => {
                     try self.add(io, what.*, options);
                 },
-                else => @compileError(std.fmt.comptimePrint("Invalid timezone spec: {any}", .{ what })),
+                else => @compileError(std.fmt.comptimePrint("Invalid timezone spec: {any}", .{what})),
             }
         },
         .array => {
@@ -257,7 +256,7 @@ pub fn add_lazy(self: *TZDB, comptime what: anytype, options: *const Add_Options
                         try self.add_lazy(what.*, options);
                     }
                 },
-                else => @compileError(std.fmt.comptimePrint("Invalid timezone spec: {any}", .{ what })),
+                else => @compileError(std.fmt.comptimePrint("Invalid timezone spec: {any}", .{what})),
             }
         },
         .array => {
@@ -302,7 +301,7 @@ fn add_lazy_tzif_data(self: *TZDB, tzif: *const Timezone.TZIF_Data, options: *co
 fn add_tzif_data(self: *TZDB, io: std.Io, tzif: Timezone.TZIF_Data, options: Add_Options) std.mem.Allocator.Error!?Timezone {
     if (tzif.id.len == 0) return null;
     if (self.lookup.get(tzif.id)) |tz| if (tz.infos.len > 0 or tz.posix != null) return tz;
-    
+
     const data: @FieldType(Add_IANA_Options, "data") = if (options.use_embedded) switch (tzif.kind) {
         .system => null,
         .uncompressed => |bytes| .{
@@ -487,7 +486,7 @@ pub const Add_Current_Options = struct {
     pub fn init(maybe_env: ?*std.process.Environ.Map, link_existing: bool) Add_Current_Options {
         return .{
             .override = if (maybe_env) |env| env.get("TZ") else null,
-            .search_paths = if (builtin.os.tag == .windows) &.{} else &.{ "/etc/localtime" },
+            .search_paths = if (builtin.os.tag == .windows) &.{} else &.{"/etc/localtime"},
             .tzdata_override_search_path = if (maybe_env) |env| env.get("TZDIR") orelse env.get("TZDATA") orelse env.get("ZONEINFO") else null,
             .tzdata_search_paths = &common_zoneinfo_locations,
             .link_existing = link_existing,
@@ -558,10 +557,10 @@ pub fn add_current(self: *TZDB, io: std.Io, options: Add_Current_Options) std.me
                     return;
                 }
             } else |err| {
-                log.warn("Failed to read current windows timezone: {s}", .{ @errorName(err) });
+                log.warn("Failed to read current windows timezone: {s}", .{@errorName(err)});
             }
         } else |err| {
-            log.warn("Failed to read current windows timezone: {s}", .{ @errorName(err) });
+            log.warn("Failed to read current windows timezone: {s}", .{@errorName(err)});
         }
     }
 
@@ -596,8 +595,8 @@ pub const common_zoneinfo_locations = switch (builtin.os.tag) {
     .windows => common_zoneinfo_locations_windows,
     else => common_zoneinfo_locations_posix,
 };
-const common_zoneinfo_locations_windows = [_][]const u8 {};
-const common_zoneinfo_locations_posix = [_][]const u8 {
+const common_zoneinfo_locations_windows = [_][]const u8{};
+const common_zoneinfo_locations_posix = [_][]const u8{
     "/usr/share/zoneinfo",
     "/usr/share/lib/zoneinfo",
     "/etc/zoneinfo",

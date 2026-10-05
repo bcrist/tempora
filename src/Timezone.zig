@@ -81,7 +81,7 @@ pub fn clone(self: *const Timezone, arena: std.mem.Allocator) !Timezone {
 }
 
 pub fn debug(self: *const Timezone, writer: *std.Io.Writer) !void {
-    try writer.print("Timezone {f}:\n", .{ std.zig.fmtString(self.id) });
+    try writer.print("Timezone {f}:\n", .{std.zig.fmtString(self.id)});
     try writer.writeAll("    Transitions:\n");
     for (0..self.transition_count, self.transition_timestamps[0..self.transition_count], self.transition_info_indices[0..self.transition_count]) |i, ts, info_idx| {
         try writer.print("        [{}] {} -> {} ({f})\n", .{ i, ts, info_idx, Date_Time.With_Offset.from_timestamp_s(ts, null).fmt(Date_Time.With_Offset.rfc2822) });
@@ -95,7 +95,7 @@ pub fn debug(self: *const Timezone, writer: *std.Io.Writer) !void {
         try writer.print("        [{}] {} -> {}\n", .{ i, leap.utc_timestamp_seconds, leap.utc_offset_seconds });
     }
     if (self.posix) |posix| {
-        try writer.print("    Posix: {f}\n", .{ posix });
+        try writer.print("    Posix: {f}\n", .{posix});
     }
     try writer.writeAll("\n");
 }

@@ -96,7 +96,6 @@ fn is_leap_naive(year: Year) bool {
     return true;
 }
 
-
 test "Year.starting_date" {
     var year: Year = .epoch;
     var date: Date = .epoch;

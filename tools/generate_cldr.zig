@@ -44,7 +44,7 @@ pub fn main(init: std.process.Init) !void {
         \\
         \\
     );
-    try out.print("pub const registry_version = \"{f}\";\n", .{ std.zig.fmtString(registry_version) });
+    try out.print("pub const registry_version = \"{f}\";\n", .{std.zig.fmtString(registry_version)});
     try out.writeAll(
         \\
         \\pub fn windows_registry_key_to_iana(key: []const u8, region: []const u8) ?[]const u8 {
@@ -53,7 +53,7 @@ pub fn main(init: std.process.Init) !void {
     );
 
     var keys_handled: usize = 0;
-    for ('a' .. 'z' + 1) |first_char| {
+    for ('a'..'z' + 1) |first_char| {
         var first_key_for_letter = true;
         for (mappings.keys(), mappings.values()) |key, key_mappings| {
             if (key.len == 0 or (key[0] | 0x20) != first_char) continue;
@@ -64,15 +64,13 @@ pub fn main(init: std.process.Init) !void {
                 try out.print(
                     \\
                     \\        '{c}' => {{
-                    , .{ @as(u8, @intCast(first_char)) }
-                );
+                , .{@as(u8, @intCast(first_char))});
             }
 
             try out.print(
                 \\
                 \\            if (std.mem.eql(u8, key, "{f}")) {{
-                , .{ std.zig.fmtString(key) }
-            );
+            , .{std.zig.fmtString(key)});
 
             var default_mapping: ?Mapping = null;
             for (key_mappings.items) |mapping| {
@@ -89,11 +87,10 @@ pub fn main(init: std.process.Init) !void {
                     try out.print(
                         \\
                         \\                if (std.mem.eql(u8, region, "{f}")) return "{f}";
-                        , .{
-                            std.zig.fmtString(mapping.region),
-                            std.zig.fmtString(first),
-                        }
-                    );
+                    , .{
+                        std.zig.fmtString(mapping.region),
+                        std.zig.fmtString(first),
+                    });
                 }
             }
             if (default_mapping) |mapping| {
@@ -102,8 +99,7 @@ pub fn main(init: std.process.Init) !void {
                 try out.print(
                     \\
                     \\                return "{f}";
-                    , .{ std.zig.fmtString(first) }
-                );
+                , .{std.zig.fmtString(first)});
             }
 
             try out.writeAll(
@@ -111,7 +107,7 @@ pub fn main(init: std.process.Init) !void {
                 \\            }
             );
         }
-        
+
         if (!first_key_for_letter) {
             try out.writeAll(
                 \\
@@ -235,11 +231,10 @@ pub fn main(init: std.process.Init) !void {
         try out.print(
             \\
             \\    .{{ "{f}", "{f}" }},
-            , .{
-                std.zig.fmtString(iana_id),
-                std.zig.fmtString(key),
-            }
-        );
+        , .{
+            std.zig.fmtString(iana_id),
+            std.zig.fmtString(key),
+        });
     }
 
     try out.writeAll(
@@ -254,7 +249,7 @@ pub fn main(init: std.process.Init) !void {
     try output_file_atomic.replace(init.io);
 }
 
-fn load_mappings(io: std.Io, arena: std.mem.Allocator, gpa: std.mem.Allocator, path: []const u8, out: *std.array_hash_map.String(std.ArrayList(Mapping))) ![]const u8  {
+fn load_mappings(io: std.Io, arena: std.mem.Allocator, gpa: std.mem.Allocator, path: []const u8, out: *std.array_hash_map.String(std.ArrayList(Mapping))) ![]const u8 {
     var input_file = try std.Io.Dir.cwd().openFile(io, path, .{});
     defer input_file.close(io);
 

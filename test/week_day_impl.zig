@@ -23,7 +23,7 @@ test "joffe_limited min" {
 test "joffe_limited" {
     try std.testing.expect(wd.joffe_limited_min <= std.math.minInt(i27));
     try std.testing.expect(wd.joffe_limited_max >= std.math.maxInt(i27));
-    try run_test_range(wd.joffe_limited, @enumFromInt(wd.joffe_limited_min), @enumFromInt(wd.joffe_limited_max));
+    try run_test_range(wd.joffe_limited, @fromBackingInt(@intCast(wd.joffe_limited_min)), @fromBackingInt(@intCast(wd.joffe_limited_max)));
 }
 
 test "joffe_shift" {
@@ -76,13 +76,13 @@ fn run_test_range(comptime func: anytype, comptime min: Date, comptime max: Date
         }
     } else {
         var d: Date = .epoch;
-        while (true)  {
+        while (true) {
             try run_test(func, d);
             if (d == max) break;
             d = d.next();
         }
         d = .epoch;
-        while (true)  {
+        while (true) {
             d = d.prev();
             try run_test(func, d);
             if (d == min) break;
@@ -92,7 +92,7 @@ fn run_test_range(comptime func: anytype, comptime min: Date, comptime max: Date
 
 inline fn run_test(comptime func: anytype, d: Date) !void {
     errdefer {
-        const d_u32: u32 = @bitCast(@intFromEnum(d));
+        const d_u32: u32 = @bitCast(@backingInt(d));
         std.log.err("For date: {f} (0x{x:0>8})", .{ d.fmt(Date.uk), d_u32 });
     }
     try std.testing.expectEqual(wd.oracle(d), func(d));

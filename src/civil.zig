@@ -18,7 +18,6 @@ pub fn ymd_to_days(y: i32, m: u32, d: i32) i34 {
     return days;
 }
 
-
 /// This is essentially just ymd_to_days with the month and day parameters fixed as constants.
 pub fn year_to_days(y: i32) i34 {
     const years: u32 = @intCast(y + 14700 * 400 - 1);
@@ -113,7 +112,6 @@ pub const civil32 = struct {
             .d = @intCast(day),
         };
     }
-    
 };
 
 pub const civil64 = struct {

@@ -7,7 +7,7 @@ pub const ISO_Week_Date = struct {
 
     pub fn from_date(d: Date) ISO_Week_Date {
         const yi = d.year_info();
-        const od: Ordinal_Day = .from_number(@intFromEnum(d) - @intFromEnum(yi.starting_date) + 1);
+        const od: Ordinal_Day = .from_number(@backingInt(d) - @backingInt(yi.starting_date) + 1);
         return .from_yiodwd(yi, od, d.week_day());
     }
 
@@ -123,7 +123,7 @@ pub const ISO_Week_Date = struct {
 
     pub const iso8601_week_date = "GGGG-[W]WW-E";
     pub const iso8601_week = "GGGG-[W]WW";
-    pub const datecode = "GGWW"; 
+    pub const datecode = "GGWW";
 
     pub fn format(self: ISO_Week_Date, writer: *std.Io.Writer) !void {
         try formatting.format(self.date().with_time(.midnight).with_offset(0), iso8601_week_date, writer);
@@ -150,11 +150,11 @@ pub const ISO_Week_Date = struct {
             error.ReadFailed => unreachable,
         };
 
-        return pi.iso_date();        
+        return pi.iso_date();
     }
 };
 
-pub const ISO_Week = enum (u6) {
+pub const ISO_Week = enum(u6) {
     first = 1,
     _,
 
@@ -172,22 +172,22 @@ pub const ISO_Week = enum (u6) {
     pub fn from_number(day: i32) ISO_Week {
         std.debug.assert(day >= 1);
         std.debug.assert(day <= 53);
-        return @enumFromInt(day);
+        return @fromBackingInt(@intCast(day));
     }
 
     pub fn as_number(self: ISO_Week) i32 {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
     pub fn as_unsigned(self: ISO_Week) u32 {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 
     pub fn is_before(self: ISO_Week, other: ISO_Week) bool {
-        return @intFromEnum(self) < @intFromEnum(other);
+        return @backingInt(self) < @backingInt(other);
     }
 
     pub fn is_after(self: ISO_Week, other: ISO_Week) bool {
-        return @intFromEnum(self) > @intFromEnum(other);
+        return @backingInt(self) > @backingInt(other);
     }
 
     pub fn plus(self: ISO_Week, weeks: i32) ISO_Week {

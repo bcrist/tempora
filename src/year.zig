@@ -1,21 +1,21 @@
-pub const Year = enum (i32) {
+pub const Year = enum(i32) {
     min = -5_877_610, // lowest year where .starting_date() and .ending_date() are both valid
     ntfs_epoch = 1601, // e.g. Windows FILETIME
     ntp_epoch = 1900,
     unix_epoch = 1970,
     epoch = 2000,
-    max =  5_881_609, // highest year where .starting_date() and .ending_date() are both valid
+    max = 5_881_609, // highest year where .starting_date() and .ending_date() are both valid
     _,
 
     pub fn from_number(y: i32) Year {
-        return @enumFromInt(y);
+        return @fromBackingInt(@intCast(y));
     }
 
     pub fn as_number(self: Year) i32 {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
     pub fn as_unsigned(self: Year) u32 {
-        return @intCast(@intFromEnum(self));
+        return @intCast(@backingInt(self));
     }
 
     pub const From_String_Options = struct {
@@ -52,7 +52,7 @@ pub const Year = enum (i32) {
             }
             return from_number(numeric);
         }
-        
+
         if (options.allow_non_two_digit_year) {
             return from_number(numeric);
         }
@@ -67,12 +67,12 @@ pub const Year = enum (i32) {
         // 32-bit reciprocal of 100 (division-by-constant constant)
         // Value: 42,949,673
         const cen_mul: u32 = ((1 << 32) / 100) + 1;
-  
+
         // Cutoff selected to isolate the `%100 == 0` remainder
         // after domain biasing and 32-bit wrap.
         // Value: 171,798,692
         const cen_cutoff: u32 = cen_mul * 4;
-        
+
         // Signed => unsigned domain shift. A multiple of 100 near 2^31
         // so that `%100` residues remain aligned after bias.
         // Value: 2,147,483,600
@@ -116,13 +116,13 @@ pub const Year = enum (i32) {
     pub fn dominical_letter(self: Year) Dominical_Letter {
         return .from_yi(self.info());
     }
-    
+
     pub fn is_before(self: Year, other: Year) bool {
-        return @intFromEnum(self) < @intFromEnum(other);
+        return @backingInt(self) < @backingInt(other);
     }
 
     pub fn is_after(self: Year, other: Year) bool {
-        return @intFromEnum(self) > @intFromEnum(other);
+        return @backingInt(self) > @backingInt(other);
     }
 
     pub fn plus(self: Year, delta_years: i32) Year {
@@ -209,8 +209,8 @@ pub const Year = enum (i32) {
             };
         }
     };
-    
-    pub const Dominical_Letter = enum (u4) {
+
+    pub const Dominical_Letter = enum(u4) {
         a = Week_Day.sunday.as_unsigned(),
         b = Week_Day.saturday.as_unsigned(),
         c = Week_Day.friday.as_unsigned(),
@@ -232,18 +232,18 @@ pub const Year = enum (i32) {
         pub fn from_yi(yi: Info) Dominical_Letter {
             var raw: u32 = yi.starting_date.week_day().as_unsigned();
             if (yi.is_leap) raw |= leap_marker;
-            return @enumFromInt(raw);
+            return @fromBackingInt(@intCast(raw));
         }
 
         pub fn from_number(y: i32) Dominical_Letter {
-            return @enumFromInt(y);
+            return @fromBackingInt(@intCast(y));
         }
 
         pub fn as_number(self: Dominical_Letter) i32 {
-            return @intFromEnum(self);
+            return @backingInt(self);
         }
         pub fn as_unsigned(self: Dominical_Letter) u32 {
-            return @intCast(@intFromEnum(self));
+            return @intCast(@backingInt(self));
         }
 
         pub fn is_leap_year(self: Dominical_Letter) bool {

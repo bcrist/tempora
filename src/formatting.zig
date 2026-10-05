@@ -40,97 +40,97 @@ pub fn format(dto: Date_Time.With_Offset, comptime pattern: []const u8, writer: 
 
     iter = comptime Token.iterator(pattern);
     inline while (comptime iter.next()) |token| switch (token) {
-        .MM => try writer.print("{d:0>2}", .{ ymd.month.as_unsigned() }),
-        .M => try writer.print("{d}", .{ ymd.month.as_unsigned() }),
+        .MM => try writer.print("{d:0>2}", .{ymd.month.as_unsigned()}),
+        .M => try writer.print("{d}", .{ymd.month.as_unsigned()}),
         .Mo => try write_ordinal(writer, ymd.month.as_unsigned()),
         .MMM => try writer.writeAll(ymd.month.short_name()),
         .MMMM => try writer.writeAll(ymd.month.name()),
 
-        .Q => try writer.print("{d}", .{ (ymd.month.as_unsigned() - 1) / 3 + 1 }),
+        .Q => try writer.print("{d}", .{(ymd.month.as_unsigned() - 1) / 3 + 1}),
         .Qo => try write_ordinal(writer, (ymd.month.as_unsigned() - 1) / 3 + 1),
 
-        .D => try writer.print("{d}", .{ ymd.day.as_unsigned() }),
+        .D => try writer.print("{d}", .{ymd.day.as_unsigned()}),
         .Do => try write_ordinal(writer, ymd.day.as_unsigned()),
-        .DD => try writer.print("{d:0>2}", .{ ymd.day.as_unsigned() }),
+        .DD => try writer.print("{d:0>2}", .{ymd.day.as_unsigned()}),
 
-        .DDD => try writer.print("{d}", .{ od.as_unsigned() }),
+        .DDD => try writer.print("{d}", .{od.as_unsigned()}),
         .DDDo => try write_ordinal(writer, od.as_unsigned()),
-        .DDDD => try writer.print("{d:0>3}", .{ od.as_unsigned() }),
+        .DDDD => try writer.print("{d:0>3}", .{od.as_unsigned()}),
 
-        .d => try writer.print("{d}", .{ wd.as_unsigned() - 1 }),
+        .d => try writer.print("{d}", .{wd.as_unsigned() - 1}),
         .do => try write_ordinal(writer, wd.as_unsigned() - 1),
         .dd => try writer.writeAll(wd.name()[0..2]),
         .ddd => try writer.writeAll(wd.short_name()),
         .dddd => try writer.writeAll(wd.name()),
-        .E => try writer.print("{d}", .{ wd.as_iso() }),
+        .E => try writer.print("{d}", .{wd.as_iso()}),
         .Eo => try write_ordinal(writer, wd.as_iso()),
 
-        .w => try writer.print("{d}", .{ od.ordinal_week().as_unsigned() }),
+        .w => try writer.print("{d}", .{od.ordinal_week().as_unsigned()}),
         .wo => try write_ordinal(writer, od.ordinal_week().as_unsigned()),
-        .ww => try writer.print("{d:0>2}", .{ od.ordinal_week().as_unsigned() }),
+        .ww => try writer.print("{d:0>2}", .{od.ordinal_week().as_unsigned()}),
 
-        .W => try writer.print("{d}", .{ iwd.week.as_unsigned() }),
+        .W => try writer.print("{d}", .{iwd.week.as_unsigned()}),
         .Wo => try write_ordinal(writer, iwd.week.as_unsigned()),
-        .WW => try writer.print("{d:0>2}", .{ iwd.week.as_unsigned() }),
+        .WW => try writer.print("{d:0>2}", .{iwd.week.as_unsigned()}),
 
         .G => if (iwd.year.as_number() > 9999 or iwd.year.as_number() < 0) {
-            try writer.print("{d}", .{ iwd.year.as_number() });
+            try writer.print("{d}", .{iwd.year.as_number()});
         } else {
-            try writer.print("{d}", .{ iwd.year.as_unsigned() });
+            try writer.print("{d}", .{iwd.year.as_unsigned()});
         },
-        .GG => try writer.print("{d:0>2}", .{ @as(u32, @intCast(@mod(iwd.year.as_number(), 100))) }),
-        .GGGG => try writer.print("{d:0>4}", .{ @as(u32, @intCast(@mod(iwd.year.as_number(), 10000))) }),
+        .GG => try writer.print("{d:0>2}", .{@as(u32, @intCast(@mod(iwd.year.as_number(), 100)))}),
+        .GGGG => try writer.print("{d:0>4}", .{@as(u32, @intCast(@mod(iwd.year.as_number(), 10000)))}),
 
-            // Year
-        .YY => try writer.print("{d:0>2}", .{ @as(u32, @intCast(@mod(ymd.year.as_number(), 100))) }),
-        .YYYY => try writer.print("{d:0>4}", .{ @as(u32, @intCast(@mod(ymd.year.as_number(), 10000))) }),
+        // Year
+        .YY => try writer.print("{d:0>2}", .{@as(u32, @intCast(@mod(ymd.year.as_number(), 100)))}),
+        .YYYY => try writer.print("{d:0>4}", .{@as(u32, @intCast(@mod(ymd.year.as_number(), 10000)))}),
         .Y => if (ymd.year.as_number() > 9999 or ymd.year.as_number() < 0) {
-            try writer.print("{d}", .{ ymd.year.as_number() });
+            try writer.print("{d}", .{ymd.year.as_number()});
         } else {
-            try writer.print("{d}", .{ ymd.year.as_unsigned() });
+            try writer.print("{d}", .{ymd.year.as_unsigned()});
         },
         .YYY => if (ymd.year.as_number() > 9999) {
-            try writer.print("+{d}", .{ ymd.year.as_unsigned() });
+            try writer.print("+{d}", .{ymd.year.as_unsigned()});
         } else if (ymd.year.as_number() < 0) {
-            try writer.print("-{d:0>4}", .{ @as(u32, @intCast(-ymd.year.as_number())) });
+            try writer.print("-{d:0>4}", .{@as(u32, @intCast(-ymd.year.as_number()))});
         } else {
-            try writer.print("{d:0>4}", .{ ymd.year.as_unsigned() });
+            try writer.print("{d:0>4}", .{ymd.year.as_unsigned()});
         },
         .YYYYYY => if (ymd.year.as_number() < 0) {
-            try writer.print("-{d:0>6}", .{ @as(u32, @intCast(-ymd.year.as_number())) });
+            try writer.print("-{d:0>6}", .{@as(u32, @intCast(-ymd.year.as_number()))});
         } else {
-            try writer.print("+{d:0>6}", .{ ymd.year.as_unsigned() });
+            try writer.print("+{d:0>6}", .{ymd.year.as_unsigned()});
         },
 
         .yy => if (ymd.year.as_number() > 0) {
-            try writer.print("{d:0>2}", .{ ymd.year.as_unsigned() % 100 });
+            try writer.print("{d:0>2}", .{ymd.year.as_unsigned() % 100});
         } else {
-            try writer.print("{d:0>2}", .{ @as(u32, @intCast(@mod(-ymd.year.as_number() + 1, 100))) });
+            try writer.print("{d:0>2}", .{@as(u32, @intCast(@mod(-ymd.year.as_number() + 1, 100)))});
         },
         .yyyy => if (ymd.year.as_number() > 0) {
-            try writer.print("{d:0>4}", .{ ymd.year.as_unsigned() % 10000 });
+            try writer.print("{d:0>4}", .{ymd.year.as_unsigned() % 10000});
         } else {
-            try writer.print("{d:0>4}", .{ @as(u32, @intCast(@mod(-ymd.year.as_number() + 1, 10000))) });
+            try writer.print("{d:0>4}", .{@as(u32, @intCast(@mod(-ymd.year.as_number() + 1, 10000)))});
         },
         .y => if (ymd.year.as_number() > 0) {
-            try writer.print("{d}", .{ ymd.year.as_unsigned() });
+            try writer.print("{d}", .{ymd.year.as_unsigned()});
         } else {
-            try writer.print("{d}", .{ @as(u32, @intCast(-ymd.year.as_number() + 1)) });
+            try writer.print("{d}", .{@as(u32, @intCast(-ymd.year.as_number() + 1))});
         },
         .yyy => if (ymd.year.as_number() > 9999) {
-            try writer.print("+{d}", .{ ymd.year.as_unsigned() });
+            try writer.print("+{d}", .{ymd.year.as_unsigned()});
         } else if (ymd.year.as_number() <= 0) {
-            try writer.print("{d:0>4}", .{ @as(u32, @intCast(-ymd.year.as_number() + 1)) });
+            try writer.print("{d:0>4}", .{@as(u32, @intCast(-ymd.year.as_number() + 1))});
         } else {
-            try writer.print("{d:0>4}", .{ ymd.year.as_unsigned() });
+            try writer.print("{d:0>4}", .{ymd.year.as_unsigned()});
         },
         .yyyyyy => if (ymd.year.as_number() <= 0) {
-            try writer.print("{d:0>6}", .{ @as(u32, @intCast(-ymd.year.as_number() + 1)) });
+            try writer.print("{d:0>6}", .{@as(u32, @intCast(-ymd.year.as_number() + 1))});
         } else {
-            try writer.print("{d:0>6}", .{ ymd.year.as_unsigned() });
+            try writer.print("{d:0>6}", .{ymd.year.as_unsigned()});
         },
 
-        .N, .NN =>  try writer.writeAll(if (ymd.year.as_number() > 0) "AD" else "BC"),
+        .N, .NN => try writer.writeAll(if (ymd.year.as_number() > 0) "AD" else "BC"),
 
         .literal => |text| {
             try writer.writeAll(text);
@@ -138,31 +138,31 @@ pub fn format(dto: Date_Time.With_Offset, comptime pattern: []const u8, writer: 
 
         .A => try writer.writeAll(if (dto.dt.time.hours() < 12) "AM" else "PM"),
         .a => try writer.writeAll(if (dto.dt.time.hours() < 12) "am" else "pm"),
-        .H => try writer.print("{d}", .{ @as(u32, @intCast(dto.dt.time.hours())) }),
-        .HH => try writer.print("{d:0>2}", .{ @as(u32, @intCast(dto.dt.time.hours())) }),
-        .K, .KK => try writer.print("{d: >2}", .{ @as(u32, @intCast(dto.dt.time.hours())) }),
-        .h => try writer.print("{d}", .{ @as(u32, @intCast(switch (dto.dt.time.hours()) {
+        .H => try writer.print("{d}", .{@as(u32, @intCast(dto.dt.time.hours()))}),
+        .HH => try writer.print("{d:0>2}", .{@as(u32, @intCast(dto.dt.time.hours()))}),
+        .K, .KK => try writer.print("{d: >2}", .{@as(u32, @intCast(dto.dt.time.hours()))}),
+        .h => try writer.print("{d}", .{@as(u32, @intCast(switch (dto.dt.time.hours()) {
             0 => 12,
             1...12 => |h| h,
             else => |h| h - 12,
-        })) }),
-        .hh => try writer.print("{d:0>2}", .{ @as(u32, @intCast(switch (dto.dt.time.hours()) {
+        }))}),
+        .hh => try writer.print("{d:0>2}", .{@as(u32, @intCast(switch (dto.dt.time.hours()) {
             0 => 12,
             1...12 => |h| h,
             else => |h| h - 12,
-        })) }),
-        .k, .kk => try writer.print("{d: >2}", .{ @as(u32, @intCast(switch (dto.dt.time.hours()) {
+        }))}),
+        .k, .kk => try writer.print("{d: >2}", .{@as(u32, @intCast(switch (dto.dt.time.hours()) {
             0 => 12,
             1...12 => |h| h,
             else => |h| h - 12,
-        })) }),
-        .m => try writer.print("{d}", .{ @as(u32, @intCast(dto.dt.time.minutes())) }),
-        .mm => try writer.print("{d:0>2}", .{ @as(u32, @intCast(dto.dt.time.minutes())) }),
-        .s => try writer.print("{d}", .{ @as(u32, @intCast(dto.dt.time.seconds())) }),
-        .ss => try writer.print("{d:0>2}", .{ @as(u32, @intCast(dto.dt.time.seconds())) }),
-        .S => try writer.print("{d}", .{ @as(u32, @intCast(@divFloor(dto.dt.time.ms(), 100))) }),
-        .SS => try writer.print("{d:0>2}", .{ @as(u32, @intCast(@divFloor(dto.dt.time.ms(), 10))) }),
-        .SSS => try writer.print("{d:0>3}", .{ @as(u32, @intCast(dto.dt.time.ms())) }),
+        }))}),
+        .m => try writer.print("{d}", .{@as(u32, @intCast(dto.dt.time.minutes()))}),
+        .mm => try writer.print("{d:0>2}", .{@as(u32, @intCast(dto.dt.time.minutes()))}),
+        .s => try writer.print("{d}", .{@as(u32, @intCast(dto.dt.time.seconds()))}),
+        .ss => try writer.print("{d:0>2}", .{@as(u32, @intCast(dto.dt.time.seconds()))}),
+        .S => try writer.print("{d}", .{@as(u32, @intCast(@divFloor(dto.dt.time.ms(), 100)))}),
+        .SS => try writer.print("{d:0>2}", .{@as(u32, @intCast(@divFloor(dto.dt.time.ms(), 10)))}),
+        .SSS => try writer.print("{d:0>3}", .{@as(u32, @intCast(dto.dt.time.ms()))}),
         .z, .zz, .Z, .ZZ => done: {
             if (token == .z or token == .zz) {
                 if (dto.timezone) |tz| {
@@ -179,9 +179,9 @@ pub fn format(dto: Date_Time.With_Offset, comptime pattern: []const u8, writer: 
 
             if (token == .zz or token == .ZZ) {
                 if (dto.utc_offset_ms < 0) {
-                    try writer.print("-{d:0>4}", .{ minutes });
+                    try writer.print("-{d:0>4}", .{minutes});
                 } else {
-                    try writer.print("+{d:0>4}", .{ minutes });
+                    try writer.print("+{d:0>4}", .{minutes});
                 }
             } else {
                 if (dto.utc_offset_ms < 0) {
@@ -191,12 +191,12 @@ pub fn format(dto: Date_Time.With_Offset, comptime pattern: []const u8, writer: 
                 }
             }
         },
-        .x => try writer.print("{d}", .{ dto.timestamp_ms() }),
-        .X => try writer.print("{d}", .{ dto.timestamp_s() }),
+        .x => try writer.print("{d}", .{dto.timestamp_ms()}),
+        .X => try writer.print("{d}", .{dto.timestamp_s()}),
     };
 }
 
-const Parse_Error = error {
+const Parse_Error = error{
     InvalidString,
     EndOfStream,
     ReadFailed,
@@ -317,7 +317,7 @@ pub fn Parse_Result(comptime pattern: []const u8) type {
                 if (has_ordinal_day) {
                     return Date.from_yod(self.year, self.ordinal_day).iso_week_date();
                 }
-                
+
                 if (has_ordinal_week) {
                     var d = Date.from_yod(self.year, self.ordinal_week.starting_day());
                     if (has_week_day) {
@@ -325,7 +325,7 @@ pub fn Parse_Result(comptime pattern: []const u8) type {
                     }
                     return d.iso_week_date();
                 }
-                
+
                 if (has_month) {
                     return Date.from_ymd(.{
                         .year = self.year,
@@ -362,7 +362,7 @@ pub fn Parse_Result(comptime pattern: []const u8) type {
                     .timezone = dto.timezone,
                 };
             }
-            
+
             if (has_hours) {
                 const m = if (has_minutes) self.minutes else 0;
                 const s = if (has_seconds) self.seconds else 0;
@@ -373,7 +373,7 @@ pub fn Parse_Result(comptime pattern: []const u8) type {
                     .timezone = timezone,
                 };
             }
-            
+
             @compileError("Invalid pattern: " ++ pattern);
         }
 
@@ -756,7 +756,7 @@ pub fn parse(comptime pattern: []const u8, reader: *std.Io.Reader, timezone: ?*c
                         error.EndOfStream => break buf[0..i],
                         else => return err,
                     };
-                    
+
                     if (std.ascii.isAlphabetic(ch) or ch > 127) {
                         b.* = ch;
                         reader.toss(1);
@@ -806,9 +806,7 @@ pub fn parse(comptime pattern: []const u8, reader: *std.Io.Reader, timezone: ?*c
 
     if (@FieldType(Result, "utc_offset_ms") != void) {
         if (offset_designation) |designation| {
-            const has_date = @FieldType(Result, "timestamp") != void
-                or @FieldType(Result, "year") != void
-                or @FieldType(Result, "iso_week_year") != void;
+            const has_date = @FieldType(Result, "timestamp") != void or @FieldType(Result, "year") != void or @FieldType(Result, "iso_week_year") != void;
 
             const dto = if (has_date) parsed.date_time(timezone) else Date.epoch.with_time(.midnight).with_offset(0);
             if (tzdb.?.designation_utc_offset_ms(designation, dto)) |offset| {
@@ -820,9 +818,8 @@ pub fn parse(comptime pattern: []const u8, reader: *std.Io.Reader, timezone: ?*c
     return parsed;
 }
 
-
 // moment.js style format specifiers, see https://momentjs.com/docs/#/displaying/format/
-const Token = union (enum) {
+const Token = union(enum) {
     // Month
     M, // 1 2 ... 11 12
     Mo, // 1st 2nd ... 11th 12th
@@ -895,8 +892,10 @@ const Token = union (enum) {
     HH, // 00 01 ... 22 23
     h, // 1 2 ... 11 12
     hh, // 01 02 ... 11 12
-    k, kk, //  1  2 ... 11 12  (different from moment.js; space padded like strftime)
-    K, KK, //  1  2 ... 22 23  (different from moment.js; space padded like strftime)
+    k,
+    kk, //  1  2 ... 11 12  (different from moment.js; space padded like strftime)
+    K,
+    KK, //  1  2 ... 22 23  (different from moment.js; space padded like strftime)
 
     // Minutes
     m, // 0 1 ... 58 59
@@ -1015,9 +1014,7 @@ const Token = union (enum) {
                 'K' => if (remaining.len > 1 and remaining[1] == 'K') .KK else .K,
                 'm' => if (remaining.len > 1 and remaining[1] == 'm') .mm else .m,
                 's' => if (remaining.len > 1 and remaining[1] == 's') .ss else .s,
-                'S' => if (remaining.len > 2 and remaining[1] == 'S' and remaining[2] == 'S') .SSS
-                    else if (remaining.len > 1 and remaining[1] == 'S') .SS
-                    else .S,
+                'S' => if (remaining.len > 2 and remaining[1] == 'S' and remaining[2] == 'S') .SSS else if (remaining.len > 1 and remaining[1] == 'S') .SS else .S,
                 'z' => if (remaining.len > 1 and remaining[1] == 'z') .zz else .z,
                 'Z' => if (remaining.len > 1 and remaining[1] == 'Z') .ZZ else .Z,
                 'x' => .x,
@@ -1040,14 +1037,14 @@ const Token = union (enum) {
                 self.remaining = remaining[literal_chars_used..];
             }
 
-            return token; 
+            return token;
         }
     };
 };
 
 fn write_ordinal(writer: *std.Io.Writer, num: u32) std.Io.Writer.Error!void {
-    try writer.print("{d}", .{ num });
-    try writer.writeAll(switch(num % 100) {
+    try writer.print("{d}", .{num});
+    try writer.writeAll(switch (num % 100) {
         11, 12, 13 => "th",
         else => switch (num % 10) {
             1 => "st",
@@ -1062,7 +1059,7 @@ fn read_int(comptime T: type, reader: *std.Io.Reader) Parse_Error!T {
     var sign: T = 1;
     var value: T = 0;
 
-    if (@typeInfo(T).int.signedness == .signed) switch(try reader.peekByte()) {
+    if (@typeInfo(T).int.signedness == .signed) switch (try reader.peekByte()) {
         '-' => {
             sign = -1;
             reader.toss(1);

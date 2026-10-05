@@ -131,8 +131,7 @@ pub fn build(b: *std.Build) void {
 
 fn codegen(b: *std.Build, tempora_module: *std.Build.Module) void {
     const generate_tzdb_options = b.addOptions();
-    generate_tzdb_options.addOption(usize, "min_deflate_bytes_saved",
-        b.option(usize, "min_deflate_bytes_saved", "If deflating a TZif file does not save at least this many bytes, it will be embedded uncompressed.  Defaults to 50") orelse 5);
+    generate_tzdb_options.addOption(usize, "min_deflate_bytes_saved", b.option(usize, "min_deflate_bytes_saved", "If deflating a TZif file does not save at least this many bytes, it will be embedded uncompressed.  Defaults to 50") orelse 5);
 
     const generate_tzdb_exe = b.addExecutable(.{
         .name = "generate_tzdb",
@@ -212,7 +211,7 @@ fn build_benchmarks(b: *std.Build, tempora_module: *std.Build.Module) void {
             .root_source_file = b.path("src/week_day.zig"),
         });
 
-        inline for ([_]std.builtin.OptimizeMode { .Debug, .ReleaseSafe, .ReleaseFast }) |optimize| {
+        inline for ([_]std.builtin.OptimizeMode{ .Debug, .ReleaseSafe, .ReleaseFast }) |optimize| {
             const civil_bench = b.addExecutable(.{
                 .name = "benchmark_civil_" ++ @tagName(optimize),
                 .root_module = b.createModule(.{

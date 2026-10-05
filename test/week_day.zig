@@ -58,7 +58,6 @@ test "Week_Day.from_string" {
     try std.testing.expectError(error.InvalidString, Week_Day.from_string("  sunda  ", .{ .allow_short = false }));
     try std.testing.expectError(error.InvalidString, Week_Day.from_string("  sun  ", .{ .allow_short = false }));
     try std.testing.expectError(error.InvalidString, Week_Day.from_string("// wed //", .{ .trim = " " }));
-    
 }
 
 test "Week_Day.as_number" {

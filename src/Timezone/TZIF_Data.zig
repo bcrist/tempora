@@ -1,5 +1,5 @@
 id: []const u8,
-kind: union (enum) {
+kind: union(enum) {
     system,
     uncompressed: []const u8,
     compressed_zlib: []const u8,

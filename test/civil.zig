@@ -1,4 +1,3 @@
-
 test "gregorian civil date conversion" {
     try check_civil_conversion(2000, 1, 1, 0);
 
@@ -194,7 +193,7 @@ fn check_civil_conversion(y: i32, m: u8, d: u8, date: i32) !void {
 }
 
 fn check_civil_conversion_impl(y: i32, m: u8, d: u8, date: i32, comptime impl: type) !void {
-    errdefer std.debug.print("For {}\n", .{ date });
+    errdefer std.debug.print("For {}\n", .{date});
     try std.testing.expectEqual(date, impl.ymd_to_days(y, m, d));
     if (y > -5_877_611) {
         // though some dates in the year -5877611 are representable, Jan 1 is not.

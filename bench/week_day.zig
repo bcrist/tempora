@@ -24,8 +24,8 @@ fn Bench(comptime func: anytype) type {
     return struct {
         pub fn run(self: *@This(), _: std.mem.Allocator) void {
             _ = self;
-            var n: wd.Date = @enumFromInt(wd.joffe_limited_min);
-            while (@intFromEnum(n) <= wd.joffe_limited_max) : (n = n.next()) {
+            var n: wd.Date = @fromBackingInt(@intCast(wd.joffe_limited_min));
+            while (@backingInt(n) <= wd.joffe_limited_max) : (n = n.next()) {
                 std.mem.doNotOptimizeAway(func(n));
             }
         }

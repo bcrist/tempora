@@ -1,4 +1,3 @@
-
 test "Time.from_hmsm" {
     try std.testing.expectEqual(Time.midnight, Time.from_hmsm(0, 0, 0, 0));
     try std.testing.expectEqual(Time.@"1am", Time.from_hmsm(1, 0, 0, 0));
@@ -6,12 +5,12 @@ test "Time.from_hmsm" {
     try std.testing.expect(Time.is_after(.midnight_eod, Time.from_hmsm(23, 59, 59, 999)));
     try std.testing.expect(Time.is_before(.midnight_eod, Time.from_hmsm(23, 59, 59, 999).plus_ms(2)));
 
-    try std.testing.expectEqual(234, @intFromEnum(Time.from_hmsm(0, 0, 0, 234)));
-    try std.testing.expectEqual(1000, @intFromEnum(Time.from_hmsm(0, 0, 1, 0)));
-    try std.testing.expectEqual(59234, @intFromEnum(Time.from_hmsm(0, 0, 59, 234)));
-    try std.testing.expectEqual(119004, @intFromEnum(Time.from_hmsm(0, 1, 59, 4)));
-    try std.testing.expectEqual(3661004, @intFromEnum(Time.from_hmsm(1, 1, 1, 4)));
-    try std.testing.expectEqual(86399000, @intFromEnum(Time.from_hmsm(23, 59, 59, 0)));
+    try std.testing.expectEqual(234, @backingInt(Time.from_hmsm(0, 0, 0, 234)));
+    try std.testing.expectEqual(1000, @backingInt(Time.from_hmsm(0, 0, 1, 0)));
+    try std.testing.expectEqual(59234, @backingInt(Time.from_hmsm(0, 0, 59, 234)));
+    try std.testing.expectEqual(119004, @backingInt(Time.from_hmsm(0, 1, 59, 4)));
+    try std.testing.expectEqual(3661004, @backingInt(Time.from_hmsm(1, 1, 1, 4)));
+    try std.testing.expectEqual(86399000, @backingInt(Time.from_hmsm(23, 59, 59, 0)));
 }
 
 test "Time.hours" {
@@ -60,36 +59,36 @@ test "Time.minutes_since_midnight" {
     try std.testing.expectEqual(1, Time.from_hmsm(0, 1, 59, 4).minutes_since_midnight());
     try std.testing.expectEqual(60, Time.from_hmsm(1, 0, 0, 0).minutes_since_midnight());
     try std.testing.expectEqual(61, Time.from_hmsm(1, 1, 1, 4).minutes_since_midnight());
-    try std.testing.expectEqual(12*60, Time.from_hmsm(12, 0, 0, 0).minutes_since_midnight());
-    try std.testing.expectEqual(13*60, Time.from_hmsm(13, 0, 0, 0).minutes_since_midnight());
-    try std.testing.expectEqual(24*60-1, Time.from_hmsm(23, 59, 59, 999).minutes_since_midnight());
+    try std.testing.expectEqual(12 * 60, Time.from_hmsm(12, 0, 0, 0).minutes_since_midnight());
+    try std.testing.expectEqual(13 * 60, Time.from_hmsm(13, 0, 0, 0).minutes_since_midnight());
+    try std.testing.expectEqual(24 * 60 - 1, Time.from_hmsm(23, 59, 59, 999).minutes_since_midnight());
     try std.testing.expectEqual(0, Time.minutes_since_midnight(.midnight));
     try std.testing.expectEqual(0, Time.minutes_since_midnight(.@"12am"));
-    try std.testing.expectEqual(60*1, Time.minutes_since_midnight(.@"1am"));
-    try std.testing.expectEqual(60*2, Time.minutes_since_midnight(.@"2am"));
-    try std.testing.expectEqual(60*3, Time.minutes_since_midnight(.@"3am"));
-    try std.testing.expectEqual(60*4, Time.minutes_since_midnight(.@"4am"));
-    try std.testing.expectEqual(60*5, Time.minutes_since_midnight(.@"5am"));
-    try std.testing.expectEqual(60*6, Time.minutes_since_midnight(.@"6am"));
-    try std.testing.expectEqual(60*7, Time.minutes_since_midnight(.@"7am"));
-    try std.testing.expectEqual(60*8, Time.minutes_since_midnight(.@"8am"));
-    try std.testing.expectEqual(60*9, Time.minutes_since_midnight(.@"9am"));
-    try std.testing.expectEqual(60*10, Time.minutes_since_midnight(.@"10am"));
-    try std.testing.expectEqual(60*11, Time.minutes_since_midnight(.@"11am"));
-    try std.testing.expectEqual(60*12, Time.minutes_since_midnight(.@"12pm"));
-    try std.testing.expectEqual(60*12, Time.minutes_since_midnight(.noon));
-    try std.testing.expectEqual(60*13, Time.minutes_since_midnight(.@"1pm"));
-    try std.testing.expectEqual(60*14, Time.minutes_since_midnight(.@"2pm"));
-    try std.testing.expectEqual(60*15, Time.minutes_since_midnight(.@"3pm"));
-    try std.testing.expectEqual(60*16, Time.minutes_since_midnight(.@"4pm"));
-    try std.testing.expectEqual(60*17, Time.minutes_since_midnight(.@"5pm"));
-    try std.testing.expectEqual(60*18, Time.minutes_since_midnight(.@"6pm"));
-    try std.testing.expectEqual(60*19, Time.minutes_since_midnight(.@"7pm"));
-    try std.testing.expectEqual(60*20, Time.minutes_since_midnight(.@"8pm"));
-    try std.testing.expectEqual(60*21, Time.minutes_since_midnight(.@"9pm"));
-    try std.testing.expectEqual(60*22, Time.minutes_since_midnight(.@"10pm"));
-    try std.testing.expectEqual(60*23, Time.minutes_since_midnight(.@"11pm"));
-    try std.testing.expectEqual(60*24, Time.minutes_since_midnight(.midnight_eod));
+    try std.testing.expectEqual(60 * 1, Time.minutes_since_midnight(.@"1am"));
+    try std.testing.expectEqual(60 * 2, Time.minutes_since_midnight(.@"2am"));
+    try std.testing.expectEqual(60 * 3, Time.minutes_since_midnight(.@"3am"));
+    try std.testing.expectEqual(60 * 4, Time.minutes_since_midnight(.@"4am"));
+    try std.testing.expectEqual(60 * 5, Time.minutes_since_midnight(.@"5am"));
+    try std.testing.expectEqual(60 * 6, Time.minutes_since_midnight(.@"6am"));
+    try std.testing.expectEqual(60 * 7, Time.minutes_since_midnight(.@"7am"));
+    try std.testing.expectEqual(60 * 8, Time.minutes_since_midnight(.@"8am"));
+    try std.testing.expectEqual(60 * 9, Time.minutes_since_midnight(.@"9am"));
+    try std.testing.expectEqual(60 * 10, Time.minutes_since_midnight(.@"10am"));
+    try std.testing.expectEqual(60 * 11, Time.minutes_since_midnight(.@"11am"));
+    try std.testing.expectEqual(60 * 12, Time.minutes_since_midnight(.@"12pm"));
+    try std.testing.expectEqual(60 * 12, Time.minutes_since_midnight(.noon));
+    try std.testing.expectEqual(60 * 13, Time.minutes_since_midnight(.@"1pm"));
+    try std.testing.expectEqual(60 * 14, Time.minutes_since_midnight(.@"2pm"));
+    try std.testing.expectEqual(60 * 15, Time.minutes_since_midnight(.@"3pm"));
+    try std.testing.expectEqual(60 * 16, Time.minutes_since_midnight(.@"4pm"));
+    try std.testing.expectEqual(60 * 17, Time.minutes_since_midnight(.@"5pm"));
+    try std.testing.expectEqual(60 * 18, Time.minutes_since_midnight(.@"6pm"));
+    try std.testing.expectEqual(60 * 19, Time.minutes_since_midnight(.@"7pm"));
+    try std.testing.expectEqual(60 * 20, Time.minutes_since_midnight(.@"8pm"));
+    try std.testing.expectEqual(60 * 21, Time.minutes_since_midnight(.@"9pm"));
+    try std.testing.expectEqual(60 * 22, Time.minutes_since_midnight(.@"10pm"));
+    try std.testing.expectEqual(60 * 23, Time.minutes_since_midnight(.@"11pm"));
+    try std.testing.expectEqual(60 * 24, Time.minutes_since_midnight(.midnight_eod));
 }
 
 test "Time.minutes" {
@@ -140,36 +139,36 @@ test "Time.seconds_since_midnight" {
     try std.testing.expectEqual(119, Time.from_hmsm(0, 1, 59, 4).seconds_since_midnight());
     try std.testing.expectEqual(3600, Time.from_hmsm(1, 0, 0, 0).seconds_since_midnight());
     try std.testing.expectEqual(3661, Time.from_hmsm(1, 1, 1, 4).seconds_since_midnight());
-    try std.testing.expectEqual(12*60*60, Time.from_hmsm(12, 0, 0, 0).seconds_since_midnight());
-    try std.testing.expectEqual(13*60*60, Time.from_hmsm(13, 0, 0, 0).seconds_since_midnight());
-    try std.testing.expectEqual(24*60*60-1, Time.from_hmsm(23, 59, 59, 999).seconds_since_midnight());
+    try std.testing.expectEqual(12 * 60 * 60, Time.from_hmsm(12, 0, 0, 0).seconds_since_midnight());
+    try std.testing.expectEqual(13 * 60 * 60, Time.from_hmsm(13, 0, 0, 0).seconds_since_midnight());
+    try std.testing.expectEqual(24 * 60 * 60 - 1, Time.from_hmsm(23, 59, 59, 999).seconds_since_midnight());
     try std.testing.expectEqual(0, Time.seconds_since_midnight(.midnight));
     try std.testing.expectEqual(0, Time.seconds_since_midnight(.@"12am"));
-    try std.testing.expectEqual(60*60*1, Time.seconds_since_midnight(.@"1am"));
-    try std.testing.expectEqual(60*60*2, Time.seconds_since_midnight(.@"2am"));
-    try std.testing.expectEqual(60*60*3, Time.seconds_since_midnight(.@"3am"));
-    try std.testing.expectEqual(60*60*4, Time.seconds_since_midnight(.@"4am"));
-    try std.testing.expectEqual(60*60*5, Time.seconds_since_midnight(.@"5am"));
-    try std.testing.expectEqual(60*60*6, Time.seconds_since_midnight(.@"6am"));
-    try std.testing.expectEqual(60*60*7, Time.seconds_since_midnight(.@"7am"));
-    try std.testing.expectEqual(60*60*8, Time.seconds_since_midnight(.@"8am"));
-    try std.testing.expectEqual(60*60*9, Time.seconds_since_midnight(.@"9am"));
-    try std.testing.expectEqual(60*60*10, Time.seconds_since_midnight(.@"10am"));
-    try std.testing.expectEqual(60*60*11, Time.seconds_since_midnight(.@"11am"));
-    try std.testing.expectEqual(60*60*12, Time.seconds_since_midnight(.@"12pm"));
-    try std.testing.expectEqual(60*60*12, Time.seconds_since_midnight(.noon));
-    try std.testing.expectEqual(60*60*13, Time.seconds_since_midnight(.@"1pm"));
-    try std.testing.expectEqual(60*60*14, Time.seconds_since_midnight(.@"2pm"));
-    try std.testing.expectEqual(60*60*15, Time.seconds_since_midnight(.@"3pm"));
-    try std.testing.expectEqual(60*60*16, Time.seconds_since_midnight(.@"4pm"));
-    try std.testing.expectEqual(60*60*17, Time.seconds_since_midnight(.@"5pm"));
-    try std.testing.expectEqual(60*60*18, Time.seconds_since_midnight(.@"6pm"));
-    try std.testing.expectEqual(60*60*19, Time.seconds_since_midnight(.@"7pm"));
-    try std.testing.expectEqual(60*60*20, Time.seconds_since_midnight(.@"8pm"));
-    try std.testing.expectEqual(60*60*21, Time.seconds_since_midnight(.@"9pm"));
-    try std.testing.expectEqual(60*60*22, Time.seconds_since_midnight(.@"10pm"));
-    try std.testing.expectEqual(60*60*23, Time.seconds_since_midnight(.@"11pm"));
-    try std.testing.expectEqual(60*60*24, Time.seconds_since_midnight(.midnight_eod));
+    try std.testing.expectEqual(60 * 60 * 1, Time.seconds_since_midnight(.@"1am"));
+    try std.testing.expectEqual(60 * 60 * 2, Time.seconds_since_midnight(.@"2am"));
+    try std.testing.expectEqual(60 * 60 * 3, Time.seconds_since_midnight(.@"3am"));
+    try std.testing.expectEqual(60 * 60 * 4, Time.seconds_since_midnight(.@"4am"));
+    try std.testing.expectEqual(60 * 60 * 5, Time.seconds_since_midnight(.@"5am"));
+    try std.testing.expectEqual(60 * 60 * 6, Time.seconds_since_midnight(.@"6am"));
+    try std.testing.expectEqual(60 * 60 * 7, Time.seconds_since_midnight(.@"7am"));
+    try std.testing.expectEqual(60 * 60 * 8, Time.seconds_since_midnight(.@"8am"));
+    try std.testing.expectEqual(60 * 60 * 9, Time.seconds_since_midnight(.@"9am"));
+    try std.testing.expectEqual(60 * 60 * 10, Time.seconds_since_midnight(.@"10am"));
+    try std.testing.expectEqual(60 * 60 * 11, Time.seconds_since_midnight(.@"11am"));
+    try std.testing.expectEqual(60 * 60 * 12, Time.seconds_since_midnight(.@"12pm"));
+    try std.testing.expectEqual(60 * 60 * 12, Time.seconds_since_midnight(.noon));
+    try std.testing.expectEqual(60 * 60 * 13, Time.seconds_since_midnight(.@"1pm"));
+    try std.testing.expectEqual(60 * 60 * 14, Time.seconds_since_midnight(.@"2pm"));
+    try std.testing.expectEqual(60 * 60 * 15, Time.seconds_since_midnight(.@"3pm"));
+    try std.testing.expectEqual(60 * 60 * 16, Time.seconds_since_midnight(.@"4pm"));
+    try std.testing.expectEqual(60 * 60 * 17, Time.seconds_since_midnight(.@"5pm"));
+    try std.testing.expectEqual(60 * 60 * 18, Time.seconds_since_midnight(.@"6pm"));
+    try std.testing.expectEqual(60 * 60 * 19, Time.seconds_since_midnight(.@"7pm"));
+    try std.testing.expectEqual(60 * 60 * 20, Time.seconds_since_midnight(.@"8pm"));
+    try std.testing.expectEqual(60 * 60 * 21, Time.seconds_since_midnight(.@"9pm"));
+    try std.testing.expectEqual(60 * 60 * 22, Time.seconds_since_midnight(.@"10pm"));
+    try std.testing.expectEqual(60 * 60 * 23, Time.seconds_since_midnight(.@"11pm"));
+    try std.testing.expectEqual(60 * 60 * 24, Time.seconds_since_midnight(.midnight_eod));
 }
 
 test "Time.seconds" {
@@ -220,36 +219,36 @@ test "Time.ms_since_midnight" {
     try std.testing.expectEqual(119004, Time.from_hmsm(0, 1, 59, 4).ms_since_midnight());
     try std.testing.expectEqual(3600000, Time.from_hmsm(1, 0, 0, 0).ms_since_midnight());
     try std.testing.expectEqual(3661004, Time.from_hmsm(1, 1, 1, 4).ms_since_midnight());
-    try std.testing.expectEqual(12*60*60000, Time.from_hmsm(12, 0, 0, 0).ms_since_midnight());
-    try std.testing.expectEqual(13*60*60000, Time.from_hmsm(13, 0, 0, 0).ms_since_midnight());
-    try std.testing.expectEqual(24*60*60000-1, Time.from_hmsm(23, 59, 59, 999).ms_since_midnight());
+    try std.testing.expectEqual(12 * 60 * 60000, Time.from_hmsm(12, 0, 0, 0).ms_since_midnight());
+    try std.testing.expectEqual(13 * 60 * 60000, Time.from_hmsm(13, 0, 0, 0).ms_since_midnight());
+    try std.testing.expectEqual(24 * 60 * 60000 - 1, Time.from_hmsm(23, 59, 59, 999).ms_since_midnight());
     try std.testing.expectEqual(0, Time.ms_since_midnight(.midnight));
     try std.testing.expectEqual(0, Time.ms_since_midnight(.@"12am"));
-    try std.testing.expectEqual(60*60000*1, Time.ms_since_midnight(.@"1am"));
-    try std.testing.expectEqual(60*60000*2, Time.ms_since_midnight(.@"2am"));
-    try std.testing.expectEqual(60*60000*3, Time.ms_since_midnight(.@"3am"));
-    try std.testing.expectEqual(60*60000*4, Time.ms_since_midnight(.@"4am"));
-    try std.testing.expectEqual(60*60000*5, Time.ms_since_midnight(.@"5am"));
-    try std.testing.expectEqual(60*60000*6, Time.ms_since_midnight(.@"6am"));
-    try std.testing.expectEqual(60*60000*7, Time.ms_since_midnight(.@"7am"));
-    try std.testing.expectEqual(60*60000*8, Time.ms_since_midnight(.@"8am"));
-    try std.testing.expectEqual(60*60000*9, Time.ms_since_midnight(.@"9am"));
-    try std.testing.expectEqual(60*60000*10, Time.ms_since_midnight(.@"10am"));
-    try std.testing.expectEqual(60*60000*11, Time.ms_since_midnight(.@"11am"));
-    try std.testing.expectEqual(60*60000*12, Time.ms_since_midnight(.@"12pm"));
-    try std.testing.expectEqual(60*60000*12, Time.ms_since_midnight(.noon));
-    try std.testing.expectEqual(60*60000*13, Time.ms_since_midnight(.@"1pm"));
-    try std.testing.expectEqual(60*60000*14, Time.ms_since_midnight(.@"2pm"));
-    try std.testing.expectEqual(60*60000*15, Time.ms_since_midnight(.@"3pm"));
-    try std.testing.expectEqual(60*60000*16, Time.ms_since_midnight(.@"4pm"));
-    try std.testing.expectEqual(60*60000*17, Time.ms_since_midnight(.@"5pm"));
-    try std.testing.expectEqual(60*60000*18, Time.ms_since_midnight(.@"6pm"));
-    try std.testing.expectEqual(60*60000*19, Time.ms_since_midnight(.@"7pm"));
-    try std.testing.expectEqual(60*60000*20, Time.ms_since_midnight(.@"8pm"));
-    try std.testing.expectEqual(60*60000*21, Time.ms_since_midnight(.@"9pm"));
-    try std.testing.expectEqual(60*60000*22, Time.ms_since_midnight(.@"10pm"));
-    try std.testing.expectEqual(60*60000*23, Time.ms_since_midnight(.@"11pm"));
-    try std.testing.expectEqual(60*60000*24, Time.ms_since_midnight(.midnight_eod));
+    try std.testing.expectEqual(60 * 60000 * 1, Time.ms_since_midnight(.@"1am"));
+    try std.testing.expectEqual(60 * 60000 * 2, Time.ms_since_midnight(.@"2am"));
+    try std.testing.expectEqual(60 * 60000 * 3, Time.ms_since_midnight(.@"3am"));
+    try std.testing.expectEqual(60 * 60000 * 4, Time.ms_since_midnight(.@"4am"));
+    try std.testing.expectEqual(60 * 60000 * 5, Time.ms_since_midnight(.@"5am"));
+    try std.testing.expectEqual(60 * 60000 * 6, Time.ms_since_midnight(.@"6am"));
+    try std.testing.expectEqual(60 * 60000 * 7, Time.ms_since_midnight(.@"7am"));
+    try std.testing.expectEqual(60 * 60000 * 8, Time.ms_since_midnight(.@"8am"));
+    try std.testing.expectEqual(60 * 60000 * 9, Time.ms_since_midnight(.@"9am"));
+    try std.testing.expectEqual(60 * 60000 * 10, Time.ms_since_midnight(.@"10am"));
+    try std.testing.expectEqual(60 * 60000 * 11, Time.ms_since_midnight(.@"11am"));
+    try std.testing.expectEqual(60 * 60000 * 12, Time.ms_since_midnight(.@"12pm"));
+    try std.testing.expectEqual(60 * 60000 * 12, Time.ms_since_midnight(.noon));
+    try std.testing.expectEqual(60 * 60000 * 13, Time.ms_since_midnight(.@"1pm"));
+    try std.testing.expectEqual(60 * 60000 * 14, Time.ms_since_midnight(.@"2pm"));
+    try std.testing.expectEqual(60 * 60000 * 15, Time.ms_since_midnight(.@"3pm"));
+    try std.testing.expectEqual(60 * 60000 * 16, Time.ms_since_midnight(.@"4pm"));
+    try std.testing.expectEqual(60 * 60000 * 17, Time.ms_since_midnight(.@"5pm"));
+    try std.testing.expectEqual(60 * 60000 * 18, Time.ms_since_midnight(.@"6pm"));
+    try std.testing.expectEqual(60 * 60000 * 19, Time.ms_since_midnight(.@"7pm"));
+    try std.testing.expectEqual(60 * 60000 * 20, Time.ms_since_midnight(.@"8pm"));
+    try std.testing.expectEqual(60 * 60000 * 21, Time.ms_since_midnight(.@"9pm"));
+    try std.testing.expectEqual(60 * 60000 * 22, Time.ms_since_midnight(.@"10pm"));
+    try std.testing.expectEqual(60 * 60000 * 23, Time.ms_since_midnight(.@"11pm"));
+    try std.testing.expectEqual(60 * 60000 * 24, Time.ms_since_midnight(.midnight_eod));
 }
 
 test "Time.ms" {
@@ -309,13 +308,13 @@ test "Time.is_after" {
 }
 
 test "Time.plus_duration" {
-    try std.testing.expectEqual(Time.@"1pm", Time.plus_duration(.noon, .fromSeconds(60*60)));
-    try std.testing.expectEqual(Time.@"11am", Time.plus_duration(.noon, .fromSeconds(-60*60)));
+    try std.testing.expectEqual(Time.@"1pm", Time.plus_duration(.noon, .fromSeconds(60 * 60)));
+    try std.testing.expectEqual(Time.@"11am", Time.plus_duration(.noon, .fromSeconds(-60 * 60)));
 }
 
 test "Time.minus_duration" {
-    try std.testing.expectEqual(Time.@"11am", Time.minus_duration(.noon, .fromSeconds(60*60)));
-    try std.testing.expectEqual(Time.@"1pm", Time.minus_duration(.noon, .fromSeconds(-60*60)));
+    try std.testing.expectEqual(Time.@"11am", Time.minus_duration(.noon, .fromSeconds(60 * 60)));
+    try std.testing.expectEqual(Time.@"1pm", Time.minus_duration(.noon, .fromSeconds(-60 * 60)));
 }
 
 test "Time.plus_ms" {
@@ -369,35 +368,35 @@ test "Time.With_Offset.fmt, from_string" {
     const t5: Time = .from_hmsm(4, 45, 0, 0);
     const t6: Time = .from_hmsm(20, 15, 0, 0);
 
-    try std.testing.expectFmt("00:00:00.000+00:00", "{f}", .{ t1.with_offset(0) });
+    try std.testing.expectFmt("00:00:00.000+00:00", "{f}", .{t1.with_offset(0)});
 
-    try std.testing.expectFmt("00:00:00.000", "{f}", .{ t1.with_offset(0).fmt(Time.With_Offset.iso8601_local) });
-    try std.testing.expectFmt("01:02:03.004", "{f}", .{ t2.with_offset(0).fmt(Time.With_Offset.iso8601_local) });
-    try std.testing.expectFmt("23:59:59.999", "{f}", .{ t3.with_offset(0).fmt(Time.With_Offset.iso8601_local) });
-    try std.testing.expectFmt("12:00:00.000", "{f}", .{ t4.with_offset(0).fmt(Time.With_Offset.iso8601_local) });
-    try std.testing.expectFmt("04:45:00.000", "{f}", .{ t5.with_offset(0).fmt(Time.With_Offset.iso8601_local) });
-    try std.testing.expectFmt("20:15:00.000", "{f}", .{ t6.with_offset(0).fmt(Time.With_Offset.iso8601_local) });
+    try std.testing.expectFmt("00:00:00.000", "{f}", .{t1.with_offset(0).fmt(Time.With_Offset.iso8601_local)});
+    try std.testing.expectFmt("01:02:03.004", "{f}", .{t2.with_offset(0).fmt(Time.With_Offset.iso8601_local)});
+    try std.testing.expectFmt("23:59:59.999", "{f}", .{t3.with_offset(0).fmt(Time.With_Offset.iso8601_local)});
+    try std.testing.expectFmt("12:00:00.000", "{f}", .{t4.with_offset(0).fmt(Time.With_Offset.iso8601_local)});
+    try std.testing.expectFmt("04:45:00.000", "{f}", .{t5.with_offset(0).fmt(Time.With_Offset.iso8601_local)});
+    try std.testing.expectFmt("20:15:00.000", "{f}", .{t6.with_offset(0).fmt(Time.With_Offset.iso8601_local)});
 
-    try std.testing.expectFmt("12:00:00 am", "{f}", .{ t1.with_offset(0).fmt(Time.With_Offset.hms) });
-    try std.testing.expectFmt("1:02:03 am", "{f}", .{ t2.with_offset(0).fmt(Time.With_Offset.hms) });
-    try std.testing.expectFmt("11:59:59 pm", "{f}", .{ t3.with_offset(0).fmt(Time.With_Offset.hms) });
-    try std.testing.expectFmt("12:00:00 pm", "{f}", .{ t4.with_offset(0).fmt(Time.With_Offset.hms) });
-    try std.testing.expectFmt("4:45:00 am", "{f}", .{ t5.with_offset(0).fmt(Time.With_Offset.hms) });
-    try std.testing.expectFmt("8:15:00 pm", "{f}", .{ t6.with_offset(0).fmt(Time.With_Offset.hms) });
+    try std.testing.expectFmt("12:00:00 am", "{f}", .{t1.with_offset(0).fmt(Time.With_Offset.hms)});
+    try std.testing.expectFmt("1:02:03 am", "{f}", .{t2.with_offset(0).fmt(Time.With_Offset.hms)});
+    try std.testing.expectFmt("11:59:59 pm", "{f}", .{t3.with_offset(0).fmt(Time.With_Offset.hms)});
+    try std.testing.expectFmt("12:00:00 pm", "{f}", .{t4.with_offset(0).fmt(Time.With_Offset.hms)});
+    try std.testing.expectFmt("4:45:00 am", "{f}", .{t5.with_offset(0).fmt(Time.With_Offset.hms)});
+    try std.testing.expectFmt("8:15:00 pm", "{f}", .{t6.with_offset(0).fmt(Time.With_Offset.hms)});
 
-    try std.testing.expectFmt("12:00 am", "{f}", .{ t1.with_offset(0).fmt("kk:mm a") });
-    try std.testing.expectFmt(" 1:02 am", "{f}", .{ t2.with_offset(0).fmt("kk:mm a") });
-    try std.testing.expectFmt("11:59 pm", "{f}", .{ t3.with_offset(0).fmt("kk:mm a") });
-    try std.testing.expectFmt("12:00 pm", "{f}", .{ t4.with_offset(0).fmt("kk:mm a") });
-    try std.testing.expectFmt(" 4:45 am", "{f}", .{ t5.with_offset(0).fmt("kk:mm a") });
-    try std.testing.expectFmt(" 8:15 pm", "{f}", .{ t6.with_offset(0).fmt("kk:mm a") });
+    try std.testing.expectFmt("12:00 am", "{f}", .{t1.with_offset(0).fmt("kk:mm a")});
+    try std.testing.expectFmt(" 1:02 am", "{f}", .{t2.with_offset(0).fmt("kk:mm a")});
+    try std.testing.expectFmt("11:59 pm", "{f}", .{t3.with_offset(0).fmt("kk:mm a")});
+    try std.testing.expectFmt("12:00 pm", "{f}", .{t4.with_offset(0).fmt("kk:mm a")});
+    try std.testing.expectFmt(" 4:45 am", "{f}", .{t5.with_offset(0).fmt("kk:mm a")});
+    try std.testing.expectFmt(" 8:15 pm", "{f}", .{t6.with_offset(0).fmt("kk:mm a")});
 
-    try std.testing.expectFmt(" 0:00", "{f}", .{ t1.with_offset(0).fmt("KK:mm") });
-    try std.testing.expectFmt(" 1:02", "{f}", .{ t2.with_offset(0).fmt("KK:mm") });
-    try std.testing.expectFmt("23:59", "{f}", .{ t3.with_offset(0).fmt("KK:mm") });
-    try std.testing.expectFmt("12:00", "{f}", .{ t4.with_offset(0).fmt("KK:mm") });
-    try std.testing.expectFmt(" 4:45", "{f}", .{ t5.with_offset(0).fmt("KK:mm") });
-    try std.testing.expectFmt("20:15", "{f}", .{ t6.with_offset(0).fmt("KK:mm") });
+    try std.testing.expectFmt(" 0:00", "{f}", .{t1.with_offset(0).fmt("KK:mm")});
+    try std.testing.expectFmt(" 1:02", "{f}", .{t2.with_offset(0).fmt("KK:mm")});
+    try std.testing.expectFmt("23:59", "{f}", .{t3.with_offset(0).fmt("KK:mm")});
+    try std.testing.expectFmt("12:00", "{f}", .{t4.with_offset(0).fmt("KK:mm")});
+    try std.testing.expectFmt(" 4:45", "{f}", .{t5.with_offset(0).fmt("KK:mm")});
+    try std.testing.expectFmt("20:15", "{f}", .{t6.with_offset(0).fmt("KK:mm")});
 
     try std.testing.expectEqual(t1.with_offset(0), Time.With_Offset.from_string(Time.With_Offset.iso8601, "00:00:00.000+00:00"));
 

@@ -1,6 +1,6 @@
 // Day of year; January 1 is always ordinal day 1
 
-pub const Ordinal_Day = enum (u9) {
+pub const Ordinal_Day = enum(u9) {
     first = 1,
     leap_day = Month.january.days_assume_leap_year() + Month.february.days_assume_leap_year(),
     last_no_leap = 365,
@@ -10,7 +10,7 @@ pub const Ordinal_Day = enum (u9) {
     pub fn from_number(day: i32) Ordinal_Day {
         std.debug.assert(day >= 1);
         std.debug.assert(day <= 366);
-        return @enumFromInt(day);
+        return @fromBackingInt(@intCast(day));
     }
 
     pub fn from_ymd(ymd: Date.YMD) Ordinal_Day {
@@ -48,10 +48,10 @@ pub const Ordinal_Day = enum (u9) {
     }
 
     pub fn as_number(self: Ordinal_Day) i32 {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
     pub fn as_unsigned(self: Ordinal_Day) u32 {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 
     pub fn date_from_year(self: Ordinal_Day, year: Year) Date {
@@ -66,11 +66,11 @@ pub const Ordinal_Day = enum (u9) {
     }
 
     pub fn is_before(self: Ordinal_Day, other: Ordinal_Day) bool {
-        return @intFromEnum(self) < @intFromEnum(other);
+        return @backingInt(self) < @backingInt(other);
     }
 
     pub fn is_after(self: Ordinal_Day, other: Ordinal_Day) bool {
-        return @intFromEnum(self) > @intFromEnum(other);
+        return @backingInt(self) > @backingInt(other);
     }
 
     pub fn plus(self: Ordinal_Day, days: i32) Ordinal_Day {

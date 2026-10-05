@@ -1,8 +1,8 @@
 test "Date epochs" {
-    try std.testing.expectFmt("1601-01-01", "{f}", .{ Date.fmt(.ntfs_epoch, "YYYY-MM-DD") });
-    try std.testing.expectFmt("1900-01-01", "{f}", .{ Date.fmt(.ntp_epoch, "YYYY-MM-DD") });
-    try std.testing.expectFmt("1970-01-01", "{f}", .{ Date.fmt(.unix_epoch, "YYYY-MM-DD") });
-    try std.testing.expectFmt("2000-01-01", "{f}", .{ Date.fmt(.epoch, "YYYY-MM-DD") });
+    try std.testing.expectFmt("1601-01-01", "{f}", .{Date.fmt(.ntfs_epoch, "YYYY-MM-DD")});
+    try std.testing.expectFmt("1900-01-01", "{f}", .{Date.fmt(.ntp_epoch, "YYYY-MM-DD")});
+    try std.testing.expectFmt("1970-01-01", "{f}", .{Date.fmt(.unix_epoch, "YYYY-MM-DD")});
+    try std.testing.expectFmt("2000-01-01", "{f}", .{Date.fmt(.epoch, "YYYY-MM-DD")});
 }
 
 test "Date.from_yod" {
@@ -95,11 +95,11 @@ test "date.iso_week" {
 }
 
 test "date.iso_week_date" {
-    try std.testing.expectFmt("2024-W05-4", "{f}", .{ Date.from_ymd(.from_numbers(2024, 2, 1)).iso_week_date().fmt(ISO_Week_Date.iso8601_week_date) });
-    try std.testing.expectFmt("1928-W52-1", "{f}", .{ Date.from_ymd(.from_numbers(1928, 12, 24)).iso_week_date().fmt(ISO_Week_Date.iso8601_week_date) });
-    try std.testing.expectFmt("0000-W51-7", "{f}", .{ Date.from_ymd(.from_numbers(0, 12, 24)).iso_week_date().fmt(ISO_Week_Date.iso8601_week_date) });
-    try std.testing.expectFmt("0012-W52-1", "{f}", .{ Date.from_ymd(.from_numbers(12, 12, 24)).iso_week_date().fmt(ISO_Week_Date.iso8601_week_date) });
-    try std.testing.expectFmt("9877-W52-1", "{f}", .{ Date.from_ymd(.from_numbers(-123, 12, 24)).iso_week_date().fmt(ISO_Week_Date.iso8601_week_date) });
+    try std.testing.expectFmt("2024-W05-4", "{f}", .{Date.from_ymd(.from_numbers(2024, 2, 1)).iso_week_date().fmt(ISO_Week_Date.iso8601_week_date)});
+    try std.testing.expectFmt("1928-W52-1", "{f}", .{Date.from_ymd(.from_numbers(1928, 12, 24)).iso_week_date().fmt(ISO_Week_Date.iso8601_week_date)});
+    try std.testing.expectFmt("0000-W51-7", "{f}", .{Date.from_ymd(.from_numbers(0, 12, 24)).iso_week_date().fmt(ISO_Week_Date.iso8601_week_date)});
+    try std.testing.expectFmt("0012-W52-1", "{f}", .{Date.from_ymd(.from_numbers(12, 12, 24)).iso_week_date().fmt(ISO_Week_Date.iso8601_week_date)});
+    try std.testing.expectFmt("9877-W52-1", "{f}", .{Date.from_ymd(.from_numbers(-123, 12, 24)).iso_week_date().fmt(ISO_Week_Date.iso8601_week_date)});
 }
 
 test "date.info" {
@@ -125,31 +125,31 @@ test "Date.fmt" {
     const date4 = Date.from_ymd(.from_numbers(12, 12, 24));
     const date5 = Date.from_ymd(.from_numbers(-123, 12, 24));
 
-    try std.testing.expectFmt("2024-02-01", "{f}", .{ date1.fmt("YYYY-MM-DD") });
-    try std.testing.expectFmt("2024-02-01", "{f}", .{ date1 });
-    try std.testing.expectFmt("2 2nd Feb February", "{f}", .{ date1.fmt("M Mo MMM MMMM") });
-    try std.testing.expectFmt("1.1st", "{f}", .{ date1.fmt("Q.Qo") });
-    try std.testing.expectFmt("24 Do 24th", "{f}", .{ date2.fmt("D [Do] Do") });
-    try std.testing.expectFmt("359 359th 359", "{f}", .{ date2.fmt("DDD DDDo DDDD") });
-    try std.testing.expectFmt("32 32nd 032", "{f}", .{ date1.fmt("DDD DDDo DDDD") });
-    try std.testing.expectFmt("4 4th Th Thu Thursday", "{f}", .{ date1.fmt("d do dd ddd dddd") });
-    try std.testing.expectFmt("4 4th", "{f}", .{ date1.fmt("E Eo") });
-    try std.testing.expectFmt("52 52nd 52", "{f}", .{ date2.fmt("w wo ww") });
-    try std.testing.expectFmt("2024 24 2024 2024 +002024", "{f}", .{ date1.fmt("Y YY YYY YYYY YYYYYY") });
-    try std.testing.expectFmt("1928 28 1928 1928 +001928", "{f}", .{ date2.fmt("Y YY YYY YYYY YYYYYY") });
-    try std.testing.expectFmt("0 00 0000 0000 +000000", "{f}", .{ date3.fmt("Y YY YYY YYYY YYYYYY") });
-    try std.testing.expectFmt("12 12 0012 0012 +000012", "{f}", .{ date4.fmt("Y YY YYY YYYY YYYYYY") });
-    try std.testing.expectFmt("-123 77 -0123 9877 -000123", "{f}", .{ date5.fmt("Y YY YYY YYYY YYYYYY") });
-    try std.testing.expectFmt("AD AD", "{f}", .{ date1.fmt("N NN") });
+    try std.testing.expectFmt("2024-02-01", "{f}", .{date1.fmt("YYYY-MM-DD")});
+    try std.testing.expectFmt("2024-02-01", "{f}", .{date1});
+    try std.testing.expectFmt("2 2nd Feb February", "{f}", .{date1.fmt("M Mo MMM MMMM")});
+    try std.testing.expectFmt("1.1st", "{f}", .{date1.fmt("Q.Qo")});
+    try std.testing.expectFmt("24 Do 24th", "{f}", .{date2.fmt("D [Do] Do")});
+    try std.testing.expectFmt("359 359th 359", "{f}", .{date2.fmt("DDD DDDo DDDD")});
+    try std.testing.expectFmt("32 32nd 032", "{f}", .{date1.fmt("DDD DDDo DDDD")});
+    try std.testing.expectFmt("4 4th Th Thu Thursday", "{f}", .{date1.fmt("d do dd ddd dddd")});
+    try std.testing.expectFmt("4 4th", "{f}", .{date1.fmt("E Eo")});
+    try std.testing.expectFmt("52 52nd 52", "{f}", .{date2.fmt("w wo ww")});
+    try std.testing.expectFmt("2024 24 2024 2024 +002024", "{f}", .{date1.fmt("Y YY YYY YYYY YYYYYY")});
+    try std.testing.expectFmt("1928 28 1928 1928 +001928", "{f}", .{date2.fmt("Y YY YYY YYYY YYYYYY")});
+    try std.testing.expectFmt("0 00 0000 0000 +000000", "{f}", .{date3.fmt("Y YY YYY YYYY YYYYYY")});
+    try std.testing.expectFmt("12 12 0012 0012 +000012", "{f}", .{date4.fmt("Y YY YYY YYYY YYYYYY")});
+    try std.testing.expectFmt("-123 77 -0123 9877 -000123", "{f}", .{date5.fmt("Y YY YYY YYYY YYYYYY")});
+    try std.testing.expectFmt("AD AD", "{f}", .{date1.fmt("N NN")});
 
-    try std.testing.expectFmt("0 0th Su Sun Sunday", "{f}", .{ date3.fmt("d do dd ddd dddd") });
-    try std.testing.expectFmt("7 7th", "{f}", .{ date3.fmt("E Eo") });
+    try std.testing.expectFmt("0 0th Su Sun Sunday", "{f}", .{date3.fmt("d do dd ddd dddd")});
+    try std.testing.expectFmt("7 7th", "{f}", .{date3.fmt("E Eo")});
 
-    try std.testing.expectFmt("2000", "{f}", .{ @as(Date, @enumFromInt(0)).fmt("Y") });
-    try std.testing.expectFmt("2000", "{f}", .{ Year.from_number(2000).starting_date().fmt("Y") });
-    try std.testing.expectFmt("2000", "{f}", .{ Date.from_yod(Year.from_number(2000), .first).fmt("Y") });
-    try std.testing.expectFmt("2020", "{f}", .{ Date.from_yod(Year.from_number(2020), .first).fmt("Y") });
-    try std.testing.expectFmt("1999", "{f}", .{ Date.from_yod(Year.from_number(1999), .first).fmt("Y") });
+    try std.testing.expectFmt("2000", "{f}", .{@as(Date, @fromBackingInt(@intCast(0))).fmt("Y")});
+    try std.testing.expectFmt("2000", "{f}", .{Year.from_number(2000).starting_date().fmt("Y")});
+    try std.testing.expectFmt("2000", "{f}", .{Date.from_yod(Year.from_number(2000), .first).fmt("Y")});
+    try std.testing.expectFmt("2020", "{f}", .{Date.from_yod(Year.from_number(2020), .first).fmt("Y")});
+    try std.testing.expectFmt("1999", "{f}", .{Date.from_yod(Year.from_number(1999), .first).fmt("Y")});
 }
 
 test "Date.from_string" {

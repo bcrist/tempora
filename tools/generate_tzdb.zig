@@ -1,6 +1,6 @@
 //! This is a reimplementation of zic.c from the tzcode repository
 //! which outputs data directly into a generated `tzdata.zig` file.
-//! 
+//!
 //! Note that unnecessary zic features and validation have been removed;
 //! it is designed to work only with well-formed official tzdata releases.
 
@@ -201,7 +201,7 @@ pub fn main(init: std.process.Init) !void {
     var version: []const u8 = "unknown";
 
     while (args_iter.next()) |input_path| {
-        errdefer log.info("Input file: {s}", .{ std.Io.Dir.path.basename(input_path) });
+        errdefer log.info("Input file: {s}", .{std.Io.Dir.path.basename(input_path)});
         var f = try cwd.openFile(init.io, input_path, .{});
         defer f.close(init.io);
         var r = f.reader(init.io, &file_buf);
@@ -228,8 +228,7 @@ pub fn main(init: std.process.Init) !void {
         \\
         \\pub const version = "{f}";
         \\
-        , .{ fmt_string(version) }
-    );
+    , .{fmt_string(version)});
 
     try db.write_zig(w);
 
@@ -389,7 +388,7 @@ fn parse_tzdata(arena: std.mem.Allocator, gpa: std.mem.Allocator, reader: *std.I
             } else if (std.mem.eql(u8, first, "Expires")) {
                 db.leap_seconds_expire = try .parse(&field_iter);
             } else {
-                log.warn("Unrecognized line type: {s}", .{ first });
+                log.warn("Unrecognized line type: {s}", .{first});
             }
         }
     }
@@ -419,7 +418,7 @@ fn compile_zone(alloc: std.mem.Allocator, zone_lines: []Zone, leapsecond_years: 
         error.Unsupported => posix: {
             years.min = years.min.plus(-402);
             years.max = years.max.plus(402);
-            log.info("No posix TZ string for zone {s}", .{ builder.id });
+            log.info("No posix TZ string for zone {s}", .{builder.id});
             break :posix null;
         },
         else => |e| return e,
@@ -582,7 +581,7 @@ fn compile_zone(alloc: std.mem.Allocator, zone_lines: []Zone, leapsecond_years: 
 
         var j: usize = 0;
         const transition_time_types = builder.transitions.items(.time_type_index);
-	    for (0.., builder.transitions.items(.ts)) |i, transition| {
+        for (0.., builder.transitions.items(.ts)) |i, transition| {
             if (transition <= tz_start_time) {
                 const time_type = transition_time_types[i];
                 builder.transitions.set(j, .{
@@ -593,7 +592,7 @@ fn compile_zone(alloc: std.mem.Allocator, zone_lines: []Zone, leapsecond_years: 
                 j += 1;
             }
         }
-	    builder.transitions.len = j;
+        builder.transitions.len = j;
     } else if (builder.transitions.len > 1) {
         // do_extend
         const rule: Rule = .{
@@ -610,12 +609,12 @@ fn compile_zone(alloc: std.mem.Allocator, zone_lines: []Zone, leapsecond_years: 
             .letters = "",
         };
         var last_transition = builder.transitions.get(0);
-		for (1.., builder.transitions.items(.ts)[1..]) |i, transition| {
-			if (transition > last_transition.ts) {
+        for (1.., builder.transitions.items(.ts)[1..]) |i, transition| {
+            if (transition > last_transition.ts) {
                 last_transition = builder.transitions.get(i);
             }
         }
-		if (last_transition.ts < try rule.ts_for_year(years.max.prev())) {
+        if (last_transition.ts < try rule.ts_for_year(years.max.prev())) {
             const time = try rule.ts_for_year(years.max.next());
             try builder.add_transition(time, last_transition.time_type_index, .{ .dont_merge = true });
         }
@@ -663,7 +662,7 @@ fn compile_posix(zone_lines: []Zone) !Timezone.Posix {
 
             if (dst_save_seconds >= 0) {
                 // Positive DST, the typical case for all-year DST.
-		        // Fake a timezone with negative DST.
+                // Fake a timezone with negative DST.
                 std_zone = .{
                     .name = "",
                     .std_offset_seconds = zone.std_offset_seconds + 2 * dst_save_seconds,
@@ -700,7 +699,7 @@ fn compile_posix(zone_lines: []Zone) !Timezone.Posix {
                 .month = .december,
                 .day_of_month = .from_number(31),
                 .day_of_week = .none,
-                .time = @enumFromInt(24 * std.time.ms_per_day + temp_dst_rule.dst_save_seconds * 1000),
+                .time = @fromBackingInt(@intCast(24 * std.time.ms_per_day + temp_dst_rule.dst_save_seconds * 1000)),
                 .time_is_std = false,
                 .time_is_utc = false,
                 .is_dst = false,
@@ -731,14 +730,16 @@ fn compile_posix(zone_lines: []Zone) !Timezone.Posix {
             const dst_designation = dst_designation_writer.buffered();
 
             return .init(
-                std_designation, std_zone.std_offset_seconds,
-                dst_designation, std_zone.std_offset_seconds + dr.dst_save_seconds,
+                std_designation,
+                std_zone.std_offset_seconds,
+                dst_designation,
+                std_zone.std_offset_seconds + dr.dst_save_seconds,
                 try dr.posix_transition(dr.dst_save_seconds, std_zone.std_offset_seconds),
                 try sr.posix_transition(dr.dst_save_seconds, std_zone.std_offset_seconds),
             );
         }
     }
-    
+
     return .init_standard(std_designation, std_zone.std_offset_seconds);
 }
 
@@ -757,7 +758,7 @@ const Rule = struct {
 
     processed: bool = false,
 
-    const DOW = union (enum) {
+    const DOW = union(enum) {
         none,
         gt_eq: Week_Day,
         lt_eq: Week_Day,
@@ -781,11 +782,11 @@ const Rule = struct {
     pub fn parse_fields(arena: std.mem.Allocator, name: []const u8, from: []const u8, to: []const u8, in: []const u8, on: []const u8, at: []const u8, save: []const u8, letters: []const u8) !Rule {
         // note "minimum" keyword is deprecated and doesn't appear in current tzdata files, so we're not checking for it
         const low_year: Year = y: {
-            errdefer log.info("low year: \"{f}\"", .{ fmt_string(from) });
+            errdefer log.info("low year: \"{f}\"", .{fmt_string(from)});
             break :y .from_number(try std.fmt.parseInt(i32, from, 10));
         };
         const high_year: Year = y: {
-            errdefer log.info("high year: \"{f}\"", .{ fmt_string(to) });
+            errdefer log.info("high year: \"{f}\"", .{fmt_string(to)});
             if (std.mem.eql(u8, to, "only")) break :y low_year;
             if (std.mem.eql(u8, to, "max")) break :y .from_number(std.math.maxInt(i32));
             break :y .from_number(try std.fmt.parseInt(i32, to, 10));
@@ -848,9 +849,12 @@ const Rule = struct {
             'S', 's' => { // standard
                 time_is_std = true;
             },
-            'G', 'g', // Greenwich
-            'U', 'u', // Universal
-            'Z', 'z', // Zulu
+            'G',
+            'g', // Greenwich
+            'U',
+            'u', // Universal
+            'Z',
+            'z', // Zulu
             => {
                 time_is_std = true;
                 time_is_utc = true;
@@ -867,7 +871,7 @@ const Rule = struct {
         };
 
         const letters_clean = if (std.mem.eql(u8, letters, "-")) "" else letters;
-        
+
         const name_owned = try arena.dupe(u8, name);
         const letters_owned = try arena.dupe(u8, letters_clean);
 
@@ -950,9 +954,9 @@ const Rule = struct {
                 tod += @as(i32, @intCast(weekday_offset * std.time.s_per_day));
                 break :d .{ .month_week_day = .{
                     .month = self.month,
-                    .week = @enumFromInt((self.day_of_month.as_unsigned() - 1) / 7),
-                    .day = @enumFromInt(((weekday.as_unsigned() + 6 - weekday_offset) % 7) + 1),
-                }};
+                    .week = @fromBackingInt(@intCast((self.day_of_month.as_unsigned() - 1) / 7)),
+                    .day = @fromBackingInt(@intCast(((weekday.as_unsigned() + 6 - weekday_offset) % 7) + 1)),
+                } };
             },
             .lt_eq => |weekday| d: {
                 if (self.day_of_month.as_number() == self.month.days_assume_leap_year()) {
@@ -960,15 +964,15 @@ const Rule = struct {
                         .month = self.month,
                         .week = .last,
                         .day = weekday,
-                    }};
+                    } };
                 } else {
                     const weekday_offset = self.day_of_month.as_unsigned() % 7;
                     tod += @as(i32, @intCast(weekday_offset * std.time.s_per_day));
                     break :d .{ .month_week_day = .{
                         .month = self.month,
-                        .week = @enumFromInt(self.day_of_month.as_unsigned() / 7),
-                        .day = @enumFromInt(((weekday.as_unsigned() + 6 - weekday_offset) % 7) + 1),
-                    }};
+                        .week = @fromBackingInt(@intCast(self.day_of_month.as_unsigned() / 7)),
+                        .day = @fromBackingInt(@intCast(((weekday.as_unsigned() + 6 - weekday_offset) % 7) + 1)),
+                    } };
                 }
             },
         };
@@ -983,7 +987,7 @@ const Rule = struct {
 
         return .{
             .date = date,
-            .time = @enumFromInt(tod * 1000),
+            .time = @fromBackingInt(@intCast(tod * 1000)),
         };
     }
 };
@@ -1024,7 +1028,7 @@ const Zone = struct {
             fmt_string(rule),
             fmt_string(format),
         });
-        
+
         var until: ?Until = null;
         if (iter.next()) |til_year_str| {
             const til_month_str = iter.next() orelse "Jan";
@@ -1072,7 +1076,7 @@ const Zone = struct {
             try w.writeAll(str);
             return;
         }
-        
+
         var letters_or_offset = maybe_letters;
 
         var buf: [8]u8 = undefined;
@@ -1090,9 +1094,9 @@ const Zone = struct {
             if (offset_abs >= 100) {
                 letter_writer.writeAll("??????") catch unreachable;
             } else {
-                letter_writer.print("{d:0>2}", .{ offset_abs }) catch unreachable;
-                if (minutes != 0 or seconds != 0) letter_writer.print("{d:0>2}", .{ minutes }) catch unreachable;
-                if (seconds != 0) letter_writer.print("{d:0>2}", .{ seconds }) catch unreachable;
+                letter_writer.print("{d:0>2}", .{offset_abs}) catch unreachable;
+                if (minutes != 0 or seconds != 0) letter_writer.print("{d:0>2}", .{minutes}) catch unreachable;
+                if (seconds != 0) letter_writer.print("{d:0>2}", .{seconds}) catch unreachable;
             }
 
             letters_or_offset = letter_writer.buffered();
@@ -1225,7 +1229,7 @@ const Timezone_Builder = struct {
 
     // addtype in zic.c
     pub fn add_time_type(self: *Timezone_Builder, utc_offset_seconds: i32, maybe_designation: ?[]const u8, is_dst: bool, is_std: bool, is_utc: bool) !u8 {
-	    //if (!want_bloat()) ttisstd = ttisut = false;
+        //if (!want_bloat()) ttisstd = ttisut = false;
 
         const designation = maybe_designation orelse "";
 
@@ -1258,7 +1262,7 @@ const Timezone_Builder = struct {
                 return ctx.timestamps[ai] < ctx.timestamps[bi];
             }
         };
-        self.transitions.sort(Sort_Context { .timestamps = self.transitions.items(.ts) });
+        self.transitions.sort(Sort_Context{ .timestamps = self.transitions.items(.ts) });
 
         // Optimize and skip unwanted transitions.
         {
@@ -1270,7 +1274,6 @@ const Timezone_Builder = struct {
             var toi: usize = 0;
             var fromi: usize = 0;
             while (fromi < self.transitions.len) : (fromi += 1) {
-
                 if (toi != 0) {
                     const type_2: u8 = if (toi == 1) 0 else types[toi - 2];
                     if ((times[fromi] + type_infos[types[toi - 1]].utc_offset_seconds) <= times[toi - 1] + type_infos[type_2].utc_offset_seconds) {
@@ -1279,12 +1282,7 @@ const Timezone_Builder = struct {
                     }
                 }
 
-                if (toi == 0
-                    or dont_merges[fromi]
-                    or (type_infos[types[toi - 1]].utc_offset_seconds != type_infos[types[fromi]].utc_offset_seconds)
-                    or (type_infos[types[toi - 1]].dst != type_infos[types[fromi]].dst)
-                    or (!std.mem.eql(u8, type_infos[types[toi - 1]].designation, type_infos[types[fromi]].designation))
-                ) {
+                if (toi == 0 or dont_merges[fromi] or (type_infos[types[toi - 1]].utc_offset_seconds != type_infos[types[fromi]].utc_offset_seconds) or (type_infos[types[toi - 1]].dst != type_infos[types[fromi]].dst) or (!std.mem.eql(u8, type_infos[types[toi - 1]].designation, type_infos[types[fromi]].designation))) {
                     self.transitions.set(toi, self.transitions.get(fromi));
                     toi += 1;
                 }
@@ -1329,7 +1327,7 @@ const DB = struct {
 
     pub fn deinit(self: *DB) void {
         self.compiled_zones.deinit(self.gpa);
-        
+
         self.leap_seconds.deinit(self.gpa);
 
         self.top_level.deinit(self.gpa);
@@ -1385,7 +1383,7 @@ const DB = struct {
             leap.dtai = dtai;
         }
     }
-    
+
     fn add_zone_to_region(self: *DB, zone_name: []const u8) !void {
         try self.add_to_region(zone_name, .{ .zone = zone_name });
     }
@@ -1501,7 +1499,7 @@ const DB = struct {
         if (region.name.len > 0) {
             try w.writeByte('\n');
             try w.splatBytesAll("    ", indent);
-            try w.print("pub const {f} = struct {{", .{ fmt_id_lower(region.name) });
+            try w.print("pub const {f} = struct {{", .{fmt_id_lower(region.name)});
         }
 
         const inner_indent = if (region.name.len > 0) indent + 1 else indent;
@@ -1617,7 +1615,7 @@ const DB = struct {
                 std.mem.swap([]const u8, &ctx.vals[a], &ctx.vals[b]);
             }
         };
-        std.mem.sortUnstableContext(0, map.kvs.len, SortContext {
+        std.mem.sortUnstableContext(0, map.kvs.len, SortContext{
             .keys = &keys,
             .vals = &vals,
         });
@@ -1655,12 +1653,11 @@ const DB = struct {
         try w.print(
             \\
             \\        pub const {f} = {};
-            , .{ std.zig.fmtId(designation), utc_offset_seconds }
-        );
+        , .{ std.zig.fmtId(designation), utc_offset_seconds });
     }
 };
 
-const Zone_Or_Region = union (enum) {
+const Zone_Or_Region = union(enum) {
     zone: []const u8,
     link: *const Link,
     region: u32,
@@ -1730,7 +1727,7 @@ const Year_Range = struct {
 };
 
 fn parse_hms(str: []const u8) !Time {
-    errdefer log.info("Parsing hms: \"{f}\"", .{ fmt_string(str) });
+    errdefer log.info("Parsing hms: \"{f}\"", .{fmt_string(str)});
     const negative = std.mem.startsWith(u8, str, "-");
     const abs_str = if (negative) str[1..] else str;
     var seconds: i32 = 0;
@@ -1752,7 +1749,7 @@ fn parse_hms(str: []const u8) !Time {
     }
     if (iter.next()) |_| return error.ExpectedEndOfHmsField;
     if (negative) seconds *= -1;
-    return @enumFromInt(seconds * std.time.ms_per_s);
+    return @fromBackingInt(@intCast(seconds * std.time.ms_per_s));
 }
 
 fn last_part(bytes: []const u8) []const u8 {
@@ -1811,7 +1808,6 @@ const Format_Identifier_Lowercase = struct {
             },
         };
     }
-
 };
 
 fn fmt_string(bytes: []const u8) std.fmt.Alt([]const u8, string_escape) {

@@ -35,7 +35,7 @@ pub fn with_offset(self: Date_Time, utc_offset_ms: i32) With_Offset {
 pub fn with_timezone(self: Date_Time, timezone: *const Timezone) With_Offset {
     const offset_ts = self.with_offset(0).timestamp_ms();
     var info = timezone.info(@divFloor(offset_ts, 1000));
-    var offset = info.utc_offset_seconds * 1000; 
+    var offset = info.utc_offset_seconds * 1000;
     var ts = offset_ts - offset;
 
     if (info.begin_ts) |begin_ts| {
@@ -64,7 +64,7 @@ pub fn with_timezone(self: Date_Time, timezone: *const Timezone) With_Offset {
             };
         }
     }
-    
+
     if (info.end_ts) |end_ts| {
         if (ts >= end_ts * 1000) {
             info = timezone.info(@divFloor(ts, 1000));
@@ -102,7 +102,7 @@ pub fn duration_since(self: Date_Time, past: Date_Time) std.Io.Duration {
 /// N.B. this does not include leap seconds, and assumes both date/times are from the same timezone.
 /// Use Date_Time.With_Offset.ms_since() to avoid these limitations.
 pub fn ms_since(self: Date_Time, past: Date_Time) i64 {
-    const date_diff: i64 = @intFromEnum(self.date) - @intFromEnum(past.date);
+    const date_diff: i64 = @backingInt(self.date) - @backingInt(past.date);
     const time_diff: i64 = self.time.ms_since_midnight() - past.time.ms_since_midnight();
     return date_diff * std.time.ms_per_day + time_diff;
 }
@@ -135,7 +135,7 @@ pub fn minus_duration(self: Date_Time, duration: std.Io.Duration) Date_Time {
 /// N.B. this does not adjust for leap seconds.
 /// Use Date_Time.With_Offset.plus_days_and_ms() to avoid this limitation.
 pub fn plus_days_and_ms(self: Date_Time, days: i32, ms: i64) Date_Time {
-    var new_date: i64 = @intFromEnum(self.date) + days;
+    var new_date: i64 = @backingInt(self.date) + days;
     var new_time: i64 = self.time.ms_since_midnight() + ms;
     if (new_time < 0) {
         const additional_days: i64 = @divTrunc(new_time - std.time.ms_per_day + 1, std.time.ms_per_day);
@@ -147,8 +147,8 @@ pub fn plus_days_and_ms(self: Date_Time, days: i32, ms: i64) Date_Time {
         new_time -= additional_days * std.time.ms_per_day;
     }
     return .{
-        .date = @enumFromInt(new_date),
-        .time = @enumFromInt(new_time),
+        .date = @fromBackingInt(@intCast(new_date)),
+        .time = @fromBackingInt(@intCast(new_time)),
     };
 }
 
@@ -168,10 +168,10 @@ pub const With_Offset = struct {
 
         const days = @divFloor(offset_ts, std.time.ms_per_day);
         const adjusted: i32 = @intCast(days - 10957);
-        const date: Date = @enumFromInt(adjusted);
+        const date: Date = @fromBackingInt(@intCast(adjusted));
 
         const ms_since_midnight = offset_ts - days * std.time.ms_per_day;
-        const time: Time = @enumFromInt(ms_since_midnight);
+        const time: Time = @fromBackingInt(@intCast(ms_since_midnight));
 
         return .{
             .dt = .{
@@ -192,7 +192,7 @@ pub const With_Offset = struct {
     }
 
     pub fn timestamp_ms(self: With_Offset) i64 {
-        const days: i64 = @intFromEnum(self.dt.date) + 10957;
+        const days: i64 = @backingInt(self.dt.date) + 10957;
         const ms_since_midnight = self.dt.time.ms_since_midnight();
         return days * std.time.ms_per_day + ms_since_midnight - self.utc_offset_ms;
     }
@@ -355,7 +355,7 @@ pub const With_Offset = struct {
             }
         };
     }
-    
+
     pub fn from_string(comptime pattern: []const u8, str: []const u8) !With_Offset {
         return from_string_tz(pattern, str, null);
     }

@@ -12,16 +12,14 @@ test "UTC" {
     const res = try tzif.read_memory(arena.allocator(), "UTC", @embedFile("zoneinfo/UTC"), false);
 
     try testing.expectEqual(0, res.transition_count);
-    try testing.expectEqualDeep(&[_]Timezone.Wall_Time_Info {
-        .{
-            .designation = "UTC",
-            .begin_ts = null,
-            .end_ts = null,
-            .utc_offset_seconds = 0,
-            .dst = .std,
-            .source = .tzdata_wall,
-        }
-    }, res.infos);
+    try testing.expectEqualDeep(&[_]Timezone.Wall_Time_Info{.{
+        .designation = "UTC",
+        .begin_ts = null,
+        .end_ts = null,
+        .utc_offset_seconds = 0,
+        .dst = .std,
+        .source = .tzdata_wall,
+    }}, res.infos);
 }
 
 test "Pacific/Honolulu" {
@@ -32,10 +30,10 @@ test "Pacific/Honolulu" {
         -2334101314, // Mon Jan 13 1896 22:31:26 GMT
         -1157283000, // Sun Apr 30 1933 12:30:00 GMT
         -1155436200, // Sun May 21 1933 21:30:00 GMT
-        -880198200,  // Mon Feb 09 1942 12:30:00 GMT
-        -769395600,  // Tue Aug 14 1945 23:00:00 GMT
-        -765376200,  // Sun Sep 30 1945 11:30:00 GMT
-        -712150200,  // Sun Jun 08 1947 12:30:00 GMT
+        -880198200, // Mon Feb 09 1942 12:30:00 GMT
+        -769395600, // Tue Aug 14 1945 23:00:00 GMT
+        -765376200, // Sun Sep 30 1945 11:30:00 GMT
+        -712150200, // Sun Jun 08 1947 12:30:00 GMT
     };
     const transition_types = [7]u8{ 1, 2, 1, 3, 4, 1, 5 };
     const infos = [6]Timezone.Wall_Time_Info{
@@ -106,7 +104,7 @@ test "posix TZ string, regular year" {
             .month = .march,
             .week = .second,
             .day = .sunday,
-        }},
+        } },
         .time = .@"2am",
     }, result.dst.?.start);
     try testing.expectEqual(Posix.Transition{
@@ -114,7 +112,7 @@ test "posix TZ string, regular year" {
             .month = .november,
             .week = .first,
             .day = .sunday,
-        }},
+        } },
         .time = .@"2am",
     }, result.dst.?.end);
     try testing.expectEqual(stdoff, result.info(1612734960, 0).utc_offset_seconds);
@@ -141,7 +139,7 @@ test "posix TZ string, regular year" {
             .month = .march,
             .week = .last,
             .day = .sunday,
-        }},
+        } },
         .time = .@"2am",
     }, result.dst.?.start);
     try testing.expectEqual(Posix.Transition{
@@ -149,7 +147,7 @@ test "posix TZ string, regular year" {
             .month = .october,
             .week = .last,
             .day = .sunday,
-        }},
+        } },
         .time = .@"3am",
     }, result.dst.?.end);
     // 2023-10-29T00:59:59Z, or 2023-10-29 01:59:59 CEST. Offset should still be CEST.

@@ -1,4 +1,4 @@
-pub const Time = enum (i32) {
+pub const Time = enum(i32) {
     midnight = 0,
     @"1am" = 1 * 60 * 60 * 1000,
     @"2am" = 2 * 60 * 60 * 1000,
@@ -30,19 +30,19 @@ pub const Time = enum (i32) {
     pub const @"12pm": Time = .noon;
 
     pub fn from_ms(milli: i32) Time {
-        return @enumFromInt(milli);
+        return @fromBackingInt(@intCast(milli));
     }
 
     pub fn from_seconds(s: i32) Time {
-        return @enumFromInt(s * 1000);
+        return @fromBackingInt(@intCast(s * 1000));
     }
 
     pub fn from_minutes(m: i32) Time {
-        return @enumFromInt(m * 60_000);
+        return @fromBackingInt(@intCast(m * 60_000));
     }
 
     pub fn from_hours(h: i32) Time {
-        return @enumFromInt(h * 3600_000);
+        return @fromBackingInt(@intCast(h * 3600_000));
     }
 
     pub fn from_hmsm(h: u31, m: u8, s: u8, milli: u10) Time {
@@ -54,7 +54,7 @@ pub const Time = enum (i32) {
         const hms = h * 3600_000;
         const mms = @as(u31, m) * 60_000;
         const sms = @as(u31, s) * 1_000;
-        return @enumFromInt(hms + mms + sms + milli);
+        return @fromBackingInt(@intCast(hms + mms + sms + milli));
     }
 
     pub fn with_date(self: Time, date: Date) Date_Time {
@@ -108,7 +108,7 @@ pub const Time = enum (i32) {
     }
 
     pub fn ms_since_midnight(self: Time) i32 {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 
     pub fn ms(self: Time) i32 {
@@ -117,11 +117,11 @@ pub const Time = enum (i32) {
     }
 
     pub fn is_before(self: Time, other: Time) bool {
-        return @intFromEnum(self) < @intFromEnum(other);
+        return @backingInt(self) < @backingInt(other);
     }
 
     pub fn is_after(self: Time, other: Time) bool {
-        return @intFromEnum(self) > @intFromEnum(other);
+        return @backingInt(self) > @backingInt(other);
     }
 
     pub fn plus_duration(self: Time, duration: std.Io.Duration) Time {
@@ -133,19 +133,19 @@ pub const Time = enum (i32) {
     }
 
     pub fn plus_ms(self: Time, milli: i32) Time {
-        return @enumFromInt(@intFromEnum(self) + milli);
+        return @fromBackingInt(@intCast(@backingInt(self) + milli));
     }
 
     pub fn plus_seconds(self: Time, s: i32) Time {
-        return @enumFromInt(@intFromEnum(self) + s * 1000);
+        return @fromBackingInt(@intCast(@backingInt(self) + s * 1000));
     }
 
     pub fn plus_minutes(self: Time, m: i32) Time {
-        return @enumFromInt(@intFromEnum(self) + m * 60 * 1000);
+        return @fromBackingInt(@intCast(@backingInt(self) + m * 60 * 1000));
     }
 
     pub fn plus_hours(self: Time, h: i32) Time {
-        return @enumFromInt(@intFromEnum(self) + h * 60 * 60 * 1000);
+        return @fromBackingInt(@intCast(@backingInt(self) + h * 60 * 60 * 1000));
     }
 
     pub const With_Offset = struct {

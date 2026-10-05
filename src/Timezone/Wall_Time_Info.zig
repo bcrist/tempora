@@ -24,7 +24,7 @@ pub const Source = enum {
     posix_tz, // predicted future transition
 };
 
-pub const DST_Indicator = enum (u8) {
+pub const DST_Indicator = enum(u8) {
     std = 0,
     dst = 1,
 };

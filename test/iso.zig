@@ -179,47 +179,47 @@ test "ISO_Week_Date.next" {
 }
 
 test "ISO_Week_Date.fmt" {
-    try std.testing.expectFmt("2004-W53-6", "{f}", .{ (ISO_Week_Date{ .year = .from_number(2004), .week = .from_number(53), .day = .from_iso(6) }).fmt(ISO_Week_Date.iso8601_week_date) });
-    try std.testing.expectFmt("2004-W53-7", "{f}", .{ (ISO_Week_Date{ .year = .from_number(2004), .week = .from_number(53), .day = .from_iso(7) }).fmt(ISO_Week_Date.iso8601_week_date) });
-    try std.testing.expectFmt("2005-W52-6", "{f}", .{ (ISO_Week_Date{ .year = .from_number(2005), .week = .from_number(52), .day = .from_iso(6) }).fmt(ISO_Week_Date.iso8601_week_date) });
-    try std.testing.expectFmt("2005-W52-7", "{f}", .{ (ISO_Week_Date{ .year = .from_number(2005), .week = .from_number(52), .day = .from_iso(7) }).fmt(ISO_Week_Date.iso8601_week_date) });
-    try std.testing.expectFmt("2006-W01-1", "{f}", .{ (ISO_Week_Date{ .year = .from_number(2006), .week = .from_number(1), .day = .from_iso(1) }).fmt(ISO_Week_Date.iso8601_week_date) });
-    try std.testing.expectFmt("2006-W52-7", "{f}", .{ (ISO_Week_Date{ .year = .from_number(2006), .week = .from_number(52), .day = .from_iso(7) }).fmt(ISO_Week_Date.iso8601_week_date) });
-    try std.testing.expectFmt("2007-W01-1", "{f}", .{ (ISO_Week_Date{ .year = .from_number(2007), .week = .from_number(1), .day = .from_iso(1) }).fmt(ISO_Week_Date.iso8601_week_date) });
-    try std.testing.expectFmt("2007-W52-7", "{f}", .{ (ISO_Week_Date{ .year = .from_number(2007), .week = .from_number(52), .day = .from_iso(7) }).fmt(ISO_Week_Date.iso8601_week_date) });
-    try std.testing.expectFmt("2008-W01-1", "{f}", .{ (ISO_Week_Date{ .year = .from_number(2008), .week = .from_number(1), .day = .from_iso(1) }).fmt(ISO_Week_Date.iso8601_week_date) });
-    try std.testing.expectFmt("2008-W01-2", "{f}", .{ (ISO_Week_Date{ .year = .from_number(2008), .week = .from_number(1), .day = .from_iso(2) }).fmt(ISO_Week_Date.iso8601_week_date) });
-    try std.testing.expectFmt("2008-W52-7", "{f}", .{ (ISO_Week_Date{ .year = .from_number(2008), .week = .from_number(52), .day = .from_iso(7) }).fmt(ISO_Week_Date.iso8601_week_date) });
-    try std.testing.expectFmt("2009-W01-1", "{f}", .{ (ISO_Week_Date{ .year = .from_number(2009), .week = .from_number(1), .day = .from_iso(1) }).fmt(ISO_Week_Date.iso8601_week_date) });
-    try std.testing.expectFmt("2009-W01-2", "{f}", .{ (ISO_Week_Date{ .year = .from_number(2009), .week = .from_number(1), .day = .from_iso(2) }).fmt(ISO_Week_Date.iso8601_week_date) });
-    try std.testing.expectFmt("2009-W01-3", "{f}", .{ (ISO_Week_Date{ .year = .from_number(2009), .week = .from_number(1), .day = .from_iso(3) }).fmt(ISO_Week_Date.iso8601_week_date) });
-    try std.testing.expectFmt("2009-W01-4", "{f}", .{ (ISO_Week_Date{ .year = .from_number(2009), .week = .from_number(1), .day = .from_iso(4) }).fmt(ISO_Week_Date.iso8601_week_date) });
-    try std.testing.expectFmt("2009-W53-4", "{f}", .{ (ISO_Week_Date{ .year = .from_number(2009), .week = .from_number(53), .day = .from_iso(4) }).fmt(ISO_Week_Date.iso8601_week_date) });
-    try std.testing.expectFmt("2009-W53-5", "{f}", .{ (ISO_Week_Date{ .year = .from_number(2009), .week = .from_number(53), .day = .from_iso(5) }).fmt(ISO_Week_Date.iso8601_week_date) });
-    try std.testing.expectFmt("2009-W53-6", "{f}", .{ (ISO_Week_Date{ .year = .from_number(2009), .week = .from_number(53), .day = .from_iso(6) }).fmt(ISO_Week_Date.iso8601_week_date) });
-    try std.testing.expectFmt("2009-W53-7", "{f}", .{ (ISO_Week_Date{ .year = .from_number(2009), .week = .from_number(53), .day = .from_iso(7) }).fmt(ISO_Week_Date.iso8601_week_date) });
+    try std.testing.expectFmt("2004-W53-6", "{f}", .{(ISO_Week_Date{ .year = .from_number(2004), .week = .from_number(53), .day = .from_iso(6) }).fmt(ISO_Week_Date.iso8601_week_date)});
+    try std.testing.expectFmt("2004-W53-7", "{f}", .{(ISO_Week_Date{ .year = .from_number(2004), .week = .from_number(53), .day = .from_iso(7) }).fmt(ISO_Week_Date.iso8601_week_date)});
+    try std.testing.expectFmt("2005-W52-6", "{f}", .{(ISO_Week_Date{ .year = .from_number(2005), .week = .from_number(52), .day = .from_iso(6) }).fmt(ISO_Week_Date.iso8601_week_date)});
+    try std.testing.expectFmt("2005-W52-7", "{f}", .{(ISO_Week_Date{ .year = .from_number(2005), .week = .from_number(52), .day = .from_iso(7) }).fmt(ISO_Week_Date.iso8601_week_date)});
+    try std.testing.expectFmt("2006-W01-1", "{f}", .{(ISO_Week_Date{ .year = .from_number(2006), .week = .from_number(1), .day = .from_iso(1) }).fmt(ISO_Week_Date.iso8601_week_date)});
+    try std.testing.expectFmt("2006-W52-7", "{f}", .{(ISO_Week_Date{ .year = .from_number(2006), .week = .from_number(52), .day = .from_iso(7) }).fmt(ISO_Week_Date.iso8601_week_date)});
+    try std.testing.expectFmt("2007-W01-1", "{f}", .{(ISO_Week_Date{ .year = .from_number(2007), .week = .from_number(1), .day = .from_iso(1) }).fmt(ISO_Week_Date.iso8601_week_date)});
+    try std.testing.expectFmt("2007-W52-7", "{f}", .{(ISO_Week_Date{ .year = .from_number(2007), .week = .from_number(52), .day = .from_iso(7) }).fmt(ISO_Week_Date.iso8601_week_date)});
+    try std.testing.expectFmt("2008-W01-1", "{f}", .{(ISO_Week_Date{ .year = .from_number(2008), .week = .from_number(1), .day = .from_iso(1) }).fmt(ISO_Week_Date.iso8601_week_date)});
+    try std.testing.expectFmt("2008-W01-2", "{f}", .{(ISO_Week_Date{ .year = .from_number(2008), .week = .from_number(1), .day = .from_iso(2) }).fmt(ISO_Week_Date.iso8601_week_date)});
+    try std.testing.expectFmt("2008-W52-7", "{f}", .{(ISO_Week_Date{ .year = .from_number(2008), .week = .from_number(52), .day = .from_iso(7) }).fmt(ISO_Week_Date.iso8601_week_date)});
+    try std.testing.expectFmt("2009-W01-1", "{f}", .{(ISO_Week_Date{ .year = .from_number(2009), .week = .from_number(1), .day = .from_iso(1) }).fmt(ISO_Week_Date.iso8601_week_date)});
+    try std.testing.expectFmt("2009-W01-2", "{f}", .{(ISO_Week_Date{ .year = .from_number(2009), .week = .from_number(1), .day = .from_iso(2) }).fmt(ISO_Week_Date.iso8601_week_date)});
+    try std.testing.expectFmt("2009-W01-3", "{f}", .{(ISO_Week_Date{ .year = .from_number(2009), .week = .from_number(1), .day = .from_iso(3) }).fmt(ISO_Week_Date.iso8601_week_date)});
+    try std.testing.expectFmt("2009-W01-4", "{f}", .{(ISO_Week_Date{ .year = .from_number(2009), .week = .from_number(1), .day = .from_iso(4) }).fmt(ISO_Week_Date.iso8601_week_date)});
+    try std.testing.expectFmt("2009-W53-4", "{f}", .{(ISO_Week_Date{ .year = .from_number(2009), .week = .from_number(53), .day = .from_iso(4) }).fmt(ISO_Week_Date.iso8601_week_date)});
+    try std.testing.expectFmt("2009-W53-5", "{f}", .{(ISO_Week_Date{ .year = .from_number(2009), .week = .from_number(53), .day = .from_iso(5) }).fmt(ISO_Week_Date.iso8601_week_date)});
+    try std.testing.expectFmt("2009-W53-6", "{f}", .{(ISO_Week_Date{ .year = .from_number(2009), .week = .from_number(53), .day = .from_iso(6) }).fmt(ISO_Week_Date.iso8601_week_date)});
+    try std.testing.expectFmt("2009-W53-7", "{f}", .{(ISO_Week_Date{ .year = .from_number(2009), .week = .from_number(53), .day = .from_iso(7) }).fmt(ISO_Week_Date.iso8601_week_date)});
 
-    try std.testing.expectFmt("2005-01-01", "{f}", .{ Date.from_ymd(.from_numbers(2005, 1, 1)).iso_week_date().fmt("YYYY-MM-DD") });
-    try std.testing.expectFmt("2004-W53-6", "{f}", .{ Date.from_ymd(.from_numbers(2005, 1, 1)).iso_week_date().fmt("GGGG-[W]WW-E") });
-    try std.testing.expectFmt("2004-W53-7", "{f}", .{ Date.from_ymd(.from_numbers(2005, 1, 2)).iso_week_date() });
-    try std.testing.expectFmt("2005-W01-1", "{f}", .{ Date.from_ymd(.from_numbers(2005, 1, 3)).iso_week_date() });
-    try std.testing.expectFmt("2005-W52-6", "{f}", .{ Date.from_ymd(.from_numbers(2005, 12, 31)).iso_week_date() });
-    try std.testing.expectFmt("2005-W52-7", "{f}", .{ Date.from_ymd(.from_numbers(2006, 1, 1)).iso_week_date() });
-    try std.testing.expectFmt("2006-W01-1", "{f}", .{ Date.from_ymd(.from_numbers(2006, 1, 2)).iso_week_date() });
-    try std.testing.expectFmt("2006-W52-7", "{f}", .{ Date.from_ymd(.from_numbers(2006, 12, 31)).iso_week_date() });
-    try std.testing.expectFmt("2007-W01-1", "{f}", .{ Date.from_ymd(.from_numbers(2007, 1, 1)).iso_week_date() });
-    try std.testing.expectFmt("2007-W52-7", "{f}", .{ Date.from_ymd(.from_numbers(2007, 12, 30)).iso_week_date() });
-    try std.testing.expectFmt("2008-W01-1", "{f}", .{ Date.from_ymd(.from_numbers(2007, 12, 31)).iso_week_date() });
-    try std.testing.expectFmt("2008-W01-2", "{f}", .{ Date.from_ymd(.from_numbers(2008, 1, 1)).iso_week_date() });
-    try std.testing.expectFmt("2008-W52-7", "{f}", .{ Date.from_ymd(.from_numbers(2008, 12, 28)).iso_week_date() });
-    try std.testing.expectFmt("2009-W01-1", "{f}", .{ Date.from_ymd(.from_numbers(2008, 12, 29)).iso_week_date() });
-    try std.testing.expectFmt("2009-W01-2", "{f}", .{ Date.from_ymd(.from_numbers(2008, 12, 30)).iso_week_date() });
-    try std.testing.expectFmt("2009-W01-3", "{f}", .{ Date.from_ymd(.from_numbers(2008, 12, 31)).iso_week_date() });
-    try std.testing.expectFmt("2009-W01-4", "{f}", .{ Date.from_ymd(.from_numbers(2009, 1, 1)).iso_week_date() });
-    try std.testing.expectFmt("2009-W53-4", "{f}", .{ Date.from_ymd(.from_numbers(2009, 12, 31)).iso_week_date() });
-    try std.testing.expectFmt("2009-W53-5", "{f}", .{ Date.from_ymd(.from_numbers(2010, 1, 1)).iso_week_date() });
-    try std.testing.expectFmt("2009-W53-6", "{f}", .{ Date.from_ymd(.from_numbers(2010, 1, 2)).iso_week_date() });
-    try std.testing.expectFmt("2009-W53-7", "{f}", .{ Date.from_ymd(.from_numbers(2010, 1, 3)).iso_week_date() });
+    try std.testing.expectFmt("2005-01-01", "{f}", .{Date.from_ymd(.from_numbers(2005, 1, 1)).iso_week_date().fmt("YYYY-MM-DD")});
+    try std.testing.expectFmt("2004-W53-6", "{f}", .{Date.from_ymd(.from_numbers(2005, 1, 1)).iso_week_date().fmt("GGGG-[W]WW-E")});
+    try std.testing.expectFmt("2004-W53-7", "{f}", .{Date.from_ymd(.from_numbers(2005, 1, 2)).iso_week_date()});
+    try std.testing.expectFmt("2005-W01-1", "{f}", .{Date.from_ymd(.from_numbers(2005, 1, 3)).iso_week_date()});
+    try std.testing.expectFmt("2005-W52-6", "{f}", .{Date.from_ymd(.from_numbers(2005, 12, 31)).iso_week_date()});
+    try std.testing.expectFmt("2005-W52-7", "{f}", .{Date.from_ymd(.from_numbers(2006, 1, 1)).iso_week_date()});
+    try std.testing.expectFmt("2006-W01-1", "{f}", .{Date.from_ymd(.from_numbers(2006, 1, 2)).iso_week_date()});
+    try std.testing.expectFmt("2006-W52-7", "{f}", .{Date.from_ymd(.from_numbers(2006, 12, 31)).iso_week_date()});
+    try std.testing.expectFmt("2007-W01-1", "{f}", .{Date.from_ymd(.from_numbers(2007, 1, 1)).iso_week_date()});
+    try std.testing.expectFmt("2007-W52-7", "{f}", .{Date.from_ymd(.from_numbers(2007, 12, 30)).iso_week_date()});
+    try std.testing.expectFmt("2008-W01-1", "{f}", .{Date.from_ymd(.from_numbers(2007, 12, 31)).iso_week_date()});
+    try std.testing.expectFmt("2008-W01-2", "{f}", .{Date.from_ymd(.from_numbers(2008, 1, 1)).iso_week_date()});
+    try std.testing.expectFmt("2008-W52-7", "{f}", .{Date.from_ymd(.from_numbers(2008, 12, 28)).iso_week_date()});
+    try std.testing.expectFmt("2009-W01-1", "{f}", .{Date.from_ymd(.from_numbers(2008, 12, 29)).iso_week_date()});
+    try std.testing.expectFmt("2009-W01-2", "{f}", .{Date.from_ymd(.from_numbers(2008, 12, 30)).iso_week_date()});
+    try std.testing.expectFmt("2009-W01-3", "{f}", .{Date.from_ymd(.from_numbers(2008, 12, 31)).iso_week_date()});
+    try std.testing.expectFmt("2009-W01-4", "{f}", .{Date.from_ymd(.from_numbers(2009, 1, 1)).iso_week_date()});
+    try std.testing.expectFmt("2009-W53-4", "{f}", .{Date.from_ymd(.from_numbers(2009, 12, 31)).iso_week_date()});
+    try std.testing.expectFmt("2009-W53-5", "{f}", .{Date.from_ymd(.from_numbers(2010, 1, 1)).iso_week_date()});
+    try std.testing.expectFmt("2009-W53-6", "{f}", .{Date.from_ymd(.from_numbers(2010, 1, 2)).iso_week_date()});
+    try std.testing.expectFmt("2009-W53-7", "{f}", .{Date.from_ymd(.from_numbers(2010, 1, 3)).iso_week_date()});
 }
 
 test "ISO_Week_Date.from_string" {

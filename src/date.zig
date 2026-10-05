@@ -8,21 +8,21 @@ pub const Date = enum(i32) {
     _,
 
     pub fn from_ymd_numbers(y: i32, m: i32, d: i32) Date {
-        return @enumFromInt(civil.ymd_to_days(y, @intCast(m), d));
+        return @fromBackingInt(@intCast(civil.ymd_to_days(y, @intCast(m), d)));
     }
 
     pub fn from_ymd(d: YMD) Date {
-        return @enumFromInt(civil.ymd_to_days(d.year.as_number(), d.month.as_unsigned(), d.day.as_number()));
+        return @fromBackingInt(@intCast(civil.ymd_to_days(d.year.as_number(), d.month.as_unsigned(), d.day.as_number())));
     }
 
     pub fn from_yod(y: Year, od: Ordinal_Day) Date {
-        const raw = @intFromEnum(y.starting_date()) + od.as_number() - 1;
-        return @enumFromInt(raw);
+        const raw = @backingInt(y.starting_date()) + od.as_number() - 1;
+        return @fromBackingInt(@intCast(raw));
     }
 
     pub fn from_yiod(yi: Year.Info, od: Ordinal_Day) Date {
-        const raw = @intFromEnum(yi.starting_date) + od.as_number() - 1;
-        return @enumFromInt(raw);
+        const raw = @backingInt(yi.starting_date) + od.as_number() - 1;
+        return @fromBackingInt(@intCast(raw));
     }
 
     pub fn from_ywd(y: Year, week: ISO_Week, weekday: Week_Day) Date {
@@ -42,11 +42,11 @@ pub const Date = enum(i32) {
 
     /// Returns the date corresponding to January 1 of the specified year
     pub fn from_year(y: Year) Date {
-        return @enumFromInt(civil.year_to_days(y.as_number()));
+        return @fromBackingInt(@intCast(civil.year_to_days(y.as_number())));
     }
 
     pub fn year(self: Date) Year {
-        return @enumFromInt(civil.days_to_year(@intFromEnum(self)));
+        return @fromBackingInt(@intCast(civil.days_to_year(@backingInt(self))));
     }
 
     pub fn year_info(self: Date) Year.Info {
@@ -62,7 +62,7 @@ pub const Date = enum(i32) {
     }
 
     pub fn ordinal_day(self: Date) Ordinal_Day {
-        return .from_number(@intFromEnum(self) - @intFromEnum(self.year().starting_date()) + 1);
+        return .from_number(@backingInt(self) - @backingInt(self.year().starting_date()) + 1);
     }
 
     pub fn ordinal_week(self: Date) Ordinal_Week {
@@ -72,9 +72,9 @@ pub const Date = enum(i32) {
     pub fn week_day(self: Date) Week_Day {
         if (@bitSizeOf(usize) >= 64) {
             return wd.joffe_64b(self);
-         } else {
+        } else {
             return wd.joffe_shift(self);
-         }
+        }
     }
 
     pub fn iso_week(self: Date) ISO_Week {
@@ -94,15 +94,15 @@ pub const Date = enum(i32) {
     }
 
     pub fn is_before(self: Date, other: Date) bool {
-        return @intFromEnum(self) < @intFromEnum(other);
+        return @backingInt(self) < @backingInt(other);
     }
 
     pub fn is_after(self: Date, other: Date) bool {
-        return @intFromEnum(self) > @intFromEnum(other);
+        return @backingInt(self) > @backingInt(other);
     }
 
     pub fn plus_days(self: Date, days: i32) Date {
-        return @enumFromInt(@intFromEnum(self) + days);
+        return @fromBackingInt(@intCast(@backingInt(self) + days));
     }
 
     pub fn next(self: Date) Date {
@@ -123,7 +123,7 @@ pub const Date = enum(i32) {
         if (current >= target) delta_days += 7;
         return self.plus_days(delta_days);
     }
-    
+
     /// This will always return a different date.
     /// for the alternative, use .next().prev_week_day() or Week_Day.on_or_before(Date)
     pub fn prev_week_day(self: Date, d: Week_Day) Date {
@@ -287,7 +287,7 @@ pub const Date = enum(i32) {
         }
 
         pub fn from_date(d: Date) YMD {
-            const raw = civil.days_to_ymd(@intFromEnum(d));
+            const raw = civil.days_to_ymd(@backingInt(d));
             return .from_numbers(raw.y, raw.m, raw.d);
         }
 
@@ -306,7 +306,7 @@ pub const Date = enum(i32) {
         pub fn iso_week_date(self: Info) ISO_Week_Date {
             return .from_yiodwd(self.year_info(), self.ordinal_day, self.week_day);
         }
-        
+
         pub fn is_before(self: YMD, other: YMD) bool {
             if (self.year != other.year) return self.year.is_before(other.year);
 
@@ -499,7 +499,7 @@ pub const Date = enum(i32) {
         ordinal_day: Ordinal_Day,
 
         pub fn from_date(d: Date) Info {
-            const raw = @intFromEnum(d);
+            const raw = @backingInt(d);
             const weekday = d.week_day();
             const c = d.ymd();
             const start_of_year = c.year.starting_date();
@@ -511,15 +511,15 @@ pub const Date = enum(i32) {
                 .start_of_year = start_of_year,
                 .is_leap_year = c.year.is_leap(),
                 .week_day = weekday,
-                .ordinal_day = .from_number(raw - @intFromEnum(start_of_year) + 1),
-                .start_of_month = @enumFromInt(raw - c.day.as_number() + 1),
-                .start_of_week = @enumFromInt(raw - weekday.as_number() + 1),
+                .ordinal_day = .from_number(raw - @backingInt(start_of_year) + 1),
+                .start_of_month = @fromBackingInt(@intCast(raw - c.day.as_number() + 1)),
+                .start_of_week = @fromBackingInt(@intCast(raw - weekday.as_number() + 1)),
             };
         }
 
         pub fn from_ymd(_ymd: YMD) Info {
             const d = _ymd.date();
-            const raw = @intFromEnum(d);
+            const raw = @backingInt(d);
             const weekday = d.week_day();
             const leap = _ymd.year.is_leap();
             const start_of_month_raw = raw - _ymd.day.as_number() + 1;
@@ -530,18 +530,18 @@ pub const Date = enum(i32) {
                 .year = _ymd.year,
                 .month = _ymd.month,
                 .day = _ymd.day,
-                .start_of_year = @enumFromInt(start_of_year_raw),
+                .start_of_year = @fromBackingInt(@intCast(start_of_year_raw)),
                 .is_leap_year = leap,
                 .week_day = weekday,
                 .ordinal_day = .from_number(raw - start_of_year_raw + 1),
-                .start_of_month = @enumFromInt(start_of_month_raw),
-                .start_of_week = @enumFromInt(raw - weekday.as_number() + 1),
+                .start_of_month = @fromBackingInt(@intCast(start_of_month_raw)),
+                .start_of_week = @fromBackingInt(@intCast(raw - weekday.as_number() + 1)),
             };
         }
 
         pub fn from_yimd(yi: Year.Info, m_: Month, d_: Day) Info {
             const d: Date = .from_ymd(.init(yi.year(), m_, d_));
-            const raw = @intFromEnum(d);
+            const raw = @backingInt(d);
             const weekday = d.week_day();
             const leap = yi.is_leap;
             const start_of_month_raw = raw - d_.as_number() + 1;
@@ -552,12 +552,12 @@ pub const Date = enum(i32) {
                 .year = yi.year(),
                 .month = m_,
                 .day = d_,
-                .start_of_year = @enumFromInt(start_of_year_raw),
+                .start_of_year = @fromBackingInt(@intCast(start_of_year_raw)),
                 .is_leap_year = leap,
                 .week_day = weekday,
                 .ordinal_day = .from_number(raw - start_of_year_raw + 1),
-                .start_of_month = @enumFromInt(start_of_month_raw),
-                .start_of_week = @enumFromInt(raw - weekday.as_number() + 1),
+                .start_of_month = @fromBackingInt(@intCast(start_of_month_raw)),
+                .start_of_week = @fromBackingInt(@intCast(raw - weekday.as_number() + 1)),
             };
         }
 
@@ -578,7 +578,7 @@ pub const Date = enum(i32) {
         }
 
         pub fn date(self: Info) Date {
-            return @enumFromInt(self.raw);
+            return @fromBackingInt(@intCast(self.raw));
         }
 
         pub fn iso_week_date(self: Info) ISO_Week_Date {

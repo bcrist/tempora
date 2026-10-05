@@ -280,19 +280,19 @@ fn write_v(
 
     if (header.std_wall_count > 0) {
         for (infos) |info| {
-            try writer.writeInt(u8, @intFromEnum(Std_Wall_Indicator.from_source(info.source)), .big);
+            try writer.writeInt(u8, @backingInt(Std_Wall_Indicator.from_source(info.source)), .big);
         }
     }
 
     if (header.utc_local_count > 0) {
         for (infos) |info| {
-            try writer.writeInt(u8, @intFromEnum(UTC_Local_Indicator.from_source(info.source)), .big);
+            try writer.writeInt(u8, @backingInt(UTC_Local_Indicator.from_source(info.source)), .big);
         }
     }
 
     if (version != .v1) {
         if (maybe_posix) |posix| {
-            try writer.print("\n{f}\n", .{ posix });
+            try writer.print("\n{f}\n", .{posix});
         } else {
             try writer.splatByteAll('\n', 2);
         }
@@ -345,7 +345,7 @@ const Header = struct {
 
     pub fn write(self: Header, writer: *std.Io.Writer) !void {
         try writer.writeAll(magic);
-        try writer.writeInt(u8, @intFromEnum(self.version), .big);
+        try writer.writeInt(u8, @backingInt(self.version), .big);
         try writer.splatByteAll(0, 15);
         try writer.writeInt(u32, self.utc_local_count, .big);
         try writer.writeInt(u32, self.std_wall_count, .big);
@@ -376,7 +376,7 @@ const Local_Time_Type_Record = struct {
     pub fn from_info(info: Timezone.Wall_Time_Info, designation_writer: *std.Io.Writer) !Local_Time_Type_Record {
         var designation_offset: ?Designation_String_Offset = null;
         var temp_buf: [64]u8 = undefined;
-        if (std.fmt.bufPrint(&temp_buf, "{s}\x00", .{ info.designation })) |designation_z| {
+        if (std.fmt.bufPrint(&temp_buf, "{s}\x00", .{info.designation})) |designation_z| {
             if (std.mem.find(u8, designation_writer.buffered(), designation_z)) |index| {
                 designation_offset = @intCast(index);
             }
@@ -389,7 +389,7 @@ const Local_Time_Type_Record = struct {
             designation_writer.writeAll(info.designation) catch return error.TooManyDesignationStrings;
             designation_writer.writeByte(0) catch return error.TooManyDesignationStrings;
         }
-        
+
         return .{
             .utc_offset_seconds = info.utc_offset_seconds,
             .dst = info.dst,
@@ -426,7 +426,7 @@ const Local_Time_Type_Record = struct {
 
     pub fn write(self: Local_Time_Type_Record, writer: *std.Io.Writer) !void {
         try writer.writeInt(UTC_Offset, self.utc_offset_seconds, .big);
-        try writer.writeInt(u8, @intFromEnum(self.dst), .big);
+        try writer.writeInt(u8, @backingInt(self.dst), .big);
         try writer.writeInt(Designation_String_Offset, self.designation, .big);
     }
 };
@@ -480,7 +480,7 @@ const Leap_Correction = i32;
 const Local_Time_Type_Index = u8;
 const Designation_String_Offset = u8;
 
-const Std_Wall_Indicator = enum (u8) {
+const Std_Wall_Indicator = enum(u8) {
     wall = 0,
     std = 1,
 
@@ -494,7 +494,7 @@ const Std_Wall_Indicator = enum (u8) {
     }
 };
 
-const UTC_Local_Indicator = enum (u8) {
+const UTC_Local_Indicator = enum(u8) {
     local = 0,
     utc = 1,
 
@@ -508,7 +508,7 @@ const UTC_Local_Indicator = enum (u8) {
     }
 };
 
-const Version = enum (u8) {
+const Version = enum(u8) {
     v1 = 0,
     v2 = '2',
     v3 = '3',

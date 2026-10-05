@@ -426,7 +426,6 @@ test "Date_Time.With_Offset.plus_days_and_ms" {
     }, -5, -12 * std.time.ms_per_hour));
 }
 
-
 const Time = tempora.Time;
 const Date = tempora.Date;
 const Date_Time = tempora.Date_Time;

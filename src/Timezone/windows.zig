@@ -33,7 +33,7 @@ pub const RTL_QUERY_REGISTRY_ROUTINE = ?*const fn (
     ?*anyopaque,
 ) callconv(.winapi) NTSTATUS;
 
-const RTL_REG = enum (ULONG) {
+const RTL_REG = enum(ULONG) {
     ABSOLUTE = 0,
     SERVICES = 1,
     CONTROL = 2,
@@ -76,9 +76,9 @@ const REG_TZI_FORMAT = extern struct {
         return .{
             .date = .{ .month_week_day = .{
                 .month = .from_number(self.StandardDate.Month),
-                .week = @enumFromInt(self.StandardDate.Day - 1),
+                .week = @fromBackingInt(@intCast(self.StandardDate.Day - 1)),
                 .day = .from_number(self.StandardDate.DayOfWeek + 1),
-            }},
+            } },
             .time = self.StandardDate.time(),
         };
     }
@@ -87,9 +87,9 @@ const REG_TZI_FORMAT = extern struct {
         return .{
             .date = .{ .month_week_day = .{
                 .month = .from_number(self.DaylightDate.Month),
-                .week = @enumFromInt(self.DaylightDate.Day - 1),
+                .week = @fromBackingInt(@intCast(self.DaylightDate.Day - 1)),
                 .day = .from_number(self.DaylightDate.DayOfWeek + 1),
-            }},
+            } },
             .time = self.DaylightDate.time(),
         };
     }
@@ -152,7 +152,7 @@ pub fn current_timezone_info(buf: []u8) !Timezone_Info {
             .Flags = RTL_QUERY.DIRECT | RTL_QUERY.TYPECHECK,
             .Name = comptime std.unicode.wtf8ToWtf16LeStringLiteral("TimeZoneKeyName"),
             .EntryContext = &timezone_key,
-            .DefaultType = @enumFromInt(@intFromEnum(REG.ValueType.SZ) << 24),
+            .DefaultType = @fromBackingInt(@intCast(@backingInt(REG.ValueType.SZ) << 24)),
         },
         .{
             .QueryRoutine = null,
@@ -175,7 +175,7 @@ pub fn current_timezone_info(buf: []u8) !Timezone_Info {
             .Flags = RTL_QUERY.DIRECT | RTL_QUERY.TYPECHECK,
             .Name = comptime std.unicode.wtf8ToWtf16LeStringLiteral("Name"),
             .EntryContext = &region,
-            .DefaultType = @enumFromInt(@intFromEnum(REG.ValueType.SZ) << 24),
+            .DefaultType = @fromBackingInt(@intCast(@backingInt(REG.ValueType.SZ) << 24)),
         },
         .{
             .QueryRoutine = null,
@@ -185,8 +185,8 @@ pub fn current_timezone_info(buf: []u8) !Timezone_Info {
         },
     };
 
-    if (RtlQueryRegistryValues(@intFromEnum(RTL_REG.CONTROL), comptime std.unicode.wtf8ToWtf16LeStringLiteral("TimeZoneInformation"), timezone_key_query_table.ptr, null, null) != .SUCCESS) return error.Unexpected;
-    if (RtlQueryRegistryValues(@intFromEnum(RTL_REG.USER), comptime std.unicode.wtf8ToWtf16LeStringLiteral("Control Panel\\International\\Geo"), region_query_table.ptr, null, null) != .SUCCESS) return error.Unexpected;
+    if (RtlQueryRegistryValues(@backingInt(RTL_REG.CONTROL), comptime std.unicode.wtf8ToWtf16LeStringLiteral("TimeZoneInformation"), timezone_key_query_table.ptr, null, null) != .SUCCESS) return error.Unexpected;
+    if (RtlQueryRegistryValues(@backingInt(RTL_REG.USER), comptime std.unicode.wtf8ToWtf16LeStringLiteral("Control Panel\\International\\Geo"), region_query_table.ptr, null, null) != .SUCCESS) return error.Unexpected;
 
     var result: Timezone_Info = undefined;
 
@@ -211,7 +211,7 @@ fn parse_tzi(
 ) callconv(.winapi) NTSTATUS {
     _ = Name;
     _ = Context;
-    if (Type != @intFromEnum(REG.ValueType.BINARY)) return .SUCCESS;
+    if (Type != @backingInt(REG.ValueType.BINARY)) return .SUCCESS;
     if (Data) |opaque_data| {
         if (Bytes != @sizeOf(REG_TZI_FORMAT)) return .BUFFER_TOO_SMALL;
         const tzi: *REG_TZI_FORMAT = @ptrCast(@alignCast(EntryContext.?));
@@ -228,7 +228,7 @@ fn parse_dynamic_dst(
     Context: ?*anyopaque,
     EntryContext: ?*anyopaque,
 ) callconv(.winapi) NTSTATUS {
-    if (Type != @intFromEnum(REG.ValueType.BINARY)) return .SUCCESS;
+    if (Type != @backingInt(REG.ValueType.BINARY)) return .SUCCESS;
     const name_slice = std.mem.sliceTo(Name, 0);
     var year: WORD = 0;
     for (name_slice) |ch| {
@@ -237,7 +237,7 @@ fn parse_dynamic_dst(
     }
     if (Data) |opaque_data| {
         if (Bytes != @sizeOf(REG_TZI_FORMAT)) return .BUFFER_TOO_SMALL;
-    
+
         const alloc: *std.mem.Allocator = @ptrCast(@alignCast(Context.?));
         const list: *std.ArrayList(REG_TZI_FORMAT) = @ptrCast(@alignCast(EntryContext.?));
 
@@ -256,7 +256,7 @@ pub fn timezone(temp: std.mem.Allocator, arena: std.mem.Allocator, id: []const u
     var reg_key_buf: [80]u16 = @splat(0);
     const end = try std.unicode.wtf8ToWtf16Le(reg_key_buf[0 .. reg_key_buf.len - 1], registry_key);
     const registry_key_wide: [:0]u16 = @ptrCast(std.mem.sliceTo(reg_key_buf[0..end], 0));
-    
+
     var tzi: REG_TZI_FORMAT = undefined;
 
     const query_table: []const RTL_QUERY_REGISTRY_TABLE = &.{
@@ -280,7 +280,7 @@ pub fn timezone(temp: std.mem.Allocator, arena: std.mem.Allocator, id: []const u
         },
     };
 
-    switch (RtlQueryRegistryValues(@intFromEnum(RTL_REG.WINDOWS_NT), comptime std.unicode.wtf8ToWtf16LeStringLiteral("Time Zones"), query_table.ptr, &temp, null)) {
+    switch (RtlQueryRegistryValues(@backingInt(RTL_REG.WINDOWS_NT), comptime std.unicode.wtf8ToWtf16LeStringLiteral("Time Zones"), query_table.ptr, &temp, null)) {
         .SUCCESS => {},
         .OBJECT_NAME_NOT_FOUND, .OBJECT_TYPE_MISMATCH, .BUFFER_TOO_SMALL => |tag| {
             log.err("Error reading windows timezone from registry key {s}: {t}", .{ registry_key, tag });
@@ -333,11 +333,11 @@ pub fn timezone(temp: std.mem.Allocator, arena: std.mem.Allocator, id: []const u
         },
     };
 
-    switch (RtlQueryRegistryValues(@intFromEnum(RTL_REG.WINDOWS_NT), comptime std.unicode.wtf8ToWtf16LeStringLiteral("Time Zones"), query_table_2.ptr, &temp, null)) {
+    switch (RtlQueryRegistryValues(@backingInt(RTL_REG.WINDOWS_NT), comptime std.unicode.wtf8ToWtf16LeStringLiteral("Time Zones"), query_table_2.ptr, &temp, null)) {
         .SUCCESS => {},
         .OBJECT_NAME_NOT_FOUND => {}, // not all timezones have a Dynamic DST subkey
         .OBJECT_TYPE_MISMATCH, .BUFFER_TOO_SMALL => |tag| {
-            log.err("Windows timezone Dynamic DST: {t}", .{ tag });
+            log.err("Windows timezone Dynamic DST: {t}", .{tag});
             return null;
         },
         else => return error.Unexpected,
@@ -347,7 +347,7 @@ pub fn timezone(temp: std.mem.Allocator, arena: std.mem.Allocator, id: []const u
 
     var infos: []Wall_Time_Info = &.{};
     var transition_timestamps: []i64 = &.{};
-    var transition_info_indices: []u8 = &.{}; 
+    var transition_info_indices: []u8 = &.{};
     if (dynamic_tzis.items.len > 0) {
         var builder: Timezone_Builder = .init(temp, registry_key);
         defer builder.deinit();
@@ -371,7 +371,7 @@ pub fn timezone(temp: std.mem.Allocator, arena: std.mem.Allocator, id: []const u
         transition_timestamps = try arena.dupe(i64, builder.transitions.items(.timestamp));
         transition_info_indices = try arena.dupe(u8, builder.transitions.items(.info_index));
     }
-    
+
     return .{
         .id = try arena.dupe(u8, id),
         .transition_count = transition_timestamps.len,

@@ -17,7 +17,7 @@ test "TZDB (embedded)" {
     try std.testing.expectEqualStrings("CDT", ct.posix.?.dst_designation());
     try std.testing.expectEqual(-6 * std.time.s_per_hour, ct.posix.?.standard.utc_offset_seconds);
     try std.testing.expectEqual(-5 * std.time.s_per_hour, ct.posix.?.dst.?.info.utc_offset_seconds);
-    
+
     const utc = db.timezone("Etc/UTC").?;
     try std.testing.expectEqualStrings("Etc/UTC", utc.id);
     try std.testing.expectEqualStrings("UTC", utc.posix.?.std_designation());
@@ -45,7 +45,7 @@ test "TZDB (system)" {
     try std.testing.expectEqualStrings("CDT", ct.posix.?.dst_designation());
     try std.testing.expectEqual(-6 * std.time.s_per_hour, ct.posix.?.standard.utc_offset_seconds);
     try std.testing.expectEqual(-5 * std.time.s_per_hour, ct.posix.?.dst.?.info.utc_offset_seconds);
-    
+
     const utc = db.timezone("Etc/UTC").?;
     try std.testing.expectEqualStrings("Etc/UTC", utc.id);
     try std.testing.expectEqualStrings("", utc.posix.?.dst_designation());
@@ -72,7 +72,7 @@ test "TZDB (system or embedded)" {
     try std.testing.expectEqualStrings("CDT", ct.posix.?.dst_designation());
     try std.testing.expectEqual(-6 * std.time.s_per_hour, ct.posix.?.standard.utc_offset_seconds);
     try std.testing.expectEqual(-5 * std.time.s_per_hour, ct.posix.?.dst.?.info.utc_offset_seconds);
-    
+
     const utc = db.timezone("Etc/UTC").?;
     try std.testing.expectEqualStrings("Etc/UTC", utc.id);
     try std.testing.expectEqualStrings("", utc.posix.?.dst_designation());
@@ -99,7 +99,7 @@ test "TZDB (lazy, embedded)" {
     try std.testing.expectEqualStrings("CDT", ct.posix.?.dst_designation());
     try std.testing.expectEqual(-6 * std.time.s_per_hour, ct.posix.?.standard.utc_offset_seconds);
     try std.testing.expectEqual(-5 * std.time.s_per_hour, ct.posix.?.dst.?.info.utc_offset_seconds);
-    
+
     const utc = db.timezone("Etc/UTC").?;
     try std.testing.expectEqualStrings("Etc/UTC", utc.id);
     try std.testing.expectEqualStrings("UTC", utc.posix.?.std_designation());
@@ -127,7 +127,7 @@ test "TZDB (lazy, system)" {
     try std.testing.expectEqualStrings("CDT", ct.posix.?.dst_designation());
     try std.testing.expectEqual(-6 * std.time.s_per_hour, ct.posix.?.standard.utc_offset_seconds);
     try std.testing.expectEqual(-5 * std.time.s_per_hour, ct.posix.?.dst.?.info.utc_offset_seconds);
-    
+
     const utc = db.timezone("Etc/UTC").?;
     try std.testing.expectEqualStrings("Etc/UTC", utc.id);
     try std.testing.expectEqualStrings("", utc.posix.?.dst_designation());
@@ -154,7 +154,7 @@ test "TZDB (lazy, system or embedded)" {
     try std.testing.expectEqualStrings("CDT", ct.posix.?.dst_designation());
     try std.testing.expectEqual(-6 * std.time.s_per_hour, ct.posix.?.standard.utc_offset_seconds);
     try std.testing.expectEqual(-5 * std.time.s_per_hour, ct.posix.?.dst.?.info.utc_offset_seconds);
-    
+
     const utc = db.timezone("Etc/UTC").?;
     try std.testing.expectEqualStrings("Etc/UTC", utc.id);
     try std.testing.expectEqualStrings("", utc.posix.?.dst_designation());

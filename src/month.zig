@@ -1,4 +1,4 @@
-pub const Month = enum (u4) {
+pub const Month = enum(u4) {
     january = 1,
     february = 2,
     march = 3,
@@ -13,7 +13,7 @@ pub const Month = enum (u4) {
     december = 12,
 
     pub fn from_number(month: i32) Month {
-        return @enumFromInt(month);
+        return @fromBackingInt(@intCast(month));
     }
 
     pub const From_String_Options = struct {
@@ -30,11 +30,11 @@ pub const Month = enum (u4) {
             inline for (info.field_names, info.field_values) |month_name, month_value| {
                 if (std.ascii.eqlIgnoreCase(trimmed[0..3], month_name[0..3])) {
                     if (options.allow_short and trimmed.len == 3) {
-                        return @enumFromInt(month_value);
+                        return @fromBackingInt(@intCast(month_value));
                     }
 
                     if (options.allow_long and std.ascii.eqlIgnoreCase(trimmed[3..], month_name[3..])) {
-                        return @enumFromInt(month_value);
+                        return @fromBackingInt(@intCast(month_value));
                     }
                 }
             }
@@ -43,18 +43,18 @@ pub const Month = enum (u4) {
         if (options.allow_numeric) {
             const numeric = std.fmt.parseInt(u4, trimmed, 10) catch return error.InvalidString;
             if (numeric >= 1 and numeric <= 12) {
-                return @enumFromInt(numeric);
+                return @fromBackingInt(@intCast(numeric));
             }
         }
-        
+
         return error.InvalidString;
     }
 
     pub fn as_number(self: Month) i32 {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
     pub fn as_unsigned(self: Month) u32 {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 
     pub fn from_yod(y: Year, od: Ordinal_Day) Month {
@@ -152,7 +152,7 @@ pub const Month = enum (u4) {
             .january, .february => {},
             else => {
                 if (year.is_leap()) result = .from_number(result.as_number() + 1);
-            }
+            },
         }
         return result;
     }
@@ -161,7 +161,7 @@ pub const Month = enum (u4) {
         switch (self) {
             inline else => |final_month| {
                 comptime var raw: u16 = 1;
-                inline for (1..@intFromEnum(final_month)) |m| {
+                inline for (1..@backingInt(final_month)) |m| {
                     raw += comptime days_assume_non_leap_year(.from_number(m));
                 }
                 return .from_number(raw);
@@ -173,7 +173,7 @@ pub const Month = enum (u4) {
         switch (self) {
             inline else => |final_month| {
                 comptime var raw: u16 = 1;
-                inline for (1..@intFromEnum(final_month)) |m| {
+                inline for (1..@backingInt(final_month)) |m| {
                     raw += comptime days_assume_leap_year(.from_number(m));
                 }
                 return .from_number(raw);
@@ -207,11 +207,11 @@ pub const Month = enum (u4) {
     }
 
     pub fn is_before(self: Month, other: Month) bool {
-        return @intFromEnum(self) < @intFromEnum(other);
+        return @backingInt(self) < @backingInt(other);
     }
 
     pub fn is_after(self: Month, other: Month) bool {
-        return @intFromEnum(self) > @intFromEnum(other);
+        return @backingInt(self) > @backingInt(other);
     }
 
     pub fn plus(self: Month, months: i32) Month {

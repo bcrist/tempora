@@ -10,7 +10,6 @@ test "current timezone (system)" {
     defer db.deinit();
     try db.add_current(std.testing.io, .system(null));
 
-
     try std.testing.expect(db.local.infos.len > 0);
 }
 

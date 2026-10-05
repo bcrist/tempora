@@ -8,7 +8,7 @@ pub const Week_Day = enum(u3) {
     saturday = 7,
 
     pub fn from_number(d: i32) Week_Day {
-        return @enumFromInt(d);
+        return @fromBackingInt(@intCast(d));
     }
 
     pub fn from_iso(d: i32) Week_Day {
@@ -30,7 +30,7 @@ pub const Week_Day = enum(u3) {
             const info = @typeInfo(Week_Day).@"enum";
             inline for (info.field_names, info.field_values) |field_name, field_value| {
                 if (trimmed[0] | 0x20 == field_name[0]) {
-                    const day: Week_Day = @enumFromInt(field_value);
+                    const day: Week_Day = @fromBackingInt(@intCast(field_value));
                     if (switch (trimmed.len) {
                         1 => options.allow_short and day == .monday or day == .wednesday or day == .friday,
                         2 => options.allow_short and trimmed[1] | 0x20 == field_name[1],
@@ -46,7 +46,7 @@ pub const Week_Day = enum(u3) {
         if (options.allow_numeric) {
             const numeric = std.fmt.parseInt(u3, trimmed, 10) catch return error.InvalidString;
             if (numeric >= 1 and numeric <= 7) {
-                return @enumFromInt(numeric);
+                return @fromBackingInt(@intCast(numeric));
             }
         }
 
@@ -54,10 +54,10 @@ pub const Week_Day = enum(u3) {
     }
 
     pub fn as_number(self: Week_Day) i32 {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
     pub fn as_unsigned(self: Week_Day) u32 {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 
     pub fn as_iso(self: Week_Day) u3 {
@@ -81,11 +81,11 @@ pub const Week_Day = enum(u3) {
     }
 
     pub fn is_before(self: Week_Day, other: Week_Day) bool {
-        return @intFromEnum(self) < @intFromEnum(other);
+        return @backingInt(self) < @backingInt(other);
     }
 
     pub fn is_after(self: Week_Day, other: Week_Day) bool {
-        return @intFromEnum(self) > @intFromEnum(other);
+        return @backingInt(self) > @backingInt(other);
     }
 
     pub fn plus(self: Week_Day, days: i32) Week_Day {
@@ -128,8 +128,8 @@ pub fn oracle(d: Date) Week_Day {
         std.debug.assert(Date.year(.epoch).as_number() == 2000);
         std.debug.assert(Week_Day.as_number(.saturday) == 7);
     }
-    const rd: i64 = @intFromEnum(d);
-    return @enumFromInt(@mod(rd - 1, 7) + 1);
+    const rd: i64 = @backingInt(d);
+    return @fromBackingInt(@intCast(@mod(rd - 1, 7) + 1));
 }
 
 /// An alternative oracle that uses @rem instead of @mod
@@ -139,27 +139,27 @@ pub fn oracle2(d: Date) Week_Day {
         std.debug.assert(Date.year(.epoch).as_number() == 2000);
         std.debug.assert(Week_Day.as_number(.saturday) == 7);
     }
-    const rd: i64 = @intFromEnum(d);
-    return @enumFromInt(@rem(@rem(rd, 7) + 13, 7) + 1);
+    const rd: i64 = @backingInt(d);
+    return @fromBackingInt(@intCast(@rem(@rem(rd, 7) + 13, 7) + 1));
 }
 
 /// for benchmarking only
 pub fn hinnant(d: Date) Week_Day {
-    const rd: i32 = @intFromEnum(d);
+    const rd: i32 = @backingInt(d);
     if (rd >= -6) {
-        return @enumFromInt(@rem(rd + 6, 7) + 1);
+        return @fromBackingInt(@intCast(@rem(rd + 6, 7) + 1));
     } else {
-        return @enumFromInt(@rem(rd + 7, 7) + 7);
+        return @fromBackingInt(@intCast(@rem(rd + 7, 7) + 7));
     }
 }
 
 /// for benchmarking only
 pub fn neri(d: Date) Week_Day {
-    const rd: i32 = @intFromEnum(d);
+    const rd: i32 = @backingInt(d);
     const rd_u32: u32 = @bitCast(rd);
     const pos_offset: u32 = comptime Week_Day.as_unsigned(.saturday) - 1;
     const neg_offset: u32 = ~@as(u32, (@as(comptime_int, pos_offset) + 0x1_0000_0002) % 7) + 1;
-    return @enumFromInt(@rem(rd_u32 +% if (rd >= 0) pos_offset else neg_offset, 7) + 1);
+    return @fromBackingInt(@intCast(@rem(rd_u32 +% if (rd >= 0) pos_offset else neg_offset, 7) + 1));
 }
 
 pub const joffe_limited_min = -71_303_174; // 17 July -193,222
@@ -170,31 +170,31 @@ pub const joffe_limited_max = 107_653_804; // 8 February 296_746
 /// but there are many which work for `i27`, so I've selected one which is skewed towards
 /// future dates rather than being as close to balanced as possible.
 pub fn joffe_limited(d: Date) Week_Day {
-    const rd: i32 = @intFromEnum(d);
+    const rd: i32 = @backingInt(d);
     std.debug.assert(rd >= joffe_limited_min and rd <= joffe_limited_max);
     const rd_u32: u32 = @bitCast(rd);
     const mult: u32 = (1 << 32) / 7 + 1;
     const offset: u32 = 0b111_1110101 << 22;
     const raw = rd_u32 *% mult +% offset;
     const rounded: u8 = @truncate(raw >> 29);
-    return @enumFromInt(rounded);
+    return @fromBackingInt(@intCast(rounded));
 }
 
 /// adapted from https://www.benjoffe.com/fast-day-of-week#v1
 pub fn joffe_shift(d: Date) Week_Day {
-    const rd: i32 = @intFromEnum(d);
+    const rd: i32 = @backingInt(d);
     const rd_u32: u32 = @bitCast(rd);
     const mult: u32 = (1 << 32) / 7;
     const offset: u32 = 0b111_11110 << 24;
     const a: u32 = rd_u32 *% mult +% offset;
     const b: u32 = @bitCast((rd >> 1) + (rd >> 4));
     const rounded: u8 = @truncate((a +% b) >> 29);
-    return @enumFromInt(rounded);
+    return @fromBackingInt(@intCast(rounded));
 }
 
 /// adapted from https://www.benjoffe.com/fast-day-of-week#v2
 pub fn joffe_mul2(d: Date) Week_Day {
-    const rd: i32 = @intFromEnum(d);
+    const rd: i32 = @backingInt(d);
     const rd_u32: u32 = @bitCast(rd);
     const rd_i64: i64 = rd;
     const mult1: u32 = (1 << 32) / 7 + 1;
@@ -205,12 +205,12 @@ pub fn joffe_mul2(d: Date) Week_Day {
     const b_u64: u64 = @bitCast(b_i64);
     const b: u32 = @truncate(b_u64 >> 32);
     const rounded: u8 = @truncate((a +% b) >> 29);
-    return @enumFromInt(rounded);
+    return @fromBackingInt(@intCast(rounded));
 }
 
 /// adapted from https://www.benjoffe.com/fast-day-of-week#v3
 pub fn joffe_split(d: Date) Week_Day {
-    const rd: i64 = @intFromEnum(d);
+    const rd: i64 = @backingInt(d);
     const rd_u64: u64 = @bitCast(rd);
     const mult: u32 = (1 << 32) / 7;
     const offset: u32 = 0b111_11100 << 24;
@@ -219,18 +219,18 @@ pub fn joffe_split(d: Date) Week_Day {
     const lo: u32 = @truncate(wide);
     const raw: u32 = lo +% (hi << 2) +% offset;
     const rounded: u8 = @truncate(raw >> 29);
-    return @enumFromInt(rounded);
+    return @fromBackingInt(@intCast(rounded));
 }
 
 /// adapted from https://www.benjoffe.com/fast-day-of-week#widen
 pub fn joffe_64b(d: Date) Week_Day {
-    const rd: i64 = @intFromEnum(d);
+    const rd: i64 = @backingInt(d);
     const rd_u64: u64 = @bitCast(rd);
     const mult: u64 = ((1 << 40) / 7 + 1) << 24;
     const offset: u64 = 0b111_11100 << 56;
     const raw = rd_u64 *% mult +% offset;
     const rounded: u8 = @truncate(raw >> 61);
-    return @enumFromInt(rounded);
+    return @fromBackingInt(@intCast(rounded));
 }
 
 pub const Date = @import("date.zig").Date;
