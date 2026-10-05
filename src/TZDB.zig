@@ -121,7 +121,7 @@ pub const Add_Options = struct {
         return .{
             .tzdata_override_search_path = if (maybe_env) |env| env.get("TZDIR") orelse env.get("TZDATA") orelse env.get("ZONEINFO") else null,
             .tzdata_search_paths = &common_zoneinfo_locations,
-            .use_windows = builtin.os.tag == .windows and !allow_embedded,
+            .use_windows = builtin.target.os.tag == .windows and !allow_embedded,
             .use_embedded = allow_embedded,
         };
     }
@@ -352,7 +352,7 @@ fn add_iana(self: *TZDB, io: std.Io, id: []const u8, options: Add_IANA_Options) 
         if (try self.load_iana(io, path, id, id, options.load_leap_seconds)) |tz| return tz;
     }
 
-    if (builtin.os.tag == .windows and options.use_windows) {
+    if (builtin.target.os.tag == .windows and options.use_windows) {
         if (try self.load_windows(io, id)) |tz| return tz;
     }
 
@@ -486,7 +486,7 @@ pub const Add_Current_Options = struct {
     pub fn init(maybe_env: ?*std.process.Environ.Map, link_existing: bool) Add_Current_Options {
         return .{
             .override = if (maybe_env) |env| env.get("TZ") else null,
-            .search_paths = if (builtin.os.tag == .windows) &.{} else &.{"/etc/localtime"},
+            .search_paths = if (builtin.target.os.tag == .windows) &.{} else &.{"/etc/localtime"},
             .tzdata_override_search_path = if (maybe_env) |env| env.get("TZDIR") orelse env.get("TZDATA") orelse env.get("ZONEINFO") else null,
             .tzdata_search_paths = &common_zoneinfo_locations,
             .link_existing = link_existing,
@@ -539,7 +539,7 @@ pub fn add_current(self: *TZDB, io: std.Io, options: Add_Current_Options) std.me
         }
     }
 
-    if (builtin.os.tag == .windows) {
+    if (builtin.target.os.tag == .windows) {
         var info_buf: [44]u8 = undefined;
         if (Timezone.windows.current_timezone_info(&info_buf)) |info| {
             if (options.link_existing) {
@@ -591,7 +591,7 @@ fn read_current_timezone_link(self: *TZDB, io: std.Io, path: []const u8, link_ex
     return null;
 }
 
-pub const common_zoneinfo_locations = switch (builtin.os.tag) {
+pub const common_zoneinfo_locations = switch (builtin.target.os.tag) {
     .windows => common_zoneinfo_locations_windows,
     else => common_zoneinfo_locations_posix,
 };

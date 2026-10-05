@@ -433,7 +433,7 @@ fn compile_zone(alloc: std.mem.Allocator, zone_lines: []Zone, leapsecond_years: 
 
     var default_time_type: ?u8 = null;
 
-    var processed_rules: std.DynamicBitSetUnmanaged = try .initEmpty(alloc, 64);
+    var processed_rules: std.bit_set.Dynamic = try .initEmpty(alloc, 64);
 
     for (0.., zone_lines) |i, zone| {
         var dst_save_seconds: i32 = 0; // a guess that may be corrected later

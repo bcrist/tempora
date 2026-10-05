@@ -123,7 +123,7 @@ pub const civil64 = struct {
     const d_shift: i64 = eras * days_per_era - epoch_days_since_0000_02_29;
     const y_shift: i64 = 400 * eras - 1;
 
-    const scale = switch (builtin.cpu.arch) {
+    const scale = switch (builtin.target.cpu.arch) {
         .aarch64, .aarch64_be => 1,
         else => 32,
     };

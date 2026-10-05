@@ -211,7 +211,7 @@ fn build_benchmarks(b: *std.Build, tempora_module: *std.Build.Module) void {
             .root_source_file = b.path("src/week_day.zig"),
         });
 
-        inline for ([_]std.builtin.OptimizeMode{ .Debug, .ReleaseSafe, .ReleaseFast }) |optimize| {
+        inline for ([_]std.lang.Optimize{ .Debug, .ReleaseSafe, .ReleaseFast }) |optimize| {
             const civil_bench = b.addExecutable(.{
                 .name = "benchmark_civil_" ++ @tagName(optimize),
                 .root_module = b.createModule(.{

@@ -99,7 +99,7 @@ inline fn run_test(comptime func: anytype, d: Date) !void {
 }
 
 fn is_debug() bool {
-    return if (@hasDecl(std.builtin, "Optimize")) builtin.optimize == .debug else builtin.mode == .Debug;
+    return builtin.optimize == .debug;
 }
 
 const Date = wd.Date;
