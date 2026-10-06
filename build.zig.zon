@@ -2,7 +2,7 @@
     .name = .tempora,
     .fingerprint = 0xb3d860680d9e3c19,
     .version = "0.6.5",
-    .minimum_zig_version = "0.16.0",
+    .minimum_zig_version = "0.17.0",
     .paths = .{
         "src",
         "build.zig",
