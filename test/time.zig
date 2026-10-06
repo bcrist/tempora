@@ -1,67 +1,82 @@
-test "Time.from_hmsm" {
-    try std.testing.expectEqual(Time.midnight, Time.from_hmsm(0, 0, 0, 0));
-    try std.testing.expectEqual(Time.@"1am", Time.from_hmsm(1, 0, 0, 0));
-    try std.testing.expectEqual(Time.noon, Time.from_hmsm(12, 0, 0, 0));
-    try std.testing.expect(Time.is_after(.midnight_eod, Time.from_hmsm(23, 59, 59, 999)));
-    try std.testing.expect(Time.is_before(.midnight_eod, Time.from_hmsm(23, 59, 59, 999).plus_ms(2)));
+test "Time.from_hmsm_numbers" {
+    try std.testing.expectEqual(Time.midnight, Time.from_hmsm_numbers(0, 0, 0, 0));
+    try std.testing.expectEqual(Time.@"1am", Time.from_hmsm_numbers(1, 0, 0, 0));
+    try std.testing.expectEqual(Time.noon, Time.from_hmsm_numbers(12, 0, 0, 0));
+    try std.testing.expect(Time.is_after(.midnight_eod, Time.from_hmsm_numbers(23, 59, 59, 999)));
+    try std.testing.expect(Time.is_before(.midnight_eod, Time.from_hmsm_numbers(23, 59, 59, 999).plus_ms(2)));
 
-    try std.testing.expectEqual(234, @backingInt(Time.from_hmsm(0, 0, 0, 234)));
-    try std.testing.expectEqual(1000, @backingInt(Time.from_hmsm(0, 0, 1, 0)));
-    try std.testing.expectEqual(59234, @backingInt(Time.from_hmsm(0, 0, 59, 234)));
-    try std.testing.expectEqual(119004, @backingInt(Time.from_hmsm(0, 1, 59, 4)));
-    try std.testing.expectEqual(3661004, @backingInt(Time.from_hmsm(1, 1, 1, 4)));
-    try std.testing.expectEqual(86399000, @backingInt(Time.from_hmsm(23, 59, 59, 0)));
+    try std.testing.expectEqual(234, @backingInt(Time.from_hmsm_numbers(0, 0, 0, 234)));
+    try std.testing.expectEqual(1000, @backingInt(Time.from_hmsm_numbers(0, 0, 1, 0)));
+    try std.testing.expectEqual(59234, @backingInt(Time.from_hmsm_numbers(0, 0, 59, 234)));
+    try std.testing.expectEqual(119004, @backingInt(Time.from_hmsm_numbers(0, 1, 59, 4)));
+    try std.testing.expectEqual(3661004, @backingInt(Time.from_hmsm_numbers(1, 1, 1, 4)));
+    try std.testing.expectEqual(86399000, @backingInt(Time.from_hmsm_numbers(23, 59, 59, 0)));
 }
 
-test "Time.hours" {
-    try std.testing.expectEqual(0, Time.from_hmsm(0, 0, 0, 234).hours());
-    try std.testing.expectEqual(0, Time.from_hmsm(0, 0, 1, 0).hours());
-    try std.testing.expectEqual(0, Time.from_hmsm(0, 1, 59, 4).hours());
-    try std.testing.expectEqual(1, Time.from_hmsm(1, 0, 0, 0).hours());
-    try std.testing.expectEqual(1, Time.from_hmsm(1, 1, 1, 4).hours());
-    try std.testing.expectEqual(12, Time.from_hmsm(12, 0, 0, 0).hours());
-    try std.testing.expectEqual(13, Time.from_hmsm(13, 0, 0, 0).hours());
-    try std.testing.expectEqual(23, Time.from_hmsm(23, 59, 59, 999).hours());
-    try std.testing.expectEqual(0, Time.hours(.midnight));
-    try std.testing.expectEqual(0, Time.hours(.@"12am"));
-    try std.testing.expectEqual(1, Time.hours(.@"1am"));
-    try std.testing.expectEqual(2, Time.hours(.@"2am"));
-    try std.testing.expectEqual(3, Time.hours(.@"3am"));
-    try std.testing.expectEqual(4, Time.hours(.@"4am"));
-    try std.testing.expectEqual(5, Time.hours(.@"5am"));
-    try std.testing.expectEqual(6, Time.hours(.@"6am"));
-    try std.testing.expectEqual(7, Time.hours(.@"7am"));
-    try std.testing.expectEqual(8, Time.hours(.@"8am"));
-    try std.testing.expectEqual(9, Time.hours(.@"9am"));
-    try std.testing.expectEqual(10, Time.hours(.@"10am"));
-    try std.testing.expectEqual(11, Time.hours(.@"11am"));
-    try std.testing.expectEqual(12, Time.hours(.@"12pm"));
-    try std.testing.expectEqual(12, Time.hours(.noon));
-    try std.testing.expectEqual(13, Time.hours(.@"1pm"));
-    try std.testing.expectEqual(14, Time.hours(.@"2pm"));
-    try std.testing.expectEqual(15, Time.hours(.@"3pm"));
-    try std.testing.expectEqual(16, Time.hours(.@"4pm"));
-    try std.testing.expectEqual(17, Time.hours(.@"5pm"));
-    try std.testing.expectEqual(18, Time.hours(.@"6pm"));
-    try std.testing.expectEqual(19, Time.hours(.@"7pm"));
-    try std.testing.expectEqual(20, Time.hours(.@"8pm"));
-    try std.testing.expectEqual(21, Time.hours(.@"9pm"));
-    try std.testing.expectEqual(22, Time.hours(.@"10pm"));
-    try std.testing.expectEqual(23, Time.hours(.@"11pm"));
-    try std.testing.expectEqual(24, Time.hours(.midnight_eod));
+test "Time.from_hmsm" {
+    try std.testing.expectEqual(Time.midnight, Time.from_hmsm(.from_numbers(0, 0, 0, 0)));
+    try std.testing.expectEqual(Time.@"1am", Time.from_hmsm(.from_numbers(1, 0, 0, 0)));
+    try std.testing.expectEqual(Time.noon, Time.from_hmsm(.from_numbers(12, 0, 0, 0)));
+    try std.testing.expect(Time.is_after(.midnight_eod, Time.from_hmsm(.from_numbers(23, 59, 59, 999))));
+    try std.testing.expect(Time.is_before(.midnight_eod, Time.from_hmsm(.from_numbers(23, 59, 59, 999)).plus_ms(2)));
+
+    try std.testing.expectEqual(234, @backingInt(Time.from_hmsm(.from_numbers(0, 0, 0, 234))));
+    try std.testing.expectEqual(1000, @backingInt(Time.from_hmsm(.from_numbers(0, 0, 1, 0))));
+    try std.testing.expectEqual(59234, @backingInt(Time.from_hmsm(.from_numbers(0, 0, 59, 234))));
+    try std.testing.expectEqual(119004, @backingInt(Time.from_hmsm(.from_numbers(0, 1, 59, 4))));
+    try std.testing.expectEqual(3661004, @backingInt(Time.from_hmsm(.from_numbers(1, 1, 1, 4))));
+    try std.testing.expectEqual(86399000, @backingInt(Time.from_hmsm(.from_numbers(23, 59, 59, 0))));
+}
+
+test "Time.HMSM.h" {
+    try std.testing.expectEqual(0, Time.from_hmsm_numbers(0, 0, 0, 234).hmsm().h);
+    try std.testing.expectEqual(0, Time.from_hmsm_numbers(0, 0, 1, 0).hmsm().h);
+    try std.testing.expectEqual(0, Time.from_hmsm_numbers(0, 1, 59, 4).hmsm().h);
+    try std.testing.expectEqual(1, Time.from_hmsm_numbers(1, 0, 0, 0).hmsm().h);
+    try std.testing.expectEqual(1, Time.from_hmsm_numbers(1, 1, 1, 4).hmsm().h);
+    try std.testing.expectEqual(12, Time.from_hmsm_numbers(12, 0, 0, 0).hmsm().h);
+    try std.testing.expectEqual(13, Time.from_hmsm_numbers(13, 0, 0, 0).hmsm().h);
+    try std.testing.expectEqual(23, Time.from_hmsm_numbers(23, 59, 59, 999).hmsm().h);
+    try std.testing.expectEqual(0, Time.hmsm(.midnight).h);
+    try std.testing.expectEqual(0, Time.hmsm(.@"12am").h);
+    try std.testing.expectEqual(1, Time.hmsm(.@"1am").h);
+    try std.testing.expectEqual(2, Time.hmsm(.@"2am").h);
+    try std.testing.expectEqual(3, Time.hmsm(.@"3am").h);
+    try std.testing.expectEqual(4, Time.hmsm(.@"4am").h);
+    try std.testing.expectEqual(5, Time.hmsm(.@"5am").h);
+    try std.testing.expectEqual(6, Time.hmsm(.@"6am").h);
+    try std.testing.expectEqual(7, Time.hmsm(.@"7am").h);
+    try std.testing.expectEqual(8, Time.hmsm(.@"8am").h);
+    try std.testing.expectEqual(9, Time.hmsm(.@"9am").h);
+    try std.testing.expectEqual(10, Time.hmsm(.@"10am").h);
+    try std.testing.expectEqual(11, Time.hmsm(.@"11am").h);
+    try std.testing.expectEqual(12, Time.hmsm(.@"12pm").h);
+    try std.testing.expectEqual(12, Time.hmsm(.noon).h);
+    try std.testing.expectEqual(13, Time.hmsm(.@"1pm").h);
+    try std.testing.expectEqual(14, Time.hmsm(.@"2pm").h);
+    try std.testing.expectEqual(15, Time.hmsm(.@"3pm").h);
+    try std.testing.expectEqual(16, Time.hmsm(.@"4pm").h);
+    try std.testing.expectEqual(17, Time.hmsm(.@"5pm").h);
+    try std.testing.expectEqual(18, Time.hmsm(.@"6pm").h);
+    try std.testing.expectEqual(19, Time.hmsm(.@"7pm").h);
+    try std.testing.expectEqual(20, Time.hmsm(.@"8pm").h);
+    try std.testing.expectEqual(21, Time.hmsm(.@"9pm").h);
+    try std.testing.expectEqual(22, Time.hmsm(.@"10pm").h);
+    try std.testing.expectEqual(23, Time.hmsm(.@"11pm").h);
+    try std.testing.expectEqual(24, Time.hmsm(.midnight_eod).h);
 }
 
 test "Time.minutes_since_midnight" {
-    try std.testing.expectEqual(0, Time.from_hmsm(0, 0, 0, 234).minutes_since_midnight());
-    try std.testing.expectEqual(0, Time.from_hmsm(0, 0, 1, 0).minutes_since_midnight());
-    try std.testing.expectEqual(0, Time.from_hmsm(0, 0, 59, 999).minutes_since_midnight());
-    try std.testing.expectEqual(1, Time.from_hmsm(0, 1, 0, 0).minutes_since_midnight());
-    try std.testing.expectEqual(1, Time.from_hmsm(0, 1, 59, 4).minutes_since_midnight());
-    try std.testing.expectEqual(60, Time.from_hmsm(1, 0, 0, 0).minutes_since_midnight());
-    try std.testing.expectEqual(61, Time.from_hmsm(1, 1, 1, 4).minutes_since_midnight());
-    try std.testing.expectEqual(12 * 60, Time.from_hmsm(12, 0, 0, 0).minutes_since_midnight());
-    try std.testing.expectEqual(13 * 60, Time.from_hmsm(13, 0, 0, 0).minutes_since_midnight());
-    try std.testing.expectEqual(24 * 60 - 1, Time.from_hmsm(23, 59, 59, 999).minutes_since_midnight());
+    try std.testing.expectEqual(0, Time.from_hmsm_numbers(0, 0, 0, 234).minutes_since_midnight());
+    try std.testing.expectEqual(0, Time.from_hmsm_numbers(0, 0, 1, 0).minutes_since_midnight());
+    try std.testing.expectEqual(0, Time.from_hmsm_numbers(0, 0, 59, 999).minutes_since_midnight());
+    try std.testing.expectEqual(1, Time.from_hmsm_numbers(0, 1, 0, 0).minutes_since_midnight());
+    try std.testing.expectEqual(1, Time.from_hmsm_numbers(0, 1, 59, 4).minutes_since_midnight());
+    try std.testing.expectEqual(60, Time.from_hmsm_numbers(1, 0, 0, 0).minutes_since_midnight());
+    try std.testing.expectEqual(61, Time.from_hmsm_numbers(1, 1, 1, 4).minutes_since_midnight());
+    try std.testing.expectEqual(12 * 60, Time.from_hmsm_numbers(12, 0, 0, 0).minutes_since_midnight());
+    try std.testing.expectEqual(13 * 60, Time.from_hmsm_numbers(13, 0, 0, 0).minutes_since_midnight());
+    try std.testing.expectEqual(24 * 60 - 1, Time.from_hmsm_numbers(23, 59, 59, 999).minutes_since_midnight());
     try std.testing.expectEqual(0, Time.minutes_since_midnight(.midnight));
     try std.testing.expectEqual(0, Time.minutes_since_midnight(.@"12am"));
     try std.testing.expectEqual(60 * 1, Time.minutes_since_midnight(.@"1am"));
@@ -91,57 +106,57 @@ test "Time.minutes_since_midnight" {
     try std.testing.expectEqual(60 * 24, Time.minutes_since_midnight(.midnight_eod));
 }
 
-test "Time.minutes" {
-    try std.testing.expectEqual(0, Time.from_hmsm(0, 0, 0, 234).minutes());
-    try std.testing.expectEqual(0, Time.from_hmsm(0, 0, 1, 0).minutes());
-    try std.testing.expectEqual(0, Time.from_hmsm(0, 0, 59, 999).minutes());
-    try std.testing.expectEqual(1, Time.from_hmsm(0, 1, 0, 0).minutes());
-    try std.testing.expectEqual(1, Time.from_hmsm(0, 1, 59, 4).minutes());
-    try std.testing.expectEqual(0, Time.from_hmsm(1, 0, 0, 0).minutes());
-    try std.testing.expectEqual(1, Time.from_hmsm(1, 1, 1, 4).minutes());
-    try std.testing.expectEqual(0, Time.from_hmsm(12, 0, 0, 0).minutes());
-    try std.testing.expectEqual(0, Time.from_hmsm(13, 0, 0, 0).minutes());
-    try std.testing.expectEqual(59, Time.from_hmsm(23, 59, 59, 999).minutes());
-    try std.testing.expectEqual(0, Time.minutes(.midnight));
-    try std.testing.expectEqual(0, Time.minutes(.@"12am"));
-    try std.testing.expectEqual(0, Time.minutes(.@"1am"));
-    try std.testing.expectEqual(0, Time.minutes(.@"2am"));
-    try std.testing.expectEqual(0, Time.minutes(.@"3am"));
-    try std.testing.expectEqual(0, Time.minutes(.@"4am"));
-    try std.testing.expectEqual(0, Time.minutes(.@"5am"));
-    try std.testing.expectEqual(0, Time.minutes(.@"6am"));
-    try std.testing.expectEqual(0, Time.minutes(.@"7am"));
-    try std.testing.expectEqual(0, Time.minutes(.@"8am"));
-    try std.testing.expectEqual(0, Time.minutes(.@"9am"));
-    try std.testing.expectEqual(0, Time.minutes(.@"10am"));
-    try std.testing.expectEqual(0, Time.minutes(.@"11am"));
-    try std.testing.expectEqual(0, Time.minutes(.@"12pm"));
-    try std.testing.expectEqual(0, Time.minutes(.noon));
-    try std.testing.expectEqual(0, Time.minutes(.@"1pm"));
-    try std.testing.expectEqual(0, Time.minutes(.@"2pm"));
-    try std.testing.expectEqual(0, Time.minutes(.@"3pm"));
-    try std.testing.expectEqual(0, Time.minutes(.@"4pm"));
-    try std.testing.expectEqual(0, Time.minutes(.@"5pm"));
-    try std.testing.expectEqual(0, Time.minutes(.@"6pm"));
-    try std.testing.expectEqual(0, Time.minutes(.@"7pm"));
-    try std.testing.expectEqual(0, Time.minutes(.@"8pm"));
-    try std.testing.expectEqual(0, Time.minutes(.@"9pm"));
-    try std.testing.expectEqual(0, Time.minutes(.@"10pm"));
-    try std.testing.expectEqual(0, Time.minutes(.@"11pm"));
-    try std.testing.expectEqual(0, Time.minutes(.midnight_eod));
+test "Time.HMSM.m" {
+    try std.testing.expectEqual(0, Time.from_hmsm_numbers(0, 0, 0, 234).hmsm().m);
+    try std.testing.expectEqual(0, Time.from_hmsm_numbers(0, 0, 1, 0).hmsm().m);
+    try std.testing.expectEqual(0, Time.from_hmsm_numbers(0, 0, 59, 999).hmsm().m);
+    try std.testing.expectEqual(1, Time.from_hmsm_numbers(0, 1, 0, 0).hmsm().m);
+    try std.testing.expectEqual(1, Time.from_hmsm_numbers(0, 1, 59, 4).hmsm().m);
+    try std.testing.expectEqual(0, Time.from_hmsm_numbers(1, 0, 0, 0).hmsm().m);
+    try std.testing.expectEqual(1, Time.from_hmsm_numbers(1, 1, 1, 4).hmsm().m);
+    try std.testing.expectEqual(0, Time.from_hmsm_numbers(12, 0, 0, 0).hmsm().m);
+    try std.testing.expectEqual(0, Time.from_hmsm_numbers(13, 0, 0, 0).hmsm().m);
+    try std.testing.expectEqual(59, Time.from_hmsm_numbers(23, 59, 59, 999).hmsm().m);
+    try std.testing.expectEqual(0, Time.hmsm(.midnight).m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"12am").m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"1am").m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"2am").m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"3am").m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"4am").m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"5am").m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"6am").m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"7am").m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"8am").m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"9am").m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"10am").m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"11am").m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"12pm").m);
+    try std.testing.expectEqual(0, Time.hmsm(.noon).m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"1pm").m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"2pm").m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"3pm").m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"4pm").m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"5pm").m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"6pm").m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"7pm").m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"8pm").m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"9pm").m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"10pm").m);
+    try std.testing.expectEqual(0, Time.hmsm(.@"11pm").m);
+    try std.testing.expectEqual(0, Time.hmsm(.midnight_eod).m);
 }
 
 test "Time.seconds_since_midnight" {
-    try std.testing.expectEqual(0, Time.from_hmsm(0, 0, 0, 234).seconds_since_midnight());
-    try std.testing.expectEqual(1, Time.from_hmsm(0, 0, 1, 0).seconds_since_midnight());
-    try std.testing.expectEqual(59, Time.from_hmsm(0, 0, 59, 999).seconds_since_midnight());
-    try std.testing.expectEqual(60, Time.from_hmsm(0, 1, 0, 0).seconds_since_midnight());
-    try std.testing.expectEqual(119, Time.from_hmsm(0, 1, 59, 4).seconds_since_midnight());
-    try std.testing.expectEqual(3600, Time.from_hmsm(1, 0, 0, 0).seconds_since_midnight());
-    try std.testing.expectEqual(3661, Time.from_hmsm(1, 1, 1, 4).seconds_since_midnight());
-    try std.testing.expectEqual(12 * 60 * 60, Time.from_hmsm(12, 0, 0, 0).seconds_since_midnight());
-    try std.testing.expectEqual(13 * 60 * 60, Time.from_hmsm(13, 0, 0, 0).seconds_since_midnight());
-    try std.testing.expectEqual(24 * 60 * 60 - 1, Time.from_hmsm(23, 59, 59, 999).seconds_since_midnight());
+    try std.testing.expectEqual(0, Time.from_hmsm_numbers(0, 0, 0, 234).seconds_since_midnight());
+    try std.testing.expectEqual(1, Time.from_hmsm_numbers(0, 0, 1, 0).seconds_since_midnight());
+    try std.testing.expectEqual(59, Time.from_hmsm_numbers(0, 0, 59, 999).seconds_since_midnight());
+    try std.testing.expectEqual(60, Time.from_hmsm_numbers(0, 1, 0, 0).seconds_since_midnight());
+    try std.testing.expectEqual(119, Time.from_hmsm_numbers(0, 1, 59, 4).seconds_since_midnight());
+    try std.testing.expectEqual(3600, Time.from_hmsm_numbers(1, 0, 0, 0).seconds_since_midnight());
+    try std.testing.expectEqual(3661, Time.from_hmsm_numbers(1, 1, 1, 4).seconds_since_midnight());
+    try std.testing.expectEqual(12 * 60 * 60, Time.from_hmsm_numbers(12, 0, 0, 0).seconds_since_midnight());
+    try std.testing.expectEqual(13 * 60 * 60, Time.from_hmsm_numbers(13, 0, 0, 0).seconds_since_midnight());
+    try std.testing.expectEqual(24 * 60 * 60 - 1, Time.from_hmsm_numbers(23, 59, 59, 999).seconds_since_midnight());
     try std.testing.expectEqual(0, Time.seconds_since_midnight(.midnight));
     try std.testing.expectEqual(0, Time.seconds_since_midnight(.@"12am"));
     try std.testing.expectEqual(60 * 60 * 1, Time.seconds_since_midnight(.@"1am"));
@@ -171,57 +186,57 @@ test "Time.seconds_since_midnight" {
     try std.testing.expectEqual(60 * 60 * 24, Time.seconds_since_midnight(.midnight_eod));
 }
 
-test "Time.seconds" {
-    try std.testing.expectEqual(0, Time.from_hmsm(0, 0, 0, 234).seconds());
-    try std.testing.expectEqual(1, Time.from_hmsm(0, 0, 1, 0).seconds());
-    try std.testing.expectEqual(59, Time.from_hmsm(0, 0, 59, 999).seconds());
-    try std.testing.expectEqual(0, Time.from_hmsm(0, 1, 0, 0).seconds());
-    try std.testing.expectEqual(59, Time.from_hmsm(0, 1, 59, 4).seconds());
-    try std.testing.expectEqual(0, Time.from_hmsm(1, 0, 0, 0).seconds());
-    try std.testing.expectEqual(1, Time.from_hmsm(1, 1, 1, 4).seconds());
-    try std.testing.expectEqual(0, Time.from_hmsm(12, 0, 0, 0).seconds());
-    try std.testing.expectEqual(0, Time.from_hmsm(13, 0, 0, 0).seconds());
-    try std.testing.expectEqual(59, Time.from_hmsm(23, 59, 59, 999).seconds());
-    try std.testing.expectEqual(0, Time.seconds(.midnight));
-    try std.testing.expectEqual(0, Time.seconds(.@"12am"));
-    try std.testing.expectEqual(0, Time.seconds(.@"1am"));
-    try std.testing.expectEqual(0, Time.seconds(.@"2am"));
-    try std.testing.expectEqual(0, Time.seconds(.@"3am"));
-    try std.testing.expectEqual(0, Time.seconds(.@"4am"));
-    try std.testing.expectEqual(0, Time.seconds(.@"5am"));
-    try std.testing.expectEqual(0, Time.seconds(.@"6am"));
-    try std.testing.expectEqual(0, Time.seconds(.@"7am"));
-    try std.testing.expectEqual(0, Time.seconds(.@"8am"));
-    try std.testing.expectEqual(0, Time.seconds(.@"9am"));
-    try std.testing.expectEqual(0, Time.seconds(.@"10am"));
-    try std.testing.expectEqual(0, Time.seconds(.@"11am"));
-    try std.testing.expectEqual(0, Time.seconds(.@"12pm"));
-    try std.testing.expectEqual(0, Time.seconds(.noon));
-    try std.testing.expectEqual(0, Time.seconds(.@"1pm"));
-    try std.testing.expectEqual(0, Time.seconds(.@"2pm"));
-    try std.testing.expectEqual(0, Time.seconds(.@"3pm"));
-    try std.testing.expectEqual(0, Time.seconds(.@"4pm"));
-    try std.testing.expectEqual(0, Time.seconds(.@"5pm"));
-    try std.testing.expectEqual(0, Time.seconds(.@"6pm"));
-    try std.testing.expectEqual(0, Time.seconds(.@"7pm"));
-    try std.testing.expectEqual(0, Time.seconds(.@"8pm"));
-    try std.testing.expectEqual(0, Time.seconds(.@"9pm"));
-    try std.testing.expectEqual(0, Time.seconds(.@"10pm"));
-    try std.testing.expectEqual(0, Time.seconds(.@"11pm"));
-    try std.testing.expectEqual(0, Time.seconds(.midnight_eod));
+test "Time.HMSM.s" {
+    try std.testing.expectEqual(0, Time.from_hmsm_numbers(0, 0, 0, 234).hmsm().s);
+    try std.testing.expectEqual(1, Time.from_hmsm_numbers(0, 0, 1, 0).hmsm().s);
+    try std.testing.expectEqual(59, Time.from_hmsm_numbers(0, 0, 59, 999).hmsm().s);
+    try std.testing.expectEqual(0, Time.from_hmsm_numbers(0, 1, 0, 0).hmsm().s);
+    try std.testing.expectEqual(59, Time.from_hmsm_numbers(0, 1, 59, 4).hmsm().s);
+    try std.testing.expectEqual(0, Time.from_hmsm_numbers(1, 0, 0, 0).hmsm().s);
+    try std.testing.expectEqual(1, Time.from_hmsm_numbers(1, 1, 1, 4).hmsm().s);
+    try std.testing.expectEqual(0, Time.from_hmsm_numbers(12, 0, 0, 0).hmsm().s);
+    try std.testing.expectEqual(0, Time.from_hmsm_numbers(13, 0, 0, 0).hmsm().s);
+    try std.testing.expectEqual(59, Time.from_hmsm_numbers(23, 59, 59, 999).hmsm().s);
+    try std.testing.expectEqual(0, Time.hmsm(.midnight).s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"12am").s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"1am").s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"2am").s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"3am").s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"4am").s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"5am").s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"6am").s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"7am").s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"8am").s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"9am").s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"10am").s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"11am").s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"12pm").s);
+    try std.testing.expectEqual(0, Time.hmsm(.noon).s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"1pm").s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"2pm").s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"3pm").s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"4pm").s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"5pm").s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"6pm").s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"7pm").s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"8pm").s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"9pm").s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"10pm").s);
+    try std.testing.expectEqual(0, Time.hmsm(.@"11pm").s);
+    try std.testing.expectEqual(0, Time.hmsm(.midnight_eod).s);
 }
 
 test "Time.ms_since_midnight" {
-    try std.testing.expectEqual(234, Time.from_hmsm(0, 0, 0, 234).ms_since_midnight());
-    try std.testing.expectEqual(1000, Time.from_hmsm(0, 0, 1, 0).ms_since_midnight());
-    try std.testing.expectEqual(59999, Time.from_hmsm(0, 0, 59, 999).ms_since_midnight());
-    try std.testing.expectEqual(60000, Time.from_hmsm(0, 1, 0, 0).ms_since_midnight());
-    try std.testing.expectEqual(119004, Time.from_hmsm(0, 1, 59, 4).ms_since_midnight());
-    try std.testing.expectEqual(3600000, Time.from_hmsm(1, 0, 0, 0).ms_since_midnight());
-    try std.testing.expectEqual(3661004, Time.from_hmsm(1, 1, 1, 4).ms_since_midnight());
-    try std.testing.expectEqual(12 * 60 * 60000, Time.from_hmsm(12, 0, 0, 0).ms_since_midnight());
-    try std.testing.expectEqual(13 * 60 * 60000, Time.from_hmsm(13, 0, 0, 0).ms_since_midnight());
-    try std.testing.expectEqual(24 * 60 * 60000 - 1, Time.from_hmsm(23, 59, 59, 999).ms_since_midnight());
+    try std.testing.expectEqual(234, Time.from_hmsm_numbers(0, 0, 0, 234).ms_since_midnight());
+    try std.testing.expectEqual(1000, Time.from_hmsm_numbers(0, 0, 1, 0).ms_since_midnight());
+    try std.testing.expectEqual(59999, Time.from_hmsm_numbers(0, 0, 59, 999).ms_since_midnight());
+    try std.testing.expectEqual(60000, Time.from_hmsm_numbers(0, 1, 0, 0).ms_since_midnight());
+    try std.testing.expectEqual(119004, Time.from_hmsm_numbers(0, 1, 59, 4).ms_since_midnight());
+    try std.testing.expectEqual(3600000, Time.from_hmsm_numbers(1, 0, 0, 0).ms_since_midnight());
+    try std.testing.expectEqual(3661004, Time.from_hmsm_numbers(1, 1, 1, 4).ms_since_midnight());
+    try std.testing.expectEqual(12 * 60 * 60000, Time.from_hmsm_numbers(12, 0, 0, 0).ms_since_midnight());
+    try std.testing.expectEqual(13 * 60 * 60000, Time.from_hmsm_numbers(13, 0, 0, 0).ms_since_midnight());
+    try std.testing.expectEqual(24 * 60 * 60000 - 1, Time.from_hmsm_numbers(23, 59, 59, 999).ms_since_midnight());
     try std.testing.expectEqual(0, Time.ms_since_midnight(.midnight));
     try std.testing.expectEqual(0, Time.ms_since_midnight(.@"12am"));
     try std.testing.expectEqual(60 * 60000 * 1, Time.ms_since_midnight(.@"1am"));
@@ -251,44 +266,44 @@ test "Time.ms_since_midnight" {
     try std.testing.expectEqual(60 * 60000 * 24, Time.ms_since_midnight(.midnight_eod));
 }
 
-test "Time.ms" {
-    try std.testing.expectEqual(234, Time.from_hmsm(0, 0, 0, 234).ms());
-    try std.testing.expectEqual(0, Time.from_hmsm(0, 0, 1, 0).ms());
-    try std.testing.expectEqual(999, Time.from_hmsm(0, 0, 59, 999).ms());
-    try std.testing.expectEqual(0, Time.from_hmsm(0, 1, 0, 0).ms());
-    try std.testing.expectEqual(4, Time.from_hmsm(0, 1, 59, 4).ms());
-    try std.testing.expectEqual(0, Time.from_hmsm(1, 0, 0, 0).ms());
-    try std.testing.expectEqual(4, Time.from_hmsm(1, 1, 1, 4).ms());
-    try std.testing.expectEqual(0, Time.from_hmsm(12, 0, 0, 0).ms());
-    try std.testing.expectEqual(0, Time.from_hmsm(13, 0, 0, 0).ms());
-    try std.testing.expectEqual(999, Time.from_hmsm(23, 59, 59, 999).ms());
-    try std.testing.expectEqual(0, Time.ms(.midnight));
-    try std.testing.expectEqual(0, Time.ms(.@"12am"));
-    try std.testing.expectEqual(0, Time.ms(.@"1am"));
-    try std.testing.expectEqual(0, Time.ms(.@"2am"));
-    try std.testing.expectEqual(0, Time.ms(.@"3am"));
-    try std.testing.expectEqual(0, Time.ms(.@"4am"));
-    try std.testing.expectEqual(0, Time.ms(.@"5am"));
-    try std.testing.expectEqual(0, Time.ms(.@"6am"));
-    try std.testing.expectEqual(0, Time.ms(.@"7am"));
-    try std.testing.expectEqual(0, Time.ms(.@"8am"));
-    try std.testing.expectEqual(0, Time.ms(.@"9am"));
-    try std.testing.expectEqual(0, Time.ms(.@"10am"));
-    try std.testing.expectEqual(0, Time.ms(.@"11am"));
-    try std.testing.expectEqual(0, Time.ms(.@"12pm"));
-    try std.testing.expectEqual(0, Time.ms(.noon));
-    try std.testing.expectEqual(0, Time.ms(.@"1pm"));
-    try std.testing.expectEqual(0, Time.ms(.@"2pm"));
-    try std.testing.expectEqual(0, Time.ms(.@"3pm"));
-    try std.testing.expectEqual(0, Time.ms(.@"4pm"));
-    try std.testing.expectEqual(0, Time.ms(.@"5pm"));
-    try std.testing.expectEqual(0, Time.ms(.@"6pm"));
-    try std.testing.expectEqual(0, Time.ms(.@"7pm"));
-    try std.testing.expectEqual(0, Time.ms(.@"8pm"));
-    try std.testing.expectEqual(0, Time.ms(.@"9pm"));
-    try std.testing.expectEqual(0, Time.ms(.@"10pm"));
-    try std.testing.expectEqual(0, Time.ms(.@"11pm"));
-    try std.testing.expectEqual(0, Time.ms(.midnight_eod));
+test "Time.HMSM.ms" {
+    try std.testing.expectEqual(234, Time.from_hmsm_numbers(0, 0, 0, 234).hmsm().ms);
+    try std.testing.expectEqual(0, Time.from_hmsm_numbers(0, 0, 1, 0).hmsm().ms);
+    try std.testing.expectEqual(999, Time.from_hmsm_numbers(0, 0, 59, 999).hmsm().ms);
+    try std.testing.expectEqual(0, Time.from_hmsm_numbers(0, 1, 0, 0).hmsm().ms);
+    try std.testing.expectEqual(4, Time.from_hmsm_numbers(0, 1, 59, 4).hmsm().ms);
+    try std.testing.expectEqual(0, Time.from_hmsm_numbers(1, 0, 0, 0).hmsm().ms);
+    try std.testing.expectEqual(4, Time.from_hmsm_numbers(1, 1, 1, 4).hmsm().ms);
+    try std.testing.expectEqual(0, Time.from_hmsm_numbers(12, 0, 0, 0).hmsm().ms);
+    try std.testing.expectEqual(0, Time.from_hmsm_numbers(13, 0, 0, 0).hmsm().ms);
+    try std.testing.expectEqual(999, Time.from_hmsm_numbers(23, 59, 59, 999).hmsm().ms);
+    try std.testing.expectEqual(0, Time.hmsm(.midnight).ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"12am").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"1am").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"2am").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"3am").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"4am").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"5am").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"6am").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"7am").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"8am").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"9am").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"10am").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"11am").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"12pm").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.noon).ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"1pm").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"2pm").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"3pm").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"4pm").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"5pm").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"6pm").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"7pm").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"8pm").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"9pm").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"10pm").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.@"11pm").ms);
+    try std.testing.expectEqual(0, Time.hmsm(.midnight_eod).ms);
 }
 
 test "Time.is_before" {
@@ -315,6 +330,11 @@ test "Time.plus_duration" {
 test "Time.minus_duration" {
     try std.testing.expectEqual(Time.@"11am", Time.minus_duration(.noon, .fromSeconds(60 * 60)));
     try std.testing.expectEqual(Time.@"1pm", Time.minus_duration(.noon, .fromSeconds(-60 * 60)));
+}
+
+test "Time.plus_hmsm" {
+    try std.testing.expectEqual(Time.@"1am", Time.plus_hmsm(.midnight, .from_numbers(1, 0, 0, 0)));
+    try std.testing.expectEqual(Time.@"11pm", Time.plus_hmsm(.midnight, .@"11pm"));
 }
 
 test "Time.plus_ms" {
@@ -361,12 +381,12 @@ test "Time.With_Offset.in_timezone" {
 }
 
 test "Time.With_Offset.fmt, from_string" {
-    const t1: Time = .from_hmsm(0, 0, 0, 0);
-    const t2: Time = .from_hmsm(1, 2, 3, 4);
-    const t3: Time = .from_hmsm(23, 59, 59, 999);
-    const t4: Time = .from_hmsm(12, 0, 0, 0);
-    const t5: Time = .from_hmsm(4, 45, 0, 0);
-    const t6: Time = .from_hmsm(20, 15, 0, 0);
+    const t1: Time = .from_hmsm_numbers(0, 0, 0, 0);
+    const t2: Time = .from_hmsm_numbers(1, 2, 3, 4);
+    const t3: Time = .from_hmsm_numbers(23, 59, 59, 999);
+    const t4: Time = .from_hmsm_numbers(12, 0, 0, 0);
+    const t5: Time = .from_hmsm_numbers(4, 45, 0, 0);
+    const t6: Time = .from_hmsm_numbers(20, 15, 0, 0);
 
     try std.testing.expectFmt("00:00:00.000+00:00", "{f}", .{t1.with_offset(0)});
 
@@ -456,6 +476,92 @@ test "Time.With_Offset.fmt, from_string" {
     try std.testing.expectEqual(t4.with_timezone(&db.local, db.designation_utc_offset_ms("CST", .{ .dt = .epoch }).?), Time.With_Offset.from_string_tzdb("HHmm z", "1200 CST", &db));
     try std.testing.expectEqual(t5.with_timezone(&db.local, db.designation_utc_offset_ms("CDT", .{ .dt = .epoch }).?), Time.With_Offset.from_string_tzdb("HHmm z", "0445 CDT", &db));
     try std.testing.expectEqual(t6.with_timezone(&db.local, db.designation_utc_offset_ms("CDT", .{ .dt = .epoch }).?), Time.With_Offset.from_string_tzdb("HHmm z", "2015 CDT", &db));
+}
+
+test "Time.HMSM.from_time, Time.HMSM.time" {
+    for (0..24 * 60 * 60 * 1000) |ms| {
+        const t: Time = .from_ms(@intCast(ms));
+        const hmsm: Time.HMSM = .from_time(t);
+        try std.testing.expectEqual(t, hmsm.time());
+    }
+}
+
+test "Time.HMSM.minutes_since_midnight" {
+    var ms: u32 = 0;
+    while (ms < 24 * 60 * 60 * 1000) {
+        defer ms += 1234;
+        const t: Time = .from_ms(@intCast(ms));
+        const hmsm: Time.HMSM = .from_time(t);
+        try std.testing.expectEqual(t.minutes_since_midnight(), hmsm.minutes_since_midnight());
+    }
+}
+
+test "Time.HMSM.seconds_since_midnight" {
+    var ms: u32 = 0;
+    while (ms < 24 * 60 * 60 * 1000) {
+        defer ms += 1234;
+        const t: Time = .from_ms(@intCast(ms));
+        const hmsm: Time.HMSM = .from_time(t);
+        try std.testing.expectEqual(t.seconds_since_midnight(), hmsm.seconds_since_midnight());
+    }
+}
+
+test "Time.HMSM.ms_since_midnight" {
+    var ms: u32 = 0;
+    while (ms < 24 * 60 * 60 * 1000) {
+        defer ms += 1234;
+        const t: Time = .from_ms(@intCast(ms));
+        const hmsm: Time.HMSM = .from_time(t);
+        try std.testing.expectEqual(t.ms_since_midnight(), hmsm.ms_since_midnight());
+    }
+}
+
+test "Time.HMSM.is_before" {
+    try std.testing.expect(Time.HMSM.is_before(.@"1am", .noon));
+    try std.testing.expect(Time.HMSM.is_before(.@"12am", .noon));
+    try std.testing.expect(!Time.HMSM.is_before(.noon, .noon));
+    try std.testing.expect(!Time.HMSM.is_before(.@"1pm", .noon));
+    try std.testing.expect(!Time.HMSM.is_before(.midnight_eod, .noon));
+}
+
+test "Time.HMSM.is_after" {
+    try std.testing.expect(!Time.HMSM.is_after(.@"1am", .noon));
+    try std.testing.expect(!Time.HMSM.is_after(.@"12am", .noon));
+    try std.testing.expect(!Time.HMSM.is_after(.noon, .noon));
+    try std.testing.expect(Time.HMSM.is_after(.@"1pm", .noon));
+    try std.testing.expect(Time.HMSM.is_after(.midnight_eod, .noon));
+}
+
+test "Time.HMSM.plus_duration" {
+    try std.testing.expectEqual(Time.HMSM.from_numbers(12, 0, 2, 0), Time.HMSM.plus_duration(.noon, .fromSeconds(2)));
+    try std.testing.expectEqual(Time.HMSM.from_numbers(12, 1, 0, 0), Time.HMSM.plus_duration(.noon, .fromSeconds(60)));
+    try std.testing.expectEqual(Time.HMSM.@"1pm", Time.HMSM.plus_duration(.noon, .fromSeconds(60 * 60)));
+    try std.testing.expectEqual(Time.HMSM.@"11am", Time.HMSM.plus_duration(.noon, .fromSeconds(-60 * 60)));
+}
+
+test "Time.HMSM.minus_duration" {
+    try std.testing.expectEqual(Time.HMSM.@"11am", Time.HMSM.minus_duration(.noon, .fromSeconds(60 * 60)));
+    try std.testing.expectEqual(Time.HMSM.@"1pm", Time.HMSM.minus_duration(.noon, .fromSeconds(-60 * 60)));
+}
+
+test "Time.HMSM.plus_ms" {
+    try std.testing.expectEqual(10, Time.HMSM.plus_ms(.midnight, 10).ms_since_midnight());
+    try std.testing.expectEqual(Time.HMSM.from_numbers(11, 59, 58, 766), Time.HMSM.plus_ms(.noon, -1234));
+}
+
+test "Time.HMSM.plus_seconds" {
+    try std.testing.expectEqual(10000, Time.HMSM.plus_seconds(.midnight, 10).ms_since_midnight());
+    try std.testing.expectEqual(Time.HMSM.from_numbers(11, 59, 50, 0), Time.HMSM.plus_seconds(.noon, -10));
+}
+
+test "Time.HMSM.plus_minutes" {
+    try std.testing.expectEqual(600000, Time.HMSM.plus_minutes(.midnight, 10).ms_since_midnight());
+    try std.testing.expectEqual(Time.HMSM.from_numbers(19, 50, 0, 0), Time.HMSM.plus_minutes(.@"8pm", -10));
+}
+
+test "Time.HMSM.plus_hours" {
+    try std.testing.expectEqual(3600000, Time.HMSM.plus_hours(.midnight, 1).ms_since_midnight());
+    try std.testing.expectEqual(Time.HMSM.@"11am", Time.HMSM.plus_hours(.noon, -1));
 }
 
 const Date = tempora.Date;

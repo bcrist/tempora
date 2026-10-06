@@ -43,7 +43,7 @@ const pacific_chatham: Posix = .init(
             .week = .last,
             .day = .sunday,
         } },
-        .time = .from_hmsm(2, 45, 0, 0),
+        .time = .from_hmsm_numbers(2, 45, 0, 0),
     },
     .{
         .date = .{ .month_week_day = .{
@@ -51,7 +51,7 @@ const pacific_chatham: Posix = .init(
             .week = .first,
             .day = .sunday,
         } },
-        .time = .from_hmsm(3, 45, 0, 0),
+        .time = .from_hmsm_numbers(3, 45, 0, 0),
     },
 );
 

@@ -185,11 +185,11 @@ test "Date_Time.With_Offset.fmt, from_string, in_timezone" {
 
     const dt1 = (Date_Time{
         .date = .from_ymd(.{ .year = .from_number(2024), .month = .february, .day = .first }),
-        .time = .from_hmsm(12, 34, 56, 789),
+        .time = .from_hmsm_numbers(12, 34, 56, 789),
     }).with_offset(0);
     const dt2 = (Date_Time{
-        .date = .from_ymd(.from_numbers(1928, 12, 24)),
-        .time = .from_hmsm(0, 30, 0, 0),
+        .date = .from_ymd_numbers(1928, 12, 24),
+        .time = .from_hmsm_numbers(0, 30, 0, 0),
     }).with_offset(0);
 
     const DTO = Date_Time.With_Offset;

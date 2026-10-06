@@ -124,7 +124,7 @@ const SYSTEMTIME = extern struct {
     }
 
     pub fn time(self: SYSTEMTIME) Time {
-        return .from_hmsm(
+        return .from_hmsm_numbers(
             self.Hour,
             @intCast(self.Minute),
             @intCast(self.Second),

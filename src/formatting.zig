@@ -11,6 +11,7 @@ pub fn format(dto: Date_Time.With_Offset, comptime pattern: []const u8, writer: 
     comptime var need_ordinal_day = false;
     comptime var need_week_day = false;
     comptime var need_iso_week_date = false;
+    comptime var need_hmsm = false;
     inline while (comptime iter.next()) |token| {
         switch (token) {
             .y, .Y, .YY, .YYY, .YYYY, .YYYYYY, .N, .NN => need_year = true,
@@ -20,6 +21,7 @@ pub fn format(dto: Date_Time.With_Offset, comptime pattern: []const u8, writer: 
             .d, .do, .dd, .ddd, .dddd, .E, .Eo => need_week_day = true,
             .w, .wo, .ww => need_ordinal_day = true,
             .W, .Wo, .WW, .G, .GG, .GGGG => need_iso_week_date = true,
+            .A, .a, .H, .HH, .K, .KK, .h, .hh, .k, .kk, .m, .mm, .s, .ss, .S, .SS, .SSS => need_hmsm = true,
             else => {},
         }
     }
@@ -28,6 +30,7 @@ pub fn format(dto: Date_Time.With_Offset, comptime pattern: []const u8, writer: 
     var od: Ordinal_Day = undefined;
     var wd: Week_Day = undefined;
     var iwd: ISO_Week_Date = undefined;
+    var hmsm: Time.HMSM = undefined;
 
     if (need_month_day) {
         ymd = dto.dt.date.ymd();
@@ -37,6 +40,7 @@ pub fn format(dto: Date_Time.With_Offset, comptime pattern: []const u8, writer: 
     if (need_ordinal_day) od = dto.dt.date.ordinal_day();
     if (need_iso_week_date) iwd = .from_date(dto.dt.date);
     if (need_week_day) wd = if (need_iso_week_date) iwd.day else dto.dt.date.week_day();
+    if (need_hmsm) hmsm = dto.dt.time.hmsm();
 
     iter = comptime Token.iterator(pattern);
     inline while (comptime iter.next()) |token| switch (token) {
@@ -136,33 +140,33 @@ pub fn format(dto: Date_Time.With_Offset, comptime pattern: []const u8, writer: 
             try writer.writeAll(text);
         },
 
-        .A => try writer.writeAll(if (dto.dt.time.hours() < 12) "AM" else "PM"),
-        .a => try writer.writeAll(if (dto.dt.time.hours() < 12) "am" else "pm"),
-        .H => try writer.print("{d}", .{@as(u32, @intCast(dto.dt.time.hours()))}),
-        .HH => try writer.print("{d:0>2}", .{@as(u32, @intCast(dto.dt.time.hours()))}),
-        .K, .KK => try writer.print("{d: >2}", .{@as(u32, @intCast(dto.dt.time.hours()))}),
-        .h => try writer.print("{d}", .{@as(u32, @intCast(switch (dto.dt.time.hours()) {
+        .A => try writer.writeAll(if (hmsm.h < 12) "AM" else "PM"),
+        .a => try writer.writeAll(if (hmsm.h < 12) "am" else "pm"),
+        .H => try writer.print("{d}", .{@as(u32, @intCast(hmsm.h))}),
+        .HH => try writer.print("{d:0>2}", .{@as(u32, @intCast(hmsm.h))}),
+        .K, .KK => try writer.print("{d: >2}", .{@as(u32, @intCast(hmsm.h))}),
+        .h => try writer.print("{d}", .{@as(u32, @intCast(switch (hmsm.h) {
             0 => 12,
             1...12 => |h| h,
             else => |h| h - 12,
         }))}),
-        .hh => try writer.print("{d:0>2}", .{@as(u32, @intCast(switch (dto.dt.time.hours()) {
+        .hh => try writer.print("{d:0>2}", .{@as(u32, @intCast(switch (hmsm.h) {
             0 => 12,
             1...12 => |h| h,
             else => |h| h - 12,
         }))}),
-        .k, .kk => try writer.print("{d: >2}", .{@as(u32, @intCast(switch (dto.dt.time.hours()) {
+        .k, .kk => try writer.print("{d: >2}", .{@as(u32, @intCast(switch (hmsm.h) {
             0 => 12,
             1...12 => |h| h,
             else => |h| h - 12,
         }))}),
-        .m => try writer.print("{d}", .{@as(u32, @intCast(dto.dt.time.minutes()))}),
-        .mm => try writer.print("{d:0>2}", .{@as(u32, @intCast(dto.dt.time.minutes()))}),
-        .s => try writer.print("{d}", .{@as(u32, @intCast(dto.dt.time.seconds()))}),
-        .ss => try writer.print("{d:0>2}", .{@as(u32, @intCast(dto.dt.time.seconds()))}),
-        .S => try writer.print("{d}", .{@as(u32, @intCast(@divFloor(dto.dt.time.ms(), 100)))}),
-        .SS => try writer.print("{d:0>2}", .{@as(u32, @intCast(@divFloor(dto.dt.time.ms(), 10)))}),
-        .SSS => try writer.print("{d:0>3}", .{@as(u32, @intCast(dto.dt.time.ms()))}),
+        .m => try writer.print("{d}", .{@as(u32, @intCast(hmsm.m))}),
+        .mm => try writer.print("{d:0>2}", .{@as(u32, @intCast(hmsm.m))}),
+        .s => try writer.print("{d}", .{@as(u32, @intCast(hmsm.s))}),
+        .ss => try writer.print("{d:0>2}", .{@as(u32, @intCast(hmsm.s))}),
+        .S => try writer.print("{d}", .{@as(u32, @intCast(@divFloor(hmsm.ms, 100)))}),
+        .SS => try writer.print("{d:0>2}", .{@as(u32, @intCast(@divFloor(hmsm.ms, 10)))}),
+        .SSS => try writer.print("{d:0>3}", .{@as(u32, @intCast(hmsm.ms))}),
         .z, .zz, .Z, .ZZ => done: {
             if (token == .z or token == .zz) {
                 if (dto.timezone) |tz| {
@@ -368,7 +372,7 @@ pub fn Parse_Result(comptime pattern: []const u8) type {
                 const s = if (has_seconds) self.seconds else 0;
                 const milli = if (has_ms) self.ms else 0;
                 return .{
-                    .time = Time.from_hmsm(self.hours, m, s, milli),
+                    .time = Time.from_hmsm_numbers(self.hours, m, s, milli),
                     .utc_offset_ms = if (has_utc_offset_ms) self.utc_offset_ms else if (timezone) |tz| tz.utc_offset_ms(0) else 0,
                     .timezone = timezone,
                 };
@@ -420,7 +424,7 @@ pub fn Parse_Result(comptime pattern: []const u8) type {
                     const m: u8 = if (has_minutes) self.minutes else 0;
                     const s: u8 = if (has_seconds) self.seconds else 0;
                     const milli: u10 = if (has_ms) self.ms else 0;
-                    dt.time = Time.from_hmsm(self.hours, m, s, milli);
+                    dt.time = Time.from_hmsm_numbers(self.hours, m, s, milli);
                 } else @compileError("Invalid pattern: " ++ pattern);
             }
 

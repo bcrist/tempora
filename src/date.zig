@@ -15,14 +15,16 @@ pub const Date = enum(i32) {
         return @fromBackingInt(@intCast(civil.ymd_to_days(d.year.as_number(), d.month.as_unsigned(), d.day.as_number())));
     }
 
+    pub fn from_yod_numbers(y: i32, od: i32) Date {
+        return Year.from_number(y).starting_date().plus_days(od - 1);
+    }
+
     pub fn from_yod(y: Year, od: Ordinal_Day) Date {
-        const raw = @backingInt(y.starting_date()) + od.as_number() - 1;
-        return @fromBackingInt(@intCast(raw));
+        return y.starting_date().plus_days(od.as_number() - 1);
     }
 
     pub fn from_yiod(yi: Year.Info, od: Ordinal_Day) Date {
-        const raw = @backingInt(yi.starting_date) + od.as_number() - 1;
-        return @fromBackingInt(@intCast(raw));
+        return yi.starting_date.plus_days(od.as_number() - 1);
     }
 
     pub fn from_ywd(y: Year, week: ISO_Week, weekday: Week_Day) Date {

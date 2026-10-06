@@ -25,6 +25,7 @@
 ## Limitations
 * Times are only accurate to millisecond resolution
 * It's not possible to store most "out of bounds" dates/times (e.g. Jan 32)
+* It's not possible to unambiguously refer to leap-second timestamps (i.e. 23:59:60.000 - 23:59:60.999)
 * Localized month and weekday names are not supported; only English
 * Non-Gregorian calendars are not supported
 
@@ -60,6 +61,11 @@ const date: Date = .from_ymd_numbers(y, m, d);
 ```zig
 const ymd: Date.YMD = .from_numbers(1984, 3, 1);
 const date: Date = .from_ymd(ymd);
+```
+```zig
+const y: i32 = 2000;
+const od: i32 = 1;
+const date: Date = .from_yod_numbers(y, od);
 ```
 ```zig
 const y: Year = .epoch;
@@ -306,7 +312,11 @@ const h: u31 = 20;
 const m: u8 = 30;
 const s: u8 = 0;
 const ms: u10 = 0;
-const t: Time = .from_hmsm(h, m, s, ms); // 8:30 pm
+const t: Time = .from_hmsm_numbers(h, m, s, ms); // 8:30 pm
+```
+```zig
+const hmsm: Time.HMSM = .from_numbers(20, 30, 0, 0);
+const t: Time = .from_hmsm(hmsm);
 ```
 
 #### Hourly Convenience Decls
@@ -322,10 +332,7 @@ const end_of_day: Time = .midnight_eod;
 ```zig
 const t: Time = .@"1pm";
 
-const whole_hours_since_midnight: i32 = t.hours();
-const whole_minutes_since_hour: i32 = t.minutes();
-const whole_seconds_since_minute: i32 = t.seconds();
-const milliseconds_since_second: i32 = t.ms();
+const decomposed: Time.HMSM = t.hmsm();
 const whole_minutes_since_midnight: i32 = t.minutes_since_midnight();
 const whole_seconds_since_midnight: i32 = t.seconds_since_midnight();
 const milliseconds_since_midnight: i32 = t.ms_since_midnight();
@@ -364,6 +371,75 @@ t = t.plus_minutes(m);
 
 const h: i32 = -3;
 t = t.plus_hours(h);
+```
+
+### `Time.HMSM`
+Much like `Date.YMD` is a `Date` decomposed into year, month, and day parts, `Time.HMSM` is a `Time` decomposed into hour, minute, second, and millisecond parts.
+
+#### Construction
+```zig
+const h: u31 = 23;
+const m: u8 = 59;
+const s: u8 = 59;
+const ms: u10 = 999;
+const hmsm: Time.HMSM = .from_numbers(h, m, s, ms);
+```
+```zig
+const hmsm: Time.HMSM = .from_time(.noon);
+```
+
+#### Hourly Convenience Decls
+```zig
+const start_of_day: Time.HMSM = .midnight;
+const wakeup: Time.HMSM = .@"7am";
+const lunch: Time.HMSM = .noon;
+const bedtime: Time.HMSM = .@"10pm";
+const end_of_day: Time.HMSM = .midnight_eod;
+```
+
+#### Decomposition & Conversion
+```zig
+const hmsm: Time.HMSM = .@"1pm";
+
+const whole_hours_since_midnight: i32 = hmsm.hours();
+const whole_minutes_since_hour: i32 = hmsm.minutes();
+const whole_seconds_since_minute: i32 = hmsm.seconds();
+const milliseconds_since_second: i32 = hmsm.ms();
+const whole_minutes_since_midnight: i32 = hmsm.minutes_since_midnight();
+const whole_seconds_since_midnight: i32 = hmsm.seconds_since_midnight();
+const milliseconds_since_midnight: i32 = hmsm.ms_since_midnight();
+```
+
+#### Comparison
+```zig
+const hmsm1: Time.HMSM = .noon;
+const hmsm2: Time.HMSM = .@"1pm";
+// assuming times from the same date:
+std.debug.assert(hmsm1.is_before(hmsm2));
+std.debug.assert(!hmsm1.is_before(hmsm1));
+std.debug.assert(hmsm2.is_after(hmsm1));
+std.debug.assert(!hmsm2.is_after(hmsm2));
+```
+
+#### Modification
+```zig
+var hmsm: Time.HMSM = .noon;
+
+const duration: std.Io.Duration = .fromSeconds(1);
+hmsm = hmsm.plus_duration(duration);
+hmsm = hmsm.minus_duration(duration);
+
+const ms: i32 = 1234;
+hmsm = hmsm.plus_ms(ms);
+
+const s: i32 = 1;
+hmsm = hmsm.plus_seconds(s);
+
+const m: i32 = 12
+hmsm = hmsm.plus_minutes(m);
+
+const h: i32 = -3;
+hmsm = hmsm.plus_hours(h);
 ```
 
 ### `Date_Time`
@@ -1213,7 +1289,7 @@ By default, `dump` will only use it's internal IANA timezone database, but if yo
 | Packed datetime (localized)     | `Date_Time.With_Offset`                                     | `Instant`                                                      | -                                                                             | -                                                         |
 | Decomposed datetime (localized) | -                                                           | `Time`                                                         | `Datetime`                                                                    | `datetime.Datetime`                                       |
 | Packed time                     | `Time`                                                      | -                                                              | -                                                                             | -                                                         |
-| Decomposed time                 | -                                                           | -                                                              | -                                                                             | `datetime.Time`                                           |
+| Decomposed time                 | `Time.HMSM`                                                 | -                                                              | -                                                                             | `datetime.Time`                                           |
 | Packed time (localized)         | `Time.With_Offset`                                          | -                                                              | -                                                                             | -                                                         |
 | Decomposed time (localized)     | -                                                           | -                                                              | -                                                                             | -                                                         |
 | Packed duration                 | `std.Io.Duration`                                           | -                                                              | `Duration`                                                                    | -                                                         |

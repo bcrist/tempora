@@ -45,16 +45,18 @@ pub const Time = enum(i32) {
         return @fromBackingInt(@intCast(h * 3600_000));
     }
 
-    pub fn from_hmsm(h: u31, m: u8, s: u8, milli: u10) Time {
-        std.debug.assert(h < 24);
-        std.debug.assert(m < 60);
-        std.debug.assert(s < 60);
-        std.debug.assert(milli < 1000);
+    pub fn from_hmsm(hms: HMSM) Time {
+        const h_ms = hms.h * 3600_000;
+        const m_ms = @as(u31, hms.m) * 60_000;
+        const s_ms = @as(u31, hms.s) * 1_000;
+        return @fromBackingInt(h_ms + m_ms + s_ms + hms.ms);
+    }
 
-        const hms = h * 3600_000;
-        const mms = @as(u31, m) * 60_000;
-        const sms = @as(u31, s) * 1_000;
-        return @fromBackingInt(@intCast(hms + mms + sms + milli));
+    pub fn from_hmsm_numbers(h: i32, m: i32, s: i32, ms: i32) Time {
+        const h_ms = h * 3600_000;
+        const m_ms = m * 60_000;
+        const s_ms = s * 1_000;
+        return @fromBackingInt(h_ms + m_ms + s_ms + ms);
     }
 
     pub fn with_date(self: Time, date: Date) Date_Time {
@@ -80,9 +82,8 @@ pub const Time = enum(i32) {
         };
     }
 
-    pub fn hours(self: Time) i32 {
-        const raw = self.ms_since_midnight();
-        return @divFloor(raw, 60 * 60 * 1000);
+    pub fn hmsm(self: Time) HMSM {
+        return .from_time(self);
     }
 
     pub fn minutes_since_midnight(self: Time) i32 {
@@ -90,30 +91,13 @@ pub const Time = enum(i32) {
         return @divFloor(raw, 60 * 1000);
     }
 
-    pub fn minutes(self: Time) i32 {
-        const raw = self.ms_since_midnight();
-        const delta = raw - self.hours() * 60 * 60 * 1000;
-        return @divFloor(delta, 60 * 1000);
-    }
-
     pub fn seconds_since_midnight(self: Time) i32 {
         const raw = self.ms_since_midnight();
         return @divFloor(raw, 1000);
     }
 
-    pub fn seconds(self: Time) i32 {
-        const raw = self.ms_since_midnight();
-        const delta = raw - self.minutes_since_midnight() * 60 * 1000;
-        return @divFloor(delta, 1000);
-    }
-
     pub fn ms_since_midnight(self: Time) i32 {
         return @backingInt(self);
-    }
-
-    pub fn ms(self: Time) i32 {
-        const raw = self.ms_since_midnight();
-        return @mod(raw, 1000);
     }
 
     pub fn is_before(self: Time, other: Time) bool {
@@ -130,6 +114,10 @@ pub const Time = enum(i32) {
 
     pub fn minus_duration(self: Time, duration: std.Io.Duration) Time {
         return self.plus_ms(@intCast(-duration.toMilliseconds()));
+    }
+
+    pub fn plus_hmsm(self: Time, hms: HMSM) Time {
+        return self.plus_ms(hms.ms_since_midnight());
     }
 
     pub fn plus_ms(self: Time, milli: i32) Time {
@@ -222,6 +210,190 @@ pub const Time = enum(i32) {
             };
 
             return pi.time(timezone);
+        }
+    };
+
+    pub const HMSM = struct {
+        h: u31,
+        m: u8,
+        s: u8,
+        ms: u10,
+
+        pub const midnight: HMSM = .from_numbers(0, 0, 0, 0);
+        pub const @"1am": HMSM = .from_numbers(1, 0, 0, 0);
+        pub const @"2am": HMSM = .from_numbers(2, 0, 0, 0);
+        pub const @"3am": HMSM = .from_numbers(3, 0, 0, 0);
+        pub const @"4am": HMSM = .from_numbers(4, 0, 0, 0);
+        pub const @"5am": HMSM = .from_numbers(5, 0, 0, 0);
+        pub const @"6am": HMSM = .from_numbers(6, 0, 0, 0);
+        pub const @"7am": HMSM = .from_numbers(7, 0, 0, 0);
+        pub const @"8am": HMSM = .from_numbers(8, 0, 0, 0);
+        pub const @"9am": HMSM = .from_numbers(9, 0, 0, 0);
+        pub const @"10am": HMSM = .from_numbers(10, 0, 0, 0);
+        pub const @"11am": HMSM = .from_numbers(11, 0, 0, 0);
+        pub const noon: HMSM = .from_numbers(12, 0, 0, 0);
+        pub const @"1pm": HMSM = .from_numbers(13, 0, 0, 0);
+        pub const @"2pm": HMSM = .from_numbers(14, 0, 0, 0);
+        pub const @"3pm": HMSM = .from_numbers(15, 0, 0, 0);
+        pub const @"4pm": HMSM = .from_numbers(16, 0, 0, 0);
+        pub const @"5pm": HMSM = .from_numbers(17, 0, 0, 0);
+        pub const @"6pm": HMSM = .from_numbers(18, 0, 0, 0);
+        pub const @"7pm": HMSM = .from_numbers(19, 0, 0, 0);
+        pub const @"8pm": HMSM = .from_numbers(20, 0, 0, 0);
+        pub const @"9pm": HMSM = .from_numbers(21, 0, 0, 0);
+        pub const @"10pm": HMSM = .from_numbers(22, 0, 0, 0);
+        pub const @"11pm": HMSM = .from_numbers(23, 0, 0, 0);
+        pub const midnight_eod: HMSM = .from_numbers(24, 0, 0, 0);
+
+        pub const @"12am": HMSM = .midnight;
+        pub const @"12pm": HMSM = .noon;
+
+        pub fn from_numbers(hours: u31, minutes: u8, seconds: u8, milli: u10) HMSM {
+            if (hours == 24) {
+                std.debug.assert(minutes == 0);
+                std.debug.assert(seconds == 0);
+                std.debug.assert(milli == 0);
+            } else {
+                std.debug.assert(hours <= 24);
+                std.debug.assert(minutes < 60);
+                std.debug.assert(seconds < 60);
+                std.debug.assert(milli < 1000);
+            }
+
+            return .{
+                .h = hours,
+                .m = minutes,
+                .s = seconds,
+                .ms = milli,
+            };
+        }
+
+        pub fn from_time(t: Time) HMSM {
+            const raw: i32 = @backingInt(t);
+            std.debug.assert(raw >= 0);
+            if (@bitSizeOf(usize) <= 32) {
+                const tsec: i32 = @divTrunc(raw, 1000);
+                const tmin: i32 = @divTrunc(raw, 60000);
+                const hour: i32 = @divTrunc(raw, 3600000);
+                const milli: i32 = raw - tsec * 1000;
+                const second: i32 = tsec - tmin * 60;
+                const minute: i32 = tmin - hour * 60;
+                return .{
+                    .h = @intCast(hour),
+                    .m = @intCast(minute),
+                    .s = @intCast(second),
+                    .ms = @intCast(milli),
+                };
+            } else {
+                const raw_u32: u32 = @bitCast(raw);
+                const raw_u64: u64 = raw_u32;
+                const tsec: u32 = @truncate((raw_u64 *% 274877907) >> 38);
+                const tmin: u32 = @truncate((raw_u64 *% 1172812403) >> 46);
+                const hour: u32 = @truncate((raw_u64 *% 2501999793) >> 53);
+                const milli: u32 = raw_u32 - tsec * 1000;
+                const second: u32 = tsec - tmin * 60;
+                const minute: u32 = tmin - hour * 60;
+                return .{
+                    .h = @intCast(hour),
+                    .m = @intCast(minute),
+                    .s = @intCast(second),
+                    .ms = @intCast(milli),
+                };
+            }
+        }
+
+        pub fn time(self: HMSM) Time {
+            return .from_hmsm(self);
+        }
+
+        pub fn minutes_since_midnight(self: HMSM) i32 {
+            var m = @as(i32, self.m) + @as(i32, self.h) * 60;
+            if (self.s >= 59) {
+                var s = self.s;
+                if (self.ms > 999) s += 1;
+                if (s >= 60) {
+                    m += s / 60;
+                }
+            }
+            return m;
+        }
+
+        pub fn seconds_since_midnight(self: HMSM) i32 {
+            return @as(i32, if (self.ms > 999) 1 else 0) + @as(i32, self.s) + @as(i32, self.m) * 60 + @as(i32, self.h) * (60 * 60);
+        }
+
+        pub fn ms_since_midnight(self: HMSM) i32 {
+            return self.ms + @as(i32, self.s) * 1000 + @as(i32, self.m) * 60_000 + @as(i32, self.h) * (60 * 60_000);
+        }
+
+        pub fn is_before(self: HMSM, other: HMSM) bool {
+            return self.ms_since_midnight() < other.ms_since_midnight();
+        }
+
+        pub fn is_after(self: HMSM, other: HMSM) bool {
+            return self.ms_since_midnight() > other.ms_since_midnight();
+        }
+
+        pub fn plus_duration(self: HMSM, duration: std.Io.Duration) HMSM {
+            return self.plus_ms(@intCast(duration.toMilliseconds()));
+        }
+
+        pub fn minus_duration(self: HMSM, duration: std.Io.Duration) HMSM {
+            return self.plus_ms(@intCast(-duration.toMilliseconds()));
+        }
+
+        pub fn plus_ms(self: HMSM, milli: i32) HMSM {
+            var new: HMSM = self;
+            var new_ms = self.ms + milli;
+            if (new_ms >= 1000) {
+                const seconds: i32 = @divTrunc(new_ms, 1000);
+                new_ms -= seconds * 1000;
+                new = new.plus_seconds(seconds);
+            } else if (new_ms < 0) {
+                const seconds: i32 = @divFloor(new_ms, 1000);
+                new_ms -= seconds * 1000;
+                new = new.plus_seconds(seconds);
+            }
+            new.ms = @intCast(new_ms);
+            return new;
+        }
+
+        pub fn plus_seconds(self: HMSM, s: i32) HMSM {
+            var new: HMSM = self;
+            var new_s = self.s + s;
+            if (new_s >= 60) {
+                const minutes: i32 = @divTrunc(new_s, 60);
+                new_s -= minutes * 60;
+                new = new.plus_minutes(minutes);
+            } else if (new_s < 0) {
+                const minutes: i32 = @divFloor(new_s, 60);
+                new_s -= minutes * 60;
+                new = new.plus_minutes(minutes);
+            }
+            new.s = @intCast(new_s);
+            return new;
+        }
+
+        pub fn plus_minutes(self: HMSM, m: i32) HMSM {
+            var new: HMSM = self;
+            var new_m = self.m + m;
+            if (new_m >= 60) {
+                const hours: i32 = @divTrunc(new_m, 60);
+                new_m -= hours * 60;
+                new = new.plus_hours(hours);
+            } else if (new_m < 0) {
+                const hours: i32 = @divFloor(new_m, 60);
+                new_m -= hours * 60;
+                new = new.plus_hours(hours);
+            }
+            new.m = @intCast(new_m);
+            return new;
+        }
+
+        pub fn plus_hours(self: HMSM, h: i32) HMSM {
+            var new: HMSM = self;
+            new.h = @intCast(new.h + h);
+            return new;
         }
     };
 };
