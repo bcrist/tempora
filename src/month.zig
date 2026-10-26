@@ -25,7 +25,7 @@ pub const Month = enum(u4) {
     pub fn from_string(m: []const u8, options: From_String_Options) !Month {
         const trimmed = if (options.trim.len > 0) std.mem.trim(u8, m, options.trim) else m;
 
-        if (options.allow_short and trimmed.len == 3 or options.allow_long and trimmed.len >= 3) {
+        if ((options.allow_short and trimmed.len == 3) or (options.allow_long and trimmed.len >= 3)) {
             const info = @typeInfo(Month).@"enum";
             inline for (info.field_names, info.field_values) |month_name, month_value| {
                 if (std.ascii.eqlIgnoreCase(trimmed[0..3], month_name[0..3])) {

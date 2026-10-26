@@ -32,7 +32,7 @@ pub const Week_Day = enum(u3) {
                 if (trimmed[0] | 0x20 == field_name[0]) {
                     const day: Week_Day = @fromBackingInt(@intCast(field_value));
                     if (switch (trimmed.len) {
-                        1 => options.allow_short and day == .monday or day == .wednesday or day == .friday,
+                        1 => (options.allow_short and day == .monday) or day == .wednesday or day == .friday,
                         2 => options.allow_short and trimmed[1] | 0x20 == field_name[1],
                         3 => options.allow_short and trimmed[1] | 0x20 == field_name[1] and trimmed[2] | 0x20 == field_name[2],
                         4 => options.allow_short and day == .tuesday and std.ascii.eqlIgnoreCase(trimmed, "tues"),

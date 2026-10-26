@@ -43,7 +43,7 @@ pub fn get_ids(self: *const TZDB) []const []const u8 {
 pub fn timezone(self: *TZDB, id: []const u8) ?*const Timezone {
     const tz = self.lookup.getPtr(id) orelse tz: {
         if (self.default_lazy_options) |options| {
-            _ = self.add_iana(self.lazy_io, id, .{
+            _ = (self.add_iana(self.lazy_io, id, .{
                 .override_search_path = options.tzdata_override_search_path,
                 .search_paths = options.tzdata_search_paths,
                 .use_windows = options.use_windows,
@@ -52,7 +52,7 @@ pub fn timezone(self: *TZDB, id: []const u8) ?*const Timezone {
             }) catch |err| {
                 log.warn("Failed to lazy-load timezone {s}: {s}", .{ id, @errorName(err) });
                 return null;
-            } orelse return null;
+            }) orelse return null;
             break :tz self.lookup.getPtr(id) orelse return null;
         }
         return null;
@@ -60,12 +60,12 @@ pub fn timezone(self: *TZDB, id: []const u8) ?*const Timezone {
     if (tz.infos.len > 0 or tz.posix != null) return tz;
 
     if (self.lazy_lookup.get(id)) |lazy| {
-        tz.* = self.add_tzif_data(self.lazy_io, lazy.tzif.*, lazy.options.*) catch |err| {
+        tz.* = (self.add_tzif_data(self.lazy_io, lazy.tzif.*, lazy.options.*) catch |err| {
             log.warn("Failed to lazy-load timezone {s}: {s}", .{ id, @errorName(err) });
             return null;
-        } orelse return null;
+        }) orelse return null;
     } else if (self.default_lazy_options) |options| {
-        tz.* = self.add_iana(self.lazy_io, id, .{
+        tz.* = (self.add_iana(self.lazy_io, id, .{
             .override_search_path = options.tzdata_override_search_path,
             .search_paths = options.tzdata_search_paths,
             .use_windows = options.use_windows,
@@ -74,7 +74,7 @@ pub fn timezone(self: *TZDB, id: []const u8) ?*const Timezone {
         }) catch |err| {
             log.warn("Failed to lazy-load timezone {s}: {s}", .{ id, @errorName(err) });
             return null;
-        } orelse return null;
+        }) orelse return null;
     } else return null;
 
     _ = self.lazy_lookup.remove(id);

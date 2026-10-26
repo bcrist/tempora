@@ -74,7 +74,7 @@ pub const civil32 = struct {
         const cen: u32 = qds / days_per_era;
         const jul: u32 = qds - (cen & ~@as(u32, 3)) + cen * 4;
         const yrs: u32 = jul / 1461;
-        const rem: u32 = jul % 1461 / 4;
+        const rem: u32 = (jul % 1461) / 4;
 
         var year: i32 = @intCast(yrs + bucket * (7 * 400));
         if (rem >= 306) year += 1;
@@ -93,12 +93,12 @@ pub const civil32 = struct {
         const cen: u32 = qds / days_per_era;
         const jul: u32 = qds - (cen & ~@as(u32, 3)) + cen * 4;
         const yrs: u32 = jul / 1461;
-        const rem: u32 = jul % 1461 / 4;
+        const rem: u32 = (jul % 1461) / 4;
 
         // Neri-Schneider technique for Day & Month:
         const n: u32 = rem * 2141 + 197913;
         const m: u32 = n / 65536;
-        const d: u32 = n % 65536 / 2141;
+        const d: u32 = (n % 65536) / 2141;
 
         const bump: u1 = @intFromBool(rem >= 306);
         const day: u32 = d + 1;

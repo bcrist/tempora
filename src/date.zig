@@ -465,7 +465,7 @@ pub const Date = enum(i32) {
             const current_day = self.day.as_number();
 
             return .{
-                .year = if (target_month > current_month or target_month == current_month and target_day > current_day) self.year else self.year.next(),
+                .year = if (target_month > current_month or (target_month == current_month and target_day > current_day)) self.year else self.year.next(),
                 .month = m,
                 .day = d,
             };
@@ -481,7 +481,7 @@ pub const Date = enum(i32) {
             const current_day = self.day.as_number();
 
             return .{
-                .year = if (target_month < current_month or target_month == current_month and target_day < current_day) self.year else self.year.prev(),
+                .year = if (target_month < current_month or (target_month == current_month and target_day < current_day)) self.year else self.year.prev(),
                 .month = m,
                 .day = d,
             };

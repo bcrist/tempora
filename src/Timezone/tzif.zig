@@ -108,10 +108,10 @@ fn read_v(comptime version: Version, arena: std.mem.Allocator, id: []const u8, r
     if (version != .v1) {
         if ((try reader.takeByte()) != '\n') return error.MissingFooter;
 
-        const tz_string = reader.takeDelimiter('\n') catch |err| switch (err) {
+        const tz_string = (reader.takeDelimiter('\n') catch |err| switch (err) {
             error.StreamTooLong => return error.FooterTooLong,
             else => return err,
-        } orelse "";
+        }) orelse "";
 
         if (tz_string.len > 0) posix = try Timezone.Posix.parse(tz_string);
     }
