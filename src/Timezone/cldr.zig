@@ -13,6 +13,9 @@ pub fn windows_registry_key_to_iana(key: []const u8, region: []const u8) ?[]cons
             if (std.mem.eql(u8, key, "Alaskan Standard Time")) {
                 return "America/Anchorage";
             }
+            if (std.mem.eql(u8, key, "Alberta Standard Time")) {
+                return "America/Edmonton";
+            }
             if (std.mem.eql(u8, key, "Atlantic Standard Time")) {
                 if (std.mem.eql(u8, region, "BM")) return "Atlantic/Bermuda";
                 if (std.mem.eql(u8, region, "GL")) return "America/Thule";
@@ -63,6 +66,9 @@ pub fn windows_registry_key_to_iana(key: []const u8, region: []const u8) ?[]cons
             }
         },
         'b' => {
+            if (std.mem.eql(u8, key, "British Columbia Standard Time")) {
+                return "America/Vancouver";
+            }
             if (std.mem.eql(u8, key, "Bahia Standard Time")) {
                 return "America/Bahia";
             }
@@ -89,7 +95,7 @@ pub fn windows_registry_key_to_iana(key: []const u8, region: []const u8) ?[]cons
                 return "America/Guatemala";
             }
             if (std.mem.eql(u8, key, "Central Standard Time")) {
-                if (std.mem.eql(u8, region, "CA")) return "America/Winnipeg";
+                if (std.mem.eql(u8, region, "CA")) return "America/Rankin_Inlet";
                 if (std.mem.eql(u8, region, "MX")) return "America/Matamoros";
                 return "America/Chicago";
             }
@@ -310,9 +316,12 @@ pub fn windows_registry_key_to_iana(key: []const u8, region: []const u8) ?[]cons
                 return "America/Mazatlan";
             }
             if (std.mem.eql(u8, key, "Mountain Standard Time")) {
-                if (std.mem.eql(u8, region, "CA")) return "America/Edmonton";
+                if (std.mem.eql(u8, region, "CA")) return "America/Cambridge_Bay";
                 if (std.mem.eql(u8, region, "MX")) return "America/Ciudad_Juarez";
                 return "America/Denver";
+            }
+            if (std.mem.eql(u8, key, "Manitoba Standard Time")) {
+                return "America/Winnipeg";
             }
             if (std.mem.eql(u8, key, "Montevideo Standard Time")) {
                 return "America/Montevideo";
@@ -380,7 +389,6 @@ pub fn windows_registry_key_to_iana(key: []const u8, region: []const u8) ?[]cons
                 return "America/Tijuana";
             }
             if (std.mem.eql(u8, key, "Pacific Standard Time")) {
-                if (std.mem.eql(u8, region, "CA")) return "America/Vancouver";
                 return "America/Los_Angeles";
             }
             if (std.mem.eql(u8, key, "Paraguay Standard Time")) {
@@ -821,7 +829,6 @@ pub const iana_to_windows_registry_key: std.StaticStringMap([]const u8) = .initC
     .{ "Etc/GMT+8", "UTC-08" },
     .{ "Pacific/Pitcairn", "UTC-08" },
     .{ "America/Los_Angeles", "Pacific Standard Time" },
-    .{ "America/Vancouver", "Pacific Standard Time" },
     .{ "America/Phoenix", "US Mountain Standard Time" },
     .{ "America/Creston", "US Mountain Standard Time" },
     .{ "America/Dawson_Creek", "US Mountain Standard Time" },
@@ -830,13 +837,14 @@ pub const iana_to_windows_registry_key: std.StaticStringMap([]const u8) = .initC
     .{ "Etc/GMT+7", "US Mountain Standard Time" },
     .{ "America/Mazatlan", "Mountain Standard Time (Mexico)" },
     .{ "America/Denver", "Mountain Standard Time" },
-    .{ "America/Edmonton", "Mountain Standard Time" },
     .{ "America/Cambridge_Bay", "Mountain Standard Time" },
-    .{ "America/Inuvik", "Mountain Standard Time" },
     .{ "America/Ciudad_Juarez", "Mountain Standard Time" },
     .{ "America/Boise", "Mountain Standard Time" },
+    .{ "America/Vancouver", "British Columbia Standard Time" },
     .{ "America/Whitehorse", "Yukon Standard Time" },
     .{ "America/Dawson", "Yukon Standard Time" },
+    .{ "America/Edmonton", "Alberta Standard Time" },
+    .{ "America/Inuvik", "Alberta Standard Time" },
     .{ "America/Guatemala", "Central America Standard Time" },
     .{ "America/Belize", "Central America Standard Time" },
     .{ "America/Costa_Rica", "Central America Standard Time" },
@@ -846,7 +854,6 @@ pub const iana_to_windows_registry_key: std.StaticStringMap([]const u8) = .initC
     .{ "America/El_Salvador", "Central America Standard Time" },
     .{ "Etc/GMT+6", "Central America Standard Time" },
     .{ "America/Chicago", "Central Standard Time" },
-    .{ "America/Winnipeg", "Central Standard Time" },
     .{ "America/Rankin_Inlet", "Central Standard Time" },
     .{ "America/Resolute", "Central Standard Time" },
     .{ "America/Matamoros", "Central Standard Time" },
@@ -865,6 +872,7 @@ pub const iana_to_windows_registry_key: std.StaticStringMap([]const u8) = .initC
     .{ "America/Chihuahua", "Central Standard Time (Mexico)" },
     .{ "America/Regina", "Canada Central Standard Time" },
     .{ "America/Swift_Current", "Canada Central Standard Time" },
+    .{ "America/Winnipeg", "Manitoba Standard Time" },
     .{ "America/Bogota", "SA Pacific Standard Time" },
     .{ "America/Rio_Branco", "SA Pacific Standard Time" },
     .{ "America/Eirunepe", "SA Pacific Standard Time" },

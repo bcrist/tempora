@@ -1,7 +1,7 @@
 .{
     .name = .tempora,
     .fingerprint = 0xb3d860680d9e3c19,
-    .version = "0.7.1",
+    .version = "0.7.2",
     .minimum_zig_version = "0.17.0",
     .paths = .{
         "src",
@@ -11,13 +11,13 @@
     },
     .dependencies = .{
         .tzdata = .{
-            .url = "https://www.iana.org/time-zones/repository/releases/tzdata2026e.tar.gz",
-            .hash = "N-V-__8AAPyeFQAGki29JMlDTaQoGWTK7OjwSQa3HbVU5wAq",
+            .url = "https://www.iana.org/time-zones/repository/releases/tzdata2026f.tar.gz",
+            .hash = "N-V-__8AABivFQAnbHKeR2zPOnqTGTh1UamCtvXl06eSEe-C",
             .lazy = true,
         },
         .cldr = .{
-            .url = "git+https://github.com/unicode-org/cldr?ref=release-48-2#11299982335beb974c1c63c45265184e759c0f41",
-            .hash = "N-V-__8AALa_ihnH6G94d0T6M_-LgWwn8bCpRS5l4vGxnNOa",
+            .url = "git+https://github.com/unicode-org/cldr?ref=release-49#7afa5cdb6b7fe7ae65f934c6dbaa374f25b5a616",
+            .hash = "N-V-__8AACelhxorBhWS-IWY9CZXPZPtHB8HaMKL3FoX0GZR",
             .lazy = true,
         },
         .xmlread = .{
